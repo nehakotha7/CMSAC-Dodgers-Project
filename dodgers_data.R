@@ -1,12 +1,14 @@
 library(baseballr) #install the package beforehand
 #scraping pitching data from 2021
-data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021) |> 
-  filter(Pitches >= 250) #only including pitchers who threw more than 250 pitches
+data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021)
+#only including pitchers who threw more than 250 pitches
+data_2021 <- data_2021[which(data_2021$Pitches >= 250),]
 #adjusting the position column to classify into starters (SP) and relievers (RP)
 for (player in data_2021){
   data_2021$position <- ifelse(data_2021$GS >= (data_2021$G - data_2021$GS), 
                                "SP", "RP")
 }
+library(ggplot2)
 data_2021 |> 
   ggplot(aes(x= sp_s_FF, y = FBv))+
   geom_point()
