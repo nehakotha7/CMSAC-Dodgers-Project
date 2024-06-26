@@ -28,3 +28,6 @@ for (player in data_2023){
   data_2023$position <- ifelse(data_2023$GS >= (data_2023$G - data_2023$GS), 
                                "SP", "RP")
 }
+
+
+test_2023 = baseballr::fg_pitch_leaders(startseason = 2021, endseason = 2023)
