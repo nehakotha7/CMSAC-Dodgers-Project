@@ -14,7 +14,7 @@ data_2021 |>
   geom_point()
 
 
-
+#Process repeated for 2022
 data_2022 = baseballr::fg_pitcher_leaders(startseason = 2022, endseason = 2022)
 data_2022 <- data_2022[which(data_2022$Pitches >= 250),]
 for (player in data_2022){
@@ -23,14 +23,14 @@ for (player in data_2022){
 }
 
 
-
+#process repeated for 2023
 data_2023 = baseballr::fg_pitcher_leaders(startseason = 2023, endseason = 2023)
 data_2023 <- data_2023[which(data_2023$Pitches >= 250),]
 for (player in data_2023){
   data_2023$position <- ifelse(data_2023$GS >= (data_2023$G - data_2023$GS), 
                                "SP", "RP")
 }
-#creating condensed dataseet for 2021
+#creating condensed dataset for 2021, will likely need to change selected variables.
 library(dplyr)
 cond_data_2021 <- data_2021 |> 
   select(Season, Position, IP, Throws, xMLBAMID, PlayerNameRoute, `ERA-`, `K_BB+`, `HR_9+`, `WHIP+`,
@@ -58,15 +58,30 @@ cond_data_2023 <- data_2023 |>
   )
 #combining all three condensed datasets
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
-  
+
+#Adding indicator variables for each pitch
+#What should the cutoff be for a legit weapon? 5%?
+cond_data <- cond_data |> 
+  mutate(ind_fastball = ifelse(is.na(FB_pct1), "No", "Yes"),
+         ind_slider = ifelse(is.na(SL_pct), "No", "Yes"),
+         ind_cutter = ifelse(is.na(CT_pct), "No", "Yes"),
+         ind_curve = ifelse(is.na(CB_pct), "No", "Yes"),
+         ind_change = ifelse(is.na(CH_pct), "No", "Yes"),
+  )
+
+
 #Experimenting with visualizations
 cond_data |> 
-  ggplot(aes(x=sp_s_FF, y=sp_s_CH))+
+  ggplot(aes(x=FBv, y=sp_s_FF))+
   geom_point()
+
 cond_data |> 
   ggplot(aes(x=sp_s_FF))+
   geom_histogram()  
-  
+
+ggplot(cond_data, aes(x=sp_s_FF, colour = ind_slider))+
+  geom_density()+
+  facet_wrap(vars(ind_slider), nrow=2)
   
   
   
