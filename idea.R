@@ -120,5 +120,6 @@ cond_data_2021 |>
 
 # Out of the myriads of variables which one is important?
 # EDA
+
 # Limitation
   # In creating these metrics for pitch arsenal, stuff plus (sp) doesn't take into account the batter's action
