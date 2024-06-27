@@ -118,6 +118,8 @@ cond_data_2021 |>
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
+
+
 # Out of the myriads of variables which one is important?
 # EDA
 # Limitation
