@@ -1,18 +1,22 @@
 library(baseballr) #install the package beforehand
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021)
-#only including pitchers who threw more than 250 pitches
+#only including pitchers who threw more than 250 pitches 
+#*Might want to be more selective*
 data_2021 <- data_2021[which(data_2021$Pitches >= 250),]
 #adjusting the position column to classify into starters (SP) and relievers (RP)
 for (player in data_2021){
   data_2021$position <- ifelse(data_2021$GS >= (data_2021$G - data_2021$GS), 
                                "SP", "RP")
 }
-library(ggplot2)
-data_2021 |> 
-  ggplot(aes(x= sp_s_FF, y = FBv))+
-  geom_point()
-
+for (player in data_2021){
+  data_2021$pfx_FO_pct = NA
+  data_2021$pfx_vFO = NA
+  data_2021$`pfx_FO-X` = NA
+  data_2021$`pfx_FO-Z` = NA
+  data_2021$pfx_wFO_C = NA
+  data_2021$sp_s_FO = NA
+}
 
 #Process repeated for 2022
 data_2022 = baseballr::fg_pitcher_leaders(startseason = 2022, endseason = 2022)
@@ -20,6 +24,19 @@ data_2022 <- data_2022[which(data_2022$Pitches >= 250),]
 for (player in data_2022){
   data_2022$position <- ifelse(data_2022$GS >= (data_2022$G - data_2022$GS), 
                                "SP", "RP")
+}
+for (player in data_2022){
+  data_2022$pfx_SC_pct = NA
+  data_2022$pfx_vSC = NA
+  data_2022$`pfx_SC-X` = NA
+  data_2022$`pfx_SC-Z` = NA
+  data_2022$pfx_wSC_C = NA
+  data_2022$pfx_FO_pct = NA
+  data_2022$pfx_vFO = NA
+  data_2022$`pfx_FO-X` = NA
+  data_2022$`pfx_FO-Z` = NA
+  data_2022$pfx_wFO_C = NA
+  data_2022$sp_s_FO = NA
 }
 
 
@@ -30,60 +47,164 @@ for (player in data_2023){
   data_2023$position <- ifelse(data_2023$GS >= (data_2023$G - data_2023$GS), 
                                "SP", "RP")
 }
+#Add K_9+ into this
+key_vars <- c("Season", 'position', 'IP', 'Throws', 'xMLBAMID', 'PlayerNameRoute',
+              "ERA-", "K_BB+", "HR_9+", "WHIP+", "AVG+", "FIP-", 
+              "BABIP+", "RAR", "WAR", "RA9-Wins", "xFIP-", "WPA", "RE24", 
+              "REW", "pfx_CH_pct", "pfx_CU_pct", "pfx_FA_pct", "pfx_FC_pct", 
+              "pfx_SI_pct", "pfx_SL_pct", "pfx_vCH", "pfx_vCU", "pfx_vFA", "pfx_vFC", 
+              "pfx_vSI", "pfx_vSL", "pfx_CH-X", "pfx_CU-X", "pfx_FA-X", "pfx_FC-X", 
+              "pfx_SI-X", "pfx_SL-X", "pfx_CH-Z", "pfx_CU-Z", "pfx_FA-Z", "pfx_FC-Z", 
+              "pfx_SI-Z", "pfx_SL-Z", "pfx_wCH_C", "pfx_wCU_C", "pfx_wFA_C", "pfx_wFC_C", 
+              "pfx_wSI_C", "pfx_wSL_C", "pfx_FS_pct", "pfx_vFS", "pfx_FS-X", "pfx_FS-Z", 
+              "pfx_wFS_C", "pfx_SC_pct", "pfx_vSC", "pfx_SC-X", "pfx_SC-Z", "pfx_wSC_C", 
+              "pfx_KC_pct", "pfx_vKC", "pfx_KC-X", "pfx_KC-Z", "pfx_wKC_C", "pfx_KN_pct", 
+              "pfx_vKN", "pfx_KN-X", "pfx_KN-Z", "pfx_wKN_C","pfx_FO_pct", "pfx_vFO", 
+              "pfx_FO-X", "pfx_FO-Z", "pfx_wFO_C", "sp_s_CH", "sp_s_CU", "sp_s_FF", 
+              "sp_s_SI", "sp_s_SL", "sp_s_FC", "sp_s_FS", "sp_s_KC", "sp_s_FO",
+              "sp_stuff"
+              
+)
+#no stuff+ for screwball (only one pitcher throws it)
+
 #creating condensed dataset for 2021, will likely need to change selected variables.
 library(dplyr)
 cond_data_2021 <- data_2021 |> 
-  select(Season, Position, IP, Throws, xMLBAMID, PlayerNameRoute, `ERA-`, `K_BB+`, `HR_9+`, `WHIP+`,
-         `AVG+`, `FIP-`, `BABIP+`, RAR, WAR, `RA9-Wins`, `xFIP-`, WPA, RE24, REW,
-         FB_pct1, FBv, SL_pct,  SLv, CT_pct, CTv, CB_pct, CBv, CH_pct, CHv,
-         sp_s_FF, sp_s_SI, sp_s_SL, sp_s_FC, sp_s_CU, sp_s_CH, sp_s_FS, sp_s_KC,
-         sp_stuff, SIERA, KNv, KN_pct,`Soft_pct+`, `Med_pct+`, `Hard_pct+`, xERA, 
+  select(all_of(key_vars)
          )
 
-#Creating condensed dataset for 2022
+#Creating condensed dataset for 2022 
+#missing some Pitch Info variables.  Check on pitchFX
 cond_data_2022 <- data_2022 |> 
-  select(Season, Position, IP, Throws, xMLBAMID, PlayerNameRoute, `ERA-`, `K_BB+`, `HR_9+`, `WHIP+`,
-         `AVG+`, `FIP-`, `BABIP+`, RAR, WAR, `RA9-Wins`, `xFIP-`, WPA, RE24, REW,
-         FB_pct1, FBv, SL_pct,  SLv, CT_pct, CTv, CB_pct, CBv, CH_pct, CHv,
-         sp_s_FF, sp_s_SI, sp_s_SL, sp_s_FC, sp_s_CU, sp_s_CH, sp_s_FS, sp_s_KC,
-         sp_stuff, SIERA, KNv, KN_pct,`Soft_pct+`, `Med_pct+`, `Hard_pct+`, xERA, 
+  select(all_of(key_vars)
   )
 #Creating condensed dataset for 2023
 cond_data_2023 <- data_2023 |> 
-  select(Season, Position, IP, Throws, xMLBAMID, PlayerNameRoute, `ERA-`, `K_BB+`, `HR_9+`, `WHIP+`,
-         `AVG+`, `FIP-`, `BABIP+`, RAR, WAR, `RA9-Wins`, `xFIP-`, WPA, RE24, REW,
-         FB_pct1, FBv, SL_pct,  SLv, CT_pct, CTv, CB_pct, CBv, CH_pct, CHv,
-         sp_s_FF, sp_s_SI, sp_s_SL, sp_s_FC, sp_s_CU, sp_s_CH, sp_s_FS, sp_s_KC,
-         sp_stuff, SIERA, KNv, KN_pct,`Soft_pct+`, `Med_pct+`, `Hard_pct+`, xERA, 
+  select(all_of(key_vars)
   )
 #combining all three condensed datasets
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
 
 #Adding indicator variables for each pitch
 #What should the cutoff be for a legit weapon? 5%?
-cond_data <- cond_data |> 
-  mutate(ind_fastball = ifelse(is.na(FB_pct1), "No", "Yes"),
-         ind_slider = ifelse(is.na(SL_pct), "No", "Yes"),
-         ind_cutter = ifelse(is.na(CT_pct), "No", "Yes"),
-         ind_curve = ifelse(is.na(CB_pct), "No", "Yes"),
-         ind_change = ifelse(is.na(CH_pct), "No", "Yes"),
+cond_data <- cond_data %>%
+  mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct < 0.05, "No", "Yes"),
+         ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct < 0.05, "No", "Yes"),
+         ind_cutter = ifelse(is.na(pfx_FC_pct) | pfx_FC_pct < 0.05, "No", "Yes"),
+         ind_curve = ifelse(is.na(pfx_CU_pct) | pfx_CU_pct < 0.05, "No", "Yes"),
+         ind_change = ifelse(is.na(pfx_CH_pct) | pfx_CH_pct < 0.05, "No", "Yes"),
+         ind_split = ifelse(is.na(pfx_FS_pct) | pfx_FS_pct < 0.05, "No", "Yes"),
+         ind_sinker = ifelse(is.na(pfx_SI_pct) | pfx_SI_pct < 0.05, "No", "Yes"),
+         ind_screw = ifelse(is.na(pfx_SC_pct) | pfx_SC_pct < 0.05, "No", "Yes"),
+         ind_fork = ifelse(is.na(pfx_FO_pct) | pfx_FO_pct < 0.05, "No", "Yes"),
+         ind_kc = ifelse(is.na(pfx_KC_pct) | pfx_KC_pct < 0.05, "No", "Yes"),
+         ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct < 0.05, "No", "Yes")
   )
 
 
 #Experimenting with visualizations
+library(ggplot2)
 cond_data |> 
-  ggplot(aes(x=FBv, y=sp_s_FF))+
+  filter(cond_data$ind_fastball == "Yes") |> 
+  ggplot(aes(x=pfx_vFA, y=sp_s_FF, color = `K_BB+`))+
   geom_point()
 
 cond_data |> 
   ggplot(aes(x=sp_s_FF))+
   geom_histogram()  
 
-ggplot(cond_data, aes(x=sp_s_FF, colour = ind_slider))+
+ggplot(cond_data, aes(x=`xFIP-`, colour = ind_curve))+
   geom_density()+
-  facet_wrap(vars(ind_slider), nrow=2)
+  facet_wrap(vars(ind_curve), nrow=2)
   
-  
+ggplot(cond_data, aes(x= `pfx_SL-X`, y=sp_s_SL))+
+  geom_point(na.rm = TRUE)+
+  geom_smooth(method="lm")+
+  facet_wrap(~ Throws)
+
+
+#Gabe's Code: Won't run here because I changed "key_vars"
+
+cond_data_2021 <- data_2021 |> 
+  dplyr::select(all_of(key_vars))
+
+# summary(cond_data_2021)
+
+
+# Earned Runs Average
+cond_data_2021 |> 
+  ggplot(aes(ERA))+
+  geom_histogram(binwidth = 0.5, fill = 'blue', color = 'black')+
+  labs(title = "Distribution of ERA", x = "ERA", y = "Frequency")
+
+cond_data_2021 |> 
+  ggplot(aes(x = FBv, y = SO))+
+  geom_point(alpha = .5, color = 'red')+
+  geom_smooth(method = 'lm', color = 'blue', se = F)+
+  labs(title = "Fastball Velocity vs Strikeouts", x = "Fastball Velocity (mph)", y = "Strikeouts")
+
+# Boxplot of ERA by Pitching Hand (Throws)
+cond_data_2021 |> 
+  ggplot(aes(Throws, ERA))+
+  geom_boxplot(fill = c('lightblue', 'lightgreen'))+
+  labs(title = "ERA by Pitching Hand", x = "Pitching Hand", y = "ERA")
+
+cond_data_2021 |> 
+  ggplot(aes(x = sp_stuff, y = ERA, color = Throws))+
+  geom_smooth(method = 'lm')+
+  labs(title = "Stuff+ vs ERA by Throwing Hand", x = "Stuff+", y = "ERA")
+
+
+# Wins Above Replace
+# The formula for WAR can be complex and varies by source, 
+# but the aim is to combine these elements to reflect a player's overall value 
+# in terms of additional wins contributed to their team.
+
+# Stuff+ vs Performance
+cond_data_2021 |> 
+  ggplot(aes(sp_stuff, WAR))+
+  geom_point(alpha = .5)+
+  geom_smooth(method = 'lm')+
+  labs(title = "Stuff+ vs WAR", x = "Stuff+", y = "WAR")
+
+# Pitch Type vs Performance:
+cond_data_2021 |> 
+  ggplot(aes(wFB, ERA))+
+  geom_point(alpha = .5)+
+  geom_smooth(method = 'lm')+
+  labs(title = "Fastball Value (wFB) vs ERA", x = "wFB", y = "ERA")
+
+
+library(ggcorrplot)
+cor_matrix <- cor(cond_data_2021 %>% select_if(is.numeric), use = "complete.obs")
+ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower", lab = TRUE)
+
+
+
+# Plot pitch usage patterns
+pitch_type_names <- c(
+  "FB_pct1" = "Fastball %", 
+  "SL_pct" = "Slider %", 
+  "CT_pct" = "Cutter %", 
+  "CB_pct" = "Curveball %", 
+  "CH_pct" = "Changeup %"
+)
+
+cond_data_2021 |> 
+  pivot_longer(cols = c(FB_pct1, SL_pct, CT_pct, CB_pct, CH_pct), 
+               names_to = 'pitch_type', values_to = 'percentage') |> 
+  ggplot(aes(x = pitch_type, y = percentage, fill = pitch_type))+
+  geom_boxplot()+
+  scale_x_discrete(labels = pitch_type_names)+
+  scale_fill_manual(values = c(
+    'FB_pct1' = 'blue',
+    'SL_pct' = 'green',
+    'CT_pct' = 'red',
+    'CB_pct' = 'purple',
+    'CH_pct' = 'orange'
+  ), labels = pitch_type_names)+
+  labs(title = "Pitch Usage Patterns", x = "Pitch Type", y = "Percentage", fill = "Pitch Type")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
   
   
   
