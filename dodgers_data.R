@@ -47,9 +47,9 @@ for (player in data_2023){
   data_2023$position <- ifelse(data_2023$GS >= (data_2023$G - data_2023$GS), 
                                "SP", "RP")
 }
-#Add K_9+ into this
+
 key_vars <- c("Season", 'position', 'IP', 'Throws', 'xMLBAMID', 'PlayerNameRoute',
-              "ERA-", "K_BB+", "HR_9+", "WHIP+", "AVG+", "FIP-", 
+              "ERA-", "K_9+", "K_BB+", "HR_9+", "WHIP+", "AVG+", "FIP-", 
               "BABIP+", "RAR", "WAR", "RA9-Wins", "xFIP-", "WPA", "RE24", 
               "REW", "pfx_CH_pct", "pfx_CU_pct", "pfx_FA_pct", "pfx_FC_pct", 
               "pfx_SI_pct", "pfx_SL_pct", "pfx_vCH", "pfx_vCU", "pfx_vFA", "pfx_vFC", 
@@ -67,7 +67,7 @@ key_vars <- c("Season", 'position', 'IP', 'Throws', 'xMLBAMID', 'PlayerNameRoute
 )
 #no stuff+ for screwball (only one pitcher throws it)
 
-#creating condensed dataset for 2021, will likely need to change selected variables.
+#creating condensed dataset for 2021
 library(dplyr)
 cond_data_2021 <- data_2021 |> 
   select(all_of(key_vars)
@@ -82,11 +82,30 @@ cond_data_2022 <- data_2022 |>
 cond_data_2023 <- data_2023 |> 
   select(all_of(key_vars)
   )
+
+#Adding the spin rates for each pitch with a CSV pulled from Statcast
+#Link to the 2021 data:https://baseballsavant.mlb.com/pitch-arsenals?year=2021&
+#min=250&type=n_&hand=&sort=9&sortDir=desc
+
+spin_2021 <- read.csv("pitch_spin_2021.csv")
+spin_2021 <- rename(spin_2021, xMLBAMID = pitcher)
+cond_data_2021 <- left_join(cond_data_2021, spin_2021, by="xMLBAMID")
+
+#2022
+spin_2022 <- read.csv("pitch_spin_2022.csv")
+spin_2022 <- rename(spin_2022, xMLBAMID = pitcher)
+cond_data_2022 <- left_join(cond_data_2022, spin_2022, by="xMLBAMID")
+
+#2023
+spin_2023 <- read.csv("pitch_spin_2023.csv")
+spin_2023 <- rename(spin_2023, xMLBAMID = pitcher)
+cond_data_2023 <- left_join(cond_data_2023, spin_2023, by="xMLBAMID")
+
 #combining all three condensed datasets
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
 
 #Adding indicator variables for each pitch
-#What should the cutoff be for a legit weapon? 5%?
+#Setting the cutoff at 5% usage
 cond_data <- cond_data %>%
   mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct < 0.05, "No", "Yes"),
          ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct < 0.05, "No", "Yes"),
@@ -100,6 +119,24 @@ cond_data <- cond_data %>%
          ind_kc = ifelse(is.na(pfx_KC_pct) | pfx_KC_pct < 0.05, "No", "Yes"),
          ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct < 0.05, "No", "Yes")
   )
+
+#Adjusting the horizontal movement variable
+cond_data <- cond_data |> 
+  mutate(`pfx_FA-X` = ifelse(Throws == "R", `pfx_SL-X` * -1, `pfx_SL-X`),
+         `pfx_SL-X` = ifelse(Throws == "L", `pfx_SL-X` * -1, `pfx_SL-X`),
+         `pfx_FC-X` = ifelse(Throws == "L", `pfx_FC-X` * -1, `pfx_FC-X`),
+         `pfx_CU-X` = ifelse(Throws == "L", `pfx_CU-X` * -1, `pfx_CU-X`),
+         `pfx_CH-X` = ifelse(Throws == "R", `pfx_CH-X` * -1, `pfx_CH-X`),
+         `pfx_FS-X` = ifelse(Throws == "R", `pfx_FS-X` * -1, `pfx_FS-X`),
+         `pfx_SI-X` = ifelse(Throws == "R", `pfx_SI-X` * -1, `pfx_SI-X`),
+         `pfx_SC-X` = ifelse(Throws == "R", `pfx_SC-X` * -1, `pfx_SC-X`),
+         `pfx_FO-X` = ifelse(Throws == "R", `pfx_FO-X` * -1, `pfx_FO-X`),
+         `pfx_KC-X` = ifelse(Throws == "L", `pfx_KC-X` * -1, `pfx_KC-X`),
+         `pfx_KN-X` = abs(`pfx_KN-X`)
+         )
+
+
+
 
 
 #Experimenting with visualizations
@@ -117,10 +154,14 @@ ggplot(cond_data, aes(x=`xFIP-`, colour = ind_curve))+
   geom_density()+
   facet_wrap(vars(ind_curve), nrow=2)
   
-ggplot(cond_data, aes(x= `pfx_SL-X`, y=sp_s_SL))+
-  geom_point(na.rm = TRUE)+
-  geom_smooth(method="lm")+
-  facet_wrap(~ Throws)
+cond_data %>%
+  filter(ind_slider == "Yes") %>%
+  ggplot(aes(x = `pfx_SL-X`, y = sp_s_SL)) +
+  geom_point(na.rm = TRUE) +
+  geom_smooth(method = "lm") +
+  labs(x = "pfx_SL-X", y = "sp_s_SL") +
+  ggtitle("Scatterplot of pfx_SL-X vs sp_s_SL (Slider Indicator = Yes)")
+  #facet_wrap(~ Throws)
 
 
 #Gabe's Code: Won't run here because I changed "key_vars"
