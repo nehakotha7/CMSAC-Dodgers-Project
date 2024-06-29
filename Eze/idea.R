@@ -141,8 +141,8 @@ combined_data <- bind_rows(data_2021, data_2022, data_2023)
 # If a row has data for a fastball (FB_pct1), but not for other pitches, it will still be included.
 
 filtered_data <- combined_data |> 
-  dplyr::select(Season, PlayerName, pfx_FA_pct, pfx_SL_pct, pfx_FC_pct, pfx_CU_pct, pfx_CH_pct) |> 
-  filter(!is.na(pfx_FA_pct) | !is.na(pfx_SL_pct) | !is.na(pfx_FC_pct) | !is.na(pfx_CU_pct) | !is.na(pfx_CH_pct))
+  dplyr::select(Season, PlayerName, pfx_FA_pct, pfx_SL_pct, pfx_FC_pct, pfx_CU_pct, pfx_CH_pct, pfx_SI_pct) |> 
+  filter(!is.na(pfx_FA_pct) | !is.na(pfx_SL_pct) | !is.na(pfx_FC_pct) | !is.na(pfx_CU_pct) | !is.na(pfx_CH_pct) | !is.na(pfx_SI_pct))
 
 
 
@@ -175,6 +175,7 @@ plot_sl <- create_ridge_plot(filtered_data, 'pfx_SL_pct', 'Slider')
 plot_ct <- create_ridge_plot(filtered_data, 'pfx_FC_pct', 'Cutter')
 plot_cb <- create_ridge_plot(filtered_data, 'pfx_CU_pct', 'Curveball')
 plot_ch <- create_ridge_plot(filtered_data, 'pfx_CH_pct', 'Changeup')
+plot_si <- create_ridge_plot(filtered_data, 'pfx_SI_pct', 'Sinker')
 
 
 
@@ -186,6 +187,8 @@ print(plot_sl)
 print(plot_ct)
 print(plot_cb)
 print(plot_ch)
+print(plot_si)
+
 
 
 # pitch_data <- combined_data |> 
