@@ -189,7 +189,7 @@ print(plot_cb)
 print(plot_ch)
 print(plot_si)
 
-
+  
 
 # pitch_data <- combined_data |> 
 #   dplyr::select(Season, FB_pct1, SL_pct, CT_pct, CB_pct, CH_pct) |> 
