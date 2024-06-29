@@ -38,7 +38,8 @@ key_vars <- c("team_name", "Throws", "PlayerName", "Age", "W", "L", "ERA", "G", 
               "sp_stuff", "sp_location", 'K_9', "sp_pitching", 'WAR', 'wFB')
 cond_data_2021 <- data_2021 |> 
   dplyr::select(all_of(key_vars))
-
+cond_data_2022 <- data_2022 |> 
+  dplyr::select(all_of(key_vars))
 # summary(cond_data_2021)
 
 
@@ -141,8 +142,8 @@ combined_data <- bind_rows(data_2021, data_2022, data_2023)
 # If a row has data for a fastball (FB_pct1), but not for other pitches, it will still be included.
 
 filtered_data <- combined_data |> 
-  dplyr::select(Season, PlayerName, FB_pct1, SL_pct, CT_pct, CB_pct, CH_pct) |> 
-  filter(!is.na(FB_pct1) | !is.na(SL_pct) | !is.na(CT_pct) | !is.na(CB_pct) | !is.na(CH_pct))
+  dplyr::select(Season, PlayerName, pfx_FA_pct, pfx_SL_pct, pfx_FC_pct, pfx_CU_pct, pfx_CH_pct) |> 
+  filter(!is.na(pfx_FA_pct) | !is.na(pfx_SL_pct) | !is.na(pfx_FC_pct) | !is.na(pfx_CU_pct) | !is.na(pfx_CH_pct))
 
 
 
@@ -170,11 +171,11 @@ create_ridge_plot <- function(data_set, pitch_col, pitch_name) {
 # Use function to create plots for each pitch -----------------------------
 
 
-plot_fb <- create_ridge_plot(filtered_data, 'FB_pct1', "Fastball")
-plot_sl <- create_ridge_plot(filtered_data, 'SL_pct', 'Slider')
-plot_ct <- create_ridge_plot(filtered_data, 'CT_pct', 'Cutter')
-plot_cb <- create_ridge_plot(filtered_data, 'CB_pct', 'Curveball')
-plot_ch <- create_ridge_plot(filtered_data, 'CH_pct', 'Changeup')
+plot_fb <- create_ridge_plot(filtered_data, 'pfx_FA_pct', "Fastball")
+plot_sl <- create_ridge_plot(filtered_data, 'pfx_SL_pct', 'Slider')
+plot_ct <- create_ridge_plot(filtered_data, 'pfx_FC_pct', 'Cutter')
+plot_cb <- create_ridge_plot(filtered_data, 'pfx_CU_pct', 'Curveball')
+plot_ch <- create_ridge_plot(filtered_data, 'pfx_CH_pct', 'Changeup')
 
 
 
