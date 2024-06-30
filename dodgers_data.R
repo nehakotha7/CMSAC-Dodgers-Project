@@ -194,85 +194,37 @@ has_changed_fastball <- function(data) {
 changed_fastball_pitchers <- cond_data %>%
   group_by(xMLBAMID) %>%
   do(has_changed_fastball(.)) %>%
-  ungroup()
+  ungroup() |> 
+  select(1:12, 97)
 
-# Example Visualization for Fastball Indicator Change
-ggplot(changed_fastball_pitchers, aes(x = factor(Season), y = ind_fastball, group = xMLBAMID, color = PlayerNameRoute)) +
-  geom_line() +
-  geom_point() +
-  labs(title = "Changes in Fastball Indicator Over Years",
-       x = "Season",
-       y = "Fastball Indicator (Yes/No)") +
-  scale_y_discrete(labels = c("No", "Yes")) +
-  theme_minimal()
-
-# Calculate the difference in 'FIP-' between consecutive years for each pitcher
-fip_diff <- changed_fastball_pitchers %>%
-  arrange(xMLBAMID, Season) %>%
-  group_by(xMLBAMID, PlayerNameRoute) %>%
-  mutate(FIP_diff = `FIP-` - lag(`FIP-`)) %>%
-  filter(!is.na(FIP_diff)) %>%
-  ungroup()
-
-# Determine if fastball was added or subtracted
-fip_diff <- fip_diff %>%
+changed_fastball_pitchers <- changed_fastball_pitchers |> 
   mutate(change_type = case_when(
     ind_fastball == "Yes" & lag(ind_fastball) == "No" ~ "Added",
     ind_fastball == "No" & lag(ind_fastball) == "Yes" ~ "Subtracted"
-  )) %>%
-  filter(!is.na(change_type))  # Exclude rows where change_type is NA (no change)
-
-# Create a bar chart to visualize the change in fastball indicator with color coding
-ggplot(fip_diff, aes(x = FIP_diff, y = reorder(PlayerNameRoute, FIP_diff), fill = change_type)) +
-  geom_bar(stat = "identity") +
-  scale_fill_manual(values = c("Added" = "blue", "Subtracted" = "red"),
-                    guide = guide_legend(title = "Change in Fastball Indicator")) +
-  labs(title = "Change in Fastball Indicator from Year to Year",
-       x = "Change in FIP-",
-       y = "Player Name") +
-  theme_minimal()
-
-
-# -------------------------------------------------------------------------
-library(dplyr)
-library(ggplot2)
-
-# Function to handle splitting pitchers with alternating fastball indicators
-split_pitchers <- function(data) {
-  fastball_changes <- data %>%
-    arrange(xMLBAMID, Season) %>%
-    group_by(xMLBAMID) %>%
-    mutate(change = ifelse(ind_fastball != lag(ind_fastball), 1, 0),
-           change_group = cumsum(change)) %>%
-    filter(change_group <= 1) %>%
-    ungroup()
-  
-  return(fastball_changes)
-}
+  )) |> 
+  filter(IP >= 20)
 
 # Calculate the difference in 'FIP-' between consecutive years for each pitcher
 fip_diff <- changed_fastball_pitchers %>%
   arrange(xMLBAMID, Season) %>%
   group_by(xMLBAMID, PlayerNameRoute) %>%
   mutate(FIP_diff = `FIP-` - lag(`FIP-`)) %>%
-  ungroup() %>%
   filter(!is.na(FIP_diff)) %>%
-  mutate(change_type = case_when(
-    ind_fastball == "Yes" & lead(ind_fastball) == "No" ~ "Added",
-    ind_fastball == "No" & lead(ind_fastball) == "Yes" ~ "Subtracted"
-  )) %>%
-  filter(!is.na(change_type))  # Exclude rows where change_type is NA
+  mutate(PlayerSeason = paste(PlayerNameRoute, " '", substr(Season, 3, 4), 
+                              sep = "")) |> 
+  ungroup()
 
 # Create a bar chart to visualize the change in fastball indicator with color coding
-ggplot(fip_diff, aes(x = FIP_diff, y = reorder(PlayerNameRoute, FIP_diff), fill = change_type)) +
+ggplot(fip_diff, aes(x = FIP_diff, y = reorder(PlayerSeason, -FIP_diff), 
+                     fill = change_type)) +
   geom_bar(stat = "identity") +
-  scale_fill_manual(values = c("Added" = "blue", "Subtracted" = "red"),
-                    guide = guide_legend(title = "Change in Fastball Indicator")) +
-  labs(title = "Change in Fastball Indicator from Year to Year",
+  scale_fill_manual(values = c("Added" = "blue", 
+                               "Subtracted" = "red"),
+                    guide = guide_legend(title = "Arsenal Change")) +
+  labs(title = "FIP- Change for Pitchers who Added or Removed a Fastball",
        x = "Change in FIP-",
-       y = "Player Name") +
+       y = "Player Name, Season") +
   theme_minimal()
-
 
 
 #Gabe's Code: Won't run here because I changed "key_vars"
