@@ -1,6 +1,6 @@
 library(baseballr) #install the package beforehand
 library(dplyr)
-theme_set(theme_minimal())
+theme_set(theme_light())
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021) |> 
   filter(Pitches >= 250) #only including pitchers who threw more than 250 pitches
@@ -133,94 +133,112 @@ combined_data <- bind_rows(data_2021, data_2022, data_2023)
 
 
 
-# Filter relevant columns -------------------------------------------------
+
+# identify pitcher who changed pitch usage --------------------------------
+
+library(tidyr)
+library(tidyverse)
+
+relevant_cols <- c('PlayerName', 'Season', 'pfx_FA_pct', 'pfx_FC_pct', 'pfx_SL_pct', 'pfx_CH_pct', 'pfx_CU_pct', 'pfx_SI_pct')
+
+
+# Define custom labels for each pitch type
+custom_labels <- c(
+  pfx_CH_pct = "Changeup (CH)",
+  pfx_CU_pct = "Curveball (CU)",
+  pfx_FA_pct = "Fastball (FA)",
+  pfx_SI_pct = "Sinker (SI)",
+  pfx_SL_pct = "Slider (SL)",
+  pfx_FC_pct = 'Cutter (FC)'
+)
+
+
+# Define the custom color palette
+custom_colors <- c("#E41A1C", 
+                   "#377EB8", 
+                   "#4DAF4A", 
+                   "#984EA3", 
+                   "#FF7F00", 
+                   '#FFFF33')
 
 
 
-# This approach ensures we retain rows that have data for any of the pitch types. 
-# If a row has data for a fastball (FB_pct1), but not for other pitches, it will still be included.
-
-filtered_data <- combined_data |> 
-  dplyr::select(Season, PlayerName, pfx_FA_pct, pfx_SL_pct, pfx_FC_pct, pfx_CU_pct, pfx_CH_pct, pfx_SI_pct) |> 
-  filter(!is.na(pfx_FA_pct) | !is.na(pfx_SL_pct) | !is.na(pfx_FC_pct) | !is.na(pfx_CU_pct) | !is.na(pfx_CH_pct) | !is.na(pfx_SI_pct))
+# Ridge plots but faceted -------------------------------------------------
 
 
 
-# Creating ridge plots ----------------------------------------------------
+# Filter and gather the data to long format
+data_long <- combined_data |> 
+  dplyr::select(PlayerName, Season, pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, pfx_FA_pct, pfx_SI_pct, pfx_SL_pct) |> 
+  gather(key = 'PitchType', value = 'UsagePct', pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, pfx_FA_pct, pfx_SI_pct, pfx_SL_pct) |> 
+  filter(is.finite(UsagePct)) # Remove non-finite values
 
 
-create_ridge_plot <- function(data_set, pitch_col, pitch_name) {
-  ggplot(data_set, aes_string(x = pitch_col, y = "as.factor(Season)", fill = "as.factor(Season)")) +
-    geom_density_ridges(scale = 0.9, rel_min_height = 0.01) +
-    labs(
-      title = paste("Distribution of", pitch_name, "Across Seasons"),
-      x = paste(pitch_name, "Percentage"),
-      y = "Season",
-      fill = "Season"
-    ) +
-    theme_ridges() +
-    theme(legend.position = "none")
-    
-}
+# Convert 'Season' to a factor for proper grouping
+data_long$Season <- as.factor(data_long$Season)
 
 
-
-
-
-# Use function to create plots for each pitch -----------------------------
-
-
-plot_fb <- create_ridge_plot(filtered_data, 'pfx_FA_pct', "Fastball")
-plot_sl <- create_ridge_plot(filtered_data, 'pfx_SL_pct', 'Slider')
-plot_ct <- create_ridge_plot(filtered_data, 'pfx_FC_pct', 'Cutter')
-plot_cb <- create_ridge_plot(filtered_data, 'pfx_CU_pct', 'Curveball')
-plot_ch <- create_ridge_plot(filtered_data, 'pfx_CH_pct', 'Changeup')
-plot_si <- create_ridge_plot(filtered_data, 'pfx_SI_pct', 'Sinker')
+# Create ridge plots
+data_long |> 
+  ggplot(aes(x = UsagePct, y = Season, fill = Season))+
+  geom_density_ridges(alpha = .8, scale = 1.5)+
+  facet_wrap(~ PitchType, scales = 'free_y', labeller = labeller(PitchType = custom_labels))+
+  labs(title = "Distribution of Pitch Usage Changes by Pitch Type (2021-2023)",
+       x = "Usage Percentage",
+       y = "Season",
+       fill = "Season")+
+  theme(legend.position = 'bottom')
 
 
 
-# Print relevant plot onto plots plane  -----------------------------------
+# Fluctuation of pitch types for top pitchers -----------------------------
 
 
-print(plot_fb)
-print(plot_sl)
-print(plot_ct)
-print(plot_cb)
-print(plot_ch)
-print(plot_si)
+# Calculate the change in pitch usage for each pitcher and each pitch type
+usage_change <- combined_data |> 
+  dplyr::select(PlayerName, Season, pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, pfx_FA_pct, pfx_SI_pct, pfx_SL_pct) |> 
+  gather(key = 'PitchType', value = 'UsagePct', pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, pfx_FA_pct, pfx_SI_pct, pfx_SL_pct) |> 
+  spread(key = Season, value = UsagePct) |> 
+  mutate(Change = `2023` - `2021`) |> 
+  filter(!is.na(Change))
 
-  
 
-# pitch_data <- combined_data |> 
-#   dplyr::select(Season, FB_pct1, SL_pct, CT_pct, CB_pct, CH_pct) |> 
-#   pivot_longer(starts_with('FB_pct1') : starts_with('CH_pct'),
-#                names_to = 'Pitch_Type',
-#                values_to = 'Usage_percentage')
-# 
-# pitch_data |> 
-#   ggplot(aes(x = Usage_percentage, y = Pitch_Type, fill = factor(Season)))+
-#   geom_density_ridges(scale = 3, rel_min_height = .01)+
-#   labs(title = "Pitch Usage Distribution Over Seasons",
-#        x = "Usage Percentage",
-#        y = "Pitch Type",
-#        fill = "Season") +
-#   theme_ridges() +
-#   theme(legend.position = "top")
-# 
-# 
-# # Ridge plot for Fastball percentage over seasons
-# filtered_data |> 
-#   ggplot(aes(x = FB_pct, y = as.factor(Season), fill = as.factor(Season)))+
-#   geom_density_ridges(scale = .9, rel_min_height =  .01)+
-#   labs(
-#     title = 'Distribution of Fastball Percentage Across Seasons',
-#     x = "Fastball Percentage",
-#     y = "Season",
-#     fill = "Season"
-#   ) +
-#   theme_ridges() +
-#   theme(legend.position = "none")
-# 
+# Get the top 5 pitchers with the most significant changes yearly
+top_pitchers <- usage_change |> 
+  group_by(PlayerName) |> 
+  summarize(TotalChange = sum(abs(Change), na.rm = T)) |> 
+  arrange(desc(TotalChange)) |> 
+  top_n(5, TotalChange)
+
+
+# Filter the combined data for the top pitchers
+data_top_pitchers <- combined_data |> 
+  filter(PlayerName %in% top_pitchers$PlayerName)
+
+
+# Convert 'Season' to a factor for proper grouping
+data_top_pitchers$Season <- as.factor(data_top_pitchers$Season)
+
+
+
+# Gather the data to long format for plotting
+data_long_top <- data_top_pitchers |> 
+  dplyr::select(PlayerName, Season, pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, pfx_FA_pct, pfx_SI_pct, pfx_SL_pct) |> 
+  gather(key = "PitchType", value = "UsagePct", pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, pfx_FA_pct, pfx_SI_pct, pfx_SL_pct)
+
+
+
+# Create a faceted line plot with custom titles and colors
+data_long_top |> 
+  ggplot(aes(x = Season, y = UsagePct, group = PlayerName, color = PlayerName))+
+  geom_line()+
+  facet_wrap(~ PitchType, scales = "free_y", labeller = labeller(PitchType = custom_labels)) +
+  scale_color_manual(values = custom_colors)+
+  labs(title = "Pitch Usage Changes for Top 5 Pitchers (2021-2023)",
+       x = "Season",
+       y = "Usage Percentage",
+       color = "Player")+
+  theme(legend.position = 'bottom')
 
 
 
