@@ -106,7 +106,7 @@ cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
 
 #Adding indicator variables for each pitch
 #Setting the cutoff at 5% usage
-cond_data <- cond_data %>%
+cond_data <- cond_data |>
   mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct < 0.05, "No", "Yes"),
          ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct < 0.05, "No", "Yes"),
          ind_cutter = ifelse(is.na(pfx_FC_pct) | pfx_FC_pct < 0.05, "No", "Yes"),
@@ -154,8 +154,8 @@ ggplot(cond_data, aes(x=`xFIP-`, colour = ind_curve))+
   geom_density()+
   facet_wrap(vars(ind_curve), nrow=2)
   
-cond_data %>%
-  filter(ind_slider == "Yes") %>%
+cond_data |>
+  filter(ind_slider == "Yes") |>
   ggplot(aes(x = `pfx_SL-X`, y = sp_s_SL)) +
   geom_point(na.rm = TRUE) +
   geom_smooth(method = "lm") +
@@ -169,8 +169,9 @@ library(dplyr)
 library(ggplot2)
 
 
-# -------------------------------------------------------------------------
-#Work in Progress
+
+# Pitchers Who Added or Subtracted a Fastball -----------------------------
+
 
 # Function to check if fastball indicator has changed from Yes to No
 # and exclude consecutive years with the same indicator
@@ -191,9 +192,9 @@ has_changed_fastball <- function(data) {
 }
 
 # Group data by pitcher and filter for those who have changed their fastball indicator
-changed_fastball_pitchers <- cond_data %>%
-  group_by(xMLBAMID) %>%
-  do(has_changed_fastball(.)) %>%
+changed_fastball_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_fastball(.)) |>
   ungroup() |> 
   select(1:12, 97)
 
@@ -202,15 +203,15 @@ changed_fastball_pitchers <- changed_fastball_pitchers |>
     ind_fastball == "Yes" & lag(ind_fastball) == "No" ~ "Added",
     ind_fastball == "No" & lag(ind_fastball) == "Yes" ~ "Subtracted"
   )) |> 
-  filter(IP >= 20)
+  filter(IP >= 25)
 
 # Calculate the difference in 'FIP-' between consecutive years for each pitcher
-fip_diff <- changed_fastball_pitchers %>%
-  arrange(xMLBAMID, Season) %>%
-  group_by(xMLBAMID, PlayerNameRoute) %>%
-  mutate(FIP_diff = `FIP-` - lag(`FIP-`)) %>%
-  filter(!is.na(FIP_diff)) %>%
-  mutate(PlayerSeason = paste(PlayerNameRoute, " '", substr(Season, 3, 4), 
+fip_diff <- changed_fastball_pitchers |>
+  arrange(xMLBAMID, Season) |>
+  group_by(xMLBAMID, PlayerNameRoute) |>
+  mutate(FIP_diff = `FIP-` - lag(`FIP-`)) |>
+  filter(!is.na(FIP_diff)) |>
+  mutate(PlayerSeason = paste(PlayerNameRoute, ", '", substr(Season, 3, 4), 
                               sep = "")) |> 
   ungroup()
 
@@ -220,101 +221,42 @@ ggplot(fip_diff, aes(x = FIP_diff, y = reorder(PlayerSeason, -FIP_diff),
   geom_bar(stat = "identity") +
   scale_fill_manual(values = c("Added" = "blue", 
                                "Subtracted" = "red"),
-                    guide = guide_legend(title = "Arsenal Change")) +
-  labs(title = "FIP- Change for Pitchers who Added or Removed a Fastball",
+                    guide = guide_legend(title = "Change")) +
+  labs(title = "FIP- Change for Pitchers who Added or Subtracted a Fastball",
        x = "Change in FIP-",
        y = "Player Name, Season") +
-  theme_minimal()
+  facet_wrap(~ change_type, scales = "free_y")+
+  scale_x_reverse(limits = c(70, -80))
 
 
-#Gabe's Code: Won't run here because I changed "key_vars"
-
-cond_data_2021 <- data_2021 |> 
-  dplyr::select(all_of(key_vars))
-
-# summary(cond_data_2021)
-
-
-# Earned Runs Average
-cond_data_2021 |> 
-  ggplot(aes(ERA))+
-  geom_histogram(binwidth = 0.5, fill = 'blue', color = 'black')+
-  labs(title = "Distribution of ERA", x = "ERA", y = "Frequency")
-
-cond_data_2021 |> 
-  ggplot(aes(x = FBv, y = SO))+
-  geom_point(alpha = .5, color = 'red')+
-  geom_smooth(method = 'lm', color = 'blue', se = F)+
-  labs(title = "Fastball Velocity vs Strikeouts", x = "Fastball Velocity (mph)", y = "Strikeouts")
-
-# Boxplot of ERA by Pitching Hand (Throws)
-cond_data_2021 |> 
-  ggplot(aes(Throws, ERA))+
-  geom_boxplot(fill = c('lightblue', 'lightgreen'))+
-  labs(title = "ERA by Pitching Hand", x = "Pitching Hand", y = "ERA")
-
-cond_data_2021 |> 
-  ggplot(aes(x = sp_stuff, y = ERA, color = Throws))+
-  geom_smooth(method = 'lm')+
-  labs(title = "Stuff+ vs ERA by Throwing Hand", x = "Stuff+", y = "ERA")
-
-
-# Wins Above Replace
-# The formula for WAR can be complex and varies by source, 
-# but the aim is to combine these elements to reflect a player's overall value 
-# in terms of additional wins contributed to their team.
-
-# Stuff+ vs Performance
-cond_data_2021 |> 
-  ggplot(aes(sp_stuff, WAR))+
-  geom_point(alpha = .5)+
-  geom_smooth(method = 'lm')+
-  labs(title = "Stuff+ vs WAR", x = "Stuff+", y = "WAR")
-
-# Pitch Type vs Performance:
-cond_data_2021 |> 
-  ggplot(aes(wFB, ERA))+
-  geom_point(alpha = .5)+
-  geom_smooth(method = 'lm')+
-  labs(title = "Fastball Value (wFB) vs ERA", x = "wFB", y = "ERA")
-
-
-library(ggcorrplot)
-cor_matrix <- cor(cond_data_2021 %>% select_if(is.numeric), use = "complete.obs")
-ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower", lab = TRUE)
-
-
-
-# Plot pitch usage patterns
-pitch_type_names <- c(
-  "FB_pct1" = "Fastball %", 
-  "SL_pct" = "Slider %", 
-  "CT_pct" = "Cutter %", 
-  "CB_pct" = "Curveball %", 
-  "CH_pct" = "Changeup %"
-)
-
-cond_data_2021 |> 
-  pivot_longer(cols = c(FB_pct1, SL_pct, CT_pct, CB_pct, CH_pct), 
-               names_to = 'pitch_type', values_to = 'percentage') |> 
-  ggplot(aes(x = pitch_type, y = percentage, fill = pitch_type))+
-  geom_boxplot()+
-  scale_x_discrete(labels = pitch_type_names)+
-  scale_fill_manual(values = c(
-    'FB_pct1' = 'blue',
-    'SL_pct' = 'green',
-    'CT_pct' = 'red',
-    'CB_pct' = 'purple',
-    'CH_pct' = 'orange'
-  ), labels = pitch_type_names)+
-  labs(title = "Pitch Usage Patterns", x = "Pitch Type", y = "Percentage", fill = "Pitch Type")+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Pitchers Who Added or Removed a Sinker ----------------------------------
+# Function to check if sinker indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_sinker <- function(data) {
+  sinker <- as.integer(factor(data$ind_sinker, levels = c("No", "Yes")))
+  diff_sinker <- diff(sinker)
   
+  # Identify rows with changes
+  change_indices <- which(diff_sinker != 0)
   
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
   
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
   
-  
-  
-  
-  
-  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their sinker indicator
+changed_sinker_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_sinker(.)) |>
+  select(1:12, 103)
+
+changed_sinker_pitchers <- changed_sinker_pitchers |> 
+  mutate(change_type = case_when(
+    ind_sinker == "Yes" & lag(ind_sinker) == "No" ~ "Added",
+    ind_sinker == "No" & lag(ind_sinker) == "Yes" ~ "Subtracted"
+  ))
+#more work needs to be done here before graphing it
