@@ -165,13 +165,7 @@ cond_data |>
 
 
 
-library(dplyr)
-library(ggplot2)
-
-
-
 # Pitchers Who Added or Subtracted a Fastball -----------------------------
-
 
 # Function to check if fastball indicator has changed from Yes to No
 # and exclude consecutive years with the same indicator
@@ -202,11 +196,12 @@ changed_fastball_pitchers <- changed_fastball_pitchers |>
   mutate(change_type = case_when(
     ind_fastball == "Yes" & lag(ind_fastball) == "No" ~ "Added",
     ind_fastball == "No" & lag(ind_fastball) == "Yes" ~ "Subtracted"
-  )) |> 
-  filter(IP >= 25)
+  ))
+  
 
 # Calculate the difference in 'FIP-' between consecutive years for each pitcher
 fip_diff <- changed_fastball_pitchers |>
+  filter(IP >= 25) |> 
   arrange(xMLBAMID, Season) |>
   group_by(xMLBAMID, PlayerNameRoute) |>
   mutate(FIP_diff = `FIP-` - lag(`FIP-`)) |>
@@ -229,7 +224,9 @@ ggplot(fip_diff, aes(x = FIP_diff, y = reorder(PlayerSeason, -FIP_diff),
   scale_x_reverse(limits = c(70, -80))
 
 
-# Pitchers Who Added or Removed a Sinker ----------------------------------
+#MORE CODE NEEDS TO BE ADDED BEFORE GRAPHING ANYTHING OTHER THAN A FASTBALL
+
+# ------------ Pitchers Who Added or Removed a sinker ----------------------------------
 # Function to check if sinker indicator has changed from Yes to No
 # and exclude consecutive years with the same indicator
 has_changed_sinker <- function(data) {
@@ -259,4 +256,349 @@ changed_sinker_pitchers <- changed_sinker_pitchers |>
     ind_sinker == "Yes" & lag(ind_sinker) == "No" ~ "Added",
     ind_sinker == "No" & lag(ind_sinker) == "Yes" ~ "Subtracted"
   ))
-#more work needs to be done here before graphing it
+
+
+# -------------- Pitchers Who Added or Removed a slider ----------------------------------
+# Function to check if slider indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_slider <- function(data) {
+  slider <- as.integer(factor(data$ind_slider, levels = c("No", "Yes")))
+  diff_slider <- diff(slider)
+  
+  # Identify rows with changes
+  change_indices <- which(diff_slider != 0)
+  
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
+  
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
+  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their slider indicator
+changed_slider_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_slider(.)) |>
+  select(1:12, 98)
+
+changed_slider_pitchers <- changed_slider_pitchers |> 
+  mutate(change_type = case_when(
+    ind_slider == "Yes" & lag(ind_slider) == "No" ~ "Added",
+    ind_slider == "No" & lag(ind_slider) == "Yes" ~ "Subtracted"
+  ))
+
+
+# ------------ Pitchers Who Added or Removed a cutter ----------------------------------
+# Function to check if cutter indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_cutter <- function(data) {
+  cutter <- as.integer(factor(data$ind_cutter, levels = c("No", "Yes")))
+  diff_cutter <- diff(cutter)
+  
+  # Identify rows with changes
+  change_indices <- which(diff_cutter != 0)
+  
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
+  
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
+  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their cutter indicator
+changed_cutter_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_cutter(.)) |>
+  select(1:12, 99)
+
+changed_cutter_pitchers <- changed_cutter_pitchers |> 
+  mutate(change_type = case_when(
+    ind_cutter == "Yes" & lag(ind_cutter) == "No" ~ "Added",
+    ind_cutter == "No" & lag(ind_cutter) == "Yes" ~ "Subtracted"
+  ))
+
+
+# --------------Pitchers Who Added or Removed a curve ----------------------------------
+# Function to check if curve indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_curve <- function(data) {
+  curve <- as.integer(factor(data$ind_curve, levels = c("No", "Yes")))
+  diff_curve <- diff(curve)
+  
+  # Identify rows with changes
+  change_indices <- which(diff_curve != 0)
+  
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
+  
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
+  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their curve indicator
+changed_curve_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_curve(.)) |>
+  select(1:12, 100)
+
+changed_curve_pitchers <- changed_curve_pitchers |> 
+  mutate(change_type = case_when(
+    ind_curve == "Yes" & lag(ind_curve) == "No" ~ "Added",
+    ind_curve == "No" & lag(ind_curve) == "Yes" ~ "Subtracted"
+  ))
+
+
+
+# --------------- Pitchers Who Added or Removed a change ----------------------------------
+# Function to check if change indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_change <- function(data) {
+  change <- as.integer(factor(data$ind_change, levels = c("No", "Yes")))
+  diff_change <- diff(change)
+  
+  # Identify rows with changes
+  change_indices <- which(diff_change != 0)
+  
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
+  
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
+  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their change indicator
+changed_change_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_change(.)) |>
+  select(1:12, 101)
+
+changed_change_pitchers <- changed_change_pitchers |> 
+  mutate(change_type = case_when(
+    ind_change == "Yes" & lag(ind_change) == "No" ~ "Added",
+    ind_change == "No" & lag(ind_change) == "Yes" ~ "Subtracted"
+  ))
+
+
+
+# ----------------- Pitchers Who Added or Removed a split ----------------------------------
+# Function to check if split indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_split <- function(data) {
+  split <- as.integer(factor(data$ind_split, levels = c("No", "Yes")))
+  diff_split <- diff(split)
+  
+  # Identify rows with changes
+  change_indices <- which(diff_split != 0)
+  
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
+  
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
+  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their split indicator
+changed_split_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_split(.)) |>
+  select(1:12, 102)
+
+changed_split_pitchers <- changed_split_pitchers |> 
+  mutate(change_type = case_when(
+    ind_split == "Yes" & lag(ind_split) == "No" ~ "Added",
+    ind_split == "No" & lag(ind_split) == "Yes" ~ "Subtracted"
+  ))
+
+
+# -------------- Pitchers Who Added or Removed a Knuckle Curve ----------------------------------
+# Function to check if kc indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_kc <- function(data) {
+  kc <- as.integer(factor(data$ind_kc, levels = c("No", "Yes")))
+  diff_kc <- diff(kc)
+  
+  # Identify rows with changes
+  change_indices <- which(diff_kc != 0)
+  
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
+  
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
+  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their kc indicator
+changed_kc_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_kc(.)) |>
+  select(1:12, 106)
+
+changed_kc_pitchers <- changed_kc_pitchers |> 
+  mutate(change_type = case_when(
+    ind_kc == "Yes" & lag(ind_kc) == "No" ~ "Added",
+    ind_kc == "No" & lag(ind_kc) == "Yes" ~ "Subtracted"
+  ))
+
+
+# -------------- Pitchers Who Added or Removed a Screwball ----------------------------------
+# Function to check if screw indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_screw <- function(data) {
+  screw <- as.integer(factor(data$ind_screw, levels = c("No", "Yes")))
+  diff_screw <- diff(screw)
+  
+  # Identify rows with changes
+  change_indices <- which(diff_screw != 0)
+  
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
+  
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
+  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their screw indicator
+changed_screw_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_screw(.)) |>
+  select(1:12, 104)
+
+changed_screw_pitchers <- changed_screw_pitchers |> 
+  mutate(change_type = case_when(
+    ind_screw == "Yes" & lag(ind_screw) == "No" ~ "Added",
+    ind_screw == "No" & lag(ind_screw) == "Yes" ~ "Subtracted"
+  ))
+
+
+# ------------ Pitchers Who Added or Removed a Forkball ----------------------------------
+# Function to check if fork indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_fork <- function(data) {
+  fork <- as.integer(factor(data$ind_fork, levels = c("No", "Yes")))
+  diff_fork <- diff(fork)
+  
+  # Identify rows with changes
+  change_indices <- which(diff_fork != 0)
+  
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
+  
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
+  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their fork indicator
+changed_fork_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_fork(.)) |>
+  select(1:12, 105)
+
+changed_fork_pitchers <- changed_fork_pitchers |> 
+  mutate(change_type = case_when(
+    ind_fork == "Yes" & lag(ind_fork) == "No" ~ "Added",
+    ind_fork == "No" & lag(ind_fork) == "Yes" ~ "Subtracted"
+  ))
+
+
+# -------------- Pitchers Who Added or Removed a Knuckleball ----------------------------------
+# Function to check if knuckle indicator has changed from Yes to No
+# and exclude consecutive years with the same indicator
+has_changed_knuckle <- function(data) {
+  knuckle <- as.integer(factor(data$ind_knuckle, levels = c("No", "Yes")))
+  diff_knuckle <- diff(knuckle)
+  
+  # Identify rows with changes
+  change_indices <- which(diff_knuckle != 0)
+  
+  # Include only rows with changes and the year following a change
+  change_rows <- sort(unique(c(change_indices, change_indices + 1)))
+  
+  # Ensure we don't go out of bounds
+  change_rows <- change_rows[change_rows <= nrow(data)]
+  
+  return(data[change_rows, ])
+}
+
+# Group data by pitcher and filter for those who have changed their knuckle indicator
+changed_knuckle_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_knuckle(.)) |>
+  select(1:12, 107)
+
+changed_knuckle_pitchers <- changed_knuckle_pitchers |> 
+  mutate(change_type = case_when(
+    ind_knuckle == "Yes" & lag(ind_knuckle) == "No" ~ "Added",
+    ind_knuckle == "No" & lag(ind_knuckle) == "Yes" ~ "Subtracted"
+  ))
+
+#Attempting to Build a Line Graph: This ISN'T for ADDING and SUBTRACTING
+pitch_freq <- cond_data |> 
+  group_by(Season) |> 
+  summarize(fb_yes = sum(ind_fastball == "Yes", na.rm = TRUE),
+            si_yes = sum(ind_sinker == "Yes", na.rm = TRUE),
+            fc_yes = sum(ind_cutter == "Yes", na.rm = TRUE),
+            sl_yes = sum(ind_slider == "Yes", na.rm = TRUE),
+            cb_yes = sum(ind_curve == "Yes", na.rm = TRUE),
+            ch_yes = sum(ind_change == "Yes", na.rm = TRUE),
+            kc_yes = sum(ind_kc == "Yes", na.rm = TRUE),
+            sc_yes = sum(ind_screw == "Yes", na.rm = TRUE),
+            fs_yes = sum(ind_split == "Yes", na.rm = TRUE),
+            fo_yes = sum(ind_fork == "Yes", na.rm = TRUE),
+            kn_yes = sum(ind_knuckle == "Yes", na.rm = TRUE))
+
+# Reshape data to long format
+library(tidyr)
+pitch_freq_long <- pitch_freq |> 
+  pivot_longer(
+    cols = -Season,
+    names_to = "Pitch_Type",
+    values_to = "Count"
+  )
+
+# Plot the data
+ggplot(pitch_freq_long, aes(x = Season, y = Count, color = Pitch_Type)) +
+  geom_point()+
+  geom_line(linewidth = 1) +
+  labs(
+    title = "Number of Pitchers Throwing Each Pitch Type by Season",
+    x = "Season",
+    y = "Number of Pitchers",
+    color = "Pitch Type"
+  ) +
+  theme_minimal()
+
+#This IS for Adding and Subtracting
+fb_change <- changed_fastball_pitchers |> 
+  group_by(Season) |> 
+  summarize(fb_added = sum(change_type == "Added", na.rm = TRUE),
+            fb_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+#Something's not right with the next three pitches
+si_change <- changed_sinker_pitchers |> 
+  group_by(Season) |> 
+  summarize(si_added = sum(change_type == "Added", na.rm = TRUE),
+            si_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+fc_change <- changed_cutter_pitchers |> 
+  group_by(Season) |> 
+  summarize(fc_added = sum(change_type == "Added", na.rm = TRUE),
+            fc_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+sl_change <- changed_slider_pitchers |> 
+  group_by(Season) |> 
+  summarize(sl_added = sum(change_type == "Added", na.rm = TRUE),
+            sl_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+ovr_change <- bind_cols(fb_change ,si_change, fc_change, sl_change)
