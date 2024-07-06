@@ -374,7 +374,7 @@ pitch_arsenal <- filtered_savant %>%
   group_by(PlayerName, game_year, PitchType) %>%
   summarise(Count = n()) %>%
   group_by(PlayerName, game_year) %>%
-  mutate(UsagePct = Count / sum(Count)) %>%
+  mutate(UsagePct = round(Count / sum(Count), 3)) %>%
   ungroup() %>%
   spread(key = game_year, value = UsagePct, fill = 0) %>% 
   select(-Count)
