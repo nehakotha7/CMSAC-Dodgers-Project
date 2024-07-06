@@ -1,7 +1,12 @@
 library(baseballr) #install the package beforehand
 library(dplyr)
-install.packages("usethis")
-usethis::use_git_config(user.name = "ezegabriel", user.email = "chieloka.eze@centre.edu")
+library(ggplot2)
+library(ggridges)
+library(patchwork)
+library(tidyr)
+library(tidyverse)
+
+
 theme_set(theme_light())
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021) |> 
@@ -35,6 +40,10 @@ for (player in data_2023){
 }
 
 
+
+
+
+# Early EDA ---------------------------------------------------------------
 
 
 
@@ -127,8 +136,7 @@ cond_data_2021 |>
 
 
 
-library(ggridges)
-library(patchwork)
+
 
 
 # Combine datasets for seasonal info --------------------------------------
@@ -141,8 +149,7 @@ combined_data <- bind_rows(data_2021, data_2022, data_2023)
 
 # identify pitcher who changed pitch usage --------------------------------
 
-library(tidyr)
-library(tidyverse)
+
 
 relevant_cols <- c('PlayerName', 'Season', 'pfx_FA_pct', 'pfx_FC_pct', 'pfx_SL_pct', 
                    'pfx_CH_pct', 'pfx_CU_pct', 'pfx_SI_pct', 'pfx_FS_pct', 
@@ -307,12 +314,15 @@ usage_change <- detect_arsenal_change(usage_change)
 
 # Exploring savant dataset ------------------------------------------------
 
+# Different assignments in savant as 'FA' is assigned other
+  # 'FF' is assigned 4-Seam fastball all under pitch_name variable
+# Already modeled 4-Seam as pfx_FA_pct with baseballr so we'll stick with this format
 clean_savant <- savant %>%
   filter(pitch_type != 'FA') %>%
   mutate(pitch_type = ifelse(pitch_type == 'FF', 'FA', pitch_type))
 
 
-# Flip Player Name Format
+# Flip Player Name Format for consistent formatting
 reformat_name <- function(name) {
   parts <- strsplit(name, ', ')[[1]]
   return(paste(parts[2], parts[1]))
@@ -330,7 +340,7 @@ clean_savant <- clean_savant %>%
 # Streamline focus to only 12 different pitch variations
 pitch_variations <- c('CH', 'CU', 'FA', 'SI', 'SL', 'FC', 'SC', 'FS', 'FO', 'KC', 'EP', 'KN')
 
-# Filter and transform pitch types, retaining necessary columns
+# Filter and transform pitch types, retaining necessary columns**
 filtered_savant <- clean_savant %>% 
   filter(pitch_type %in% pitch_variations) %>% 
   mutate(pitch_type = case_when(
