@@ -170,7 +170,12 @@ custom_labels <- c(
   pfx_FO_pct = 'Forkball (FO)',
   pfx_KC_pct = 'Knuckle Curve (KC)',
   pfx_EP_pct = 'Eephus (EP)',
-  pfx_KN_pct = 'Knuckleball (KN)'
+  pfx_KN_pct = 'Knuckleball (KN)',
+  pfx_PO_pct = 'Pitch Out (PO)',
+  pfx_SV_pct = 'Slurve (SV)',
+  pfx_CS_pct = 'Slow Curve (CS)',
+  pfx_ST_pct = 'Sweeper (ST)',
+  
 )
 
 
@@ -334,15 +339,13 @@ clean_savant <- clean_savant %>%
 
 
 
-# Group by Player and Year, Calculate relative frequencies on pitch arsenal
+
+# Creating arsenal --------------------------------------------------------
 
 
-# Streamline focus to only 12 different pitch variations
-pitch_variations <- c('CH', 'CU', 'FA', 'SI', 'SL', 'FC', 'SC', 'FS', 'FO', 'KC', 'EP', 'KN')
 
-# Filter and transform pitch types, retaining necessary columns**
+# Filter and transform all pitch types, retaining necessary columns**
 filtered_savant <- clean_savant %>% 
-  filter(pitch_type %in% pitch_variations) %>% 
   mutate(pitch_type = case_when(
     pitch_type == 'CH' ~ 'pfx_CH_pct',
     pitch_type == 'CU' ~ 'pfx_CU_pct',
@@ -356,9 +359,14 @@ filtered_savant <- clean_savant %>%
     pitch_type == 'KC' ~ 'pfx_KC_pct',
     pitch_type == 'EP' ~ 'pfx_EP_pct',
     pitch_type == 'KN' ~ 'pfx_KN_pct',
+    pitch_type == 'PO' ~ 'pfx_PO_pct',
+    pitch_type == 'SV' ~ 'pfx_SV_pct',
+    pitch_type == 'CS' ~ 'pfx_CS_pct',
+    pitch_type == 'ST' ~ 'pfx_ST_pct',
     TRUE ~ as.character(pitch_type)
   )) %>% 
   select(PlayerName = player_name, PitchType = pitch_type, game_year, release_speed) 
+
 
 # Calculate usage percentages
 pitch_arsenal <- filtered_savant %>%
