@@ -103,9 +103,7 @@ cond_data_2021 |>
   labs(title = "ERA vs Fastball Value (wFB)", x = "wFB", y = "ERA")
 
 
-library(ggcorrplot)
-cor_matrix <- cor(cond_data_2021 %>% select_if(is.numeric), use = "complete.obs")
-ggcorrplot(cor_matrix, hc.order = TRUE, type = "lower", lab = TRUE)
+
 
 
 
@@ -224,14 +222,14 @@ data_long |>
 
 
 # Calculate the change in pitch usage for each pitcher and each pitch type
-usage_change <- combined_data %>%
+usage_change <- combined_data |>
   dplyr::select(PlayerName, Season, pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, 
-                pfx_FA_pct, pfx_SI_pct, pfx_SL_pct, pfx_SC_pct, pfx_FS_pct, pfx_FO_pct, pfx_KC_pct, pfx_KN_pct, pfx_EP_pct) %>%
+                pfx_FA_pct, pfx_SI_pct, pfx_SL_pct, pfx_SC_pct, pfx_FS_pct, pfx_FO_pct, pfx_KC_pct, pfx_KN_pct, pfx_EP_pct) |>
   gather(key = 'PitchType', value = 'UsagePct', pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, 
-         pfx_FA_pct, pfx_SI_pct, pfx_SL_pct, pfx_SC_pct, pfx_FS_pct, pfx_FO_pct, pfx_KC_pct, pfx_KN_pct, pfx_EP_pct) %>%
-  pivot_wider(names_from = Season, values_from = UsagePct, names_prefix = "Year_") %>%
-  mutate(Change = `Year_2023` - `Year_2021`) %>%
-  filter(!is.na(Change)) %>%
+         pfx_FA_pct, pfx_SI_pct, pfx_SL_pct, pfx_SC_pct, pfx_FS_pct, pfx_FO_pct, pfx_KC_pct, pfx_KN_pct, pfx_EP_pct) |>
+  pivot_wider(names_from = Season, values_from = UsagePct, names_prefix = "Year_") |>
+  mutate(Change = `Year_2023` - `Year_2021`) |>
+  filter(!is.na(Change)) |>
   select(-Change)
 
 # Get the top 5 pitchers with the most significant changes yearly
@@ -289,13 +287,13 @@ detect_arsenal_change <- function(data) {
   
   
   # Group by PlayerName and PitchType, calculate changes
-  data_changes <- data %>%
-    group_by(PlayerName, PitchType) %>%
+  data_changes <- data |>
+    group_by(PlayerName, PitchType) |>
     summarize(
       Change_2021_2022 = `Year_2022` - `Year_2021`,
       Change_2022_2023 = `Year_2023` - `Year_2022`,
       .groups = 'drop'
-    ) %>%
+    ) |>
 
     # Threshold of 2%
     mutate(
@@ -306,7 +304,7 @@ detect_arsenal_change <- function(data) {
     )
   
   # Update original dataset with new columns
-  result <- data %>%
+  result <- data |>
     left_join(data_changes, by = c("PlayerName", "PitchType"))
   
   return(result)
@@ -326,19 +324,21 @@ usage_change <- detect_arsenal_change(usage_change)
 # Different assignments in savant as 'FA' is assigned other
   # 'FF' is assigned 4-Seam fastball all under pitch_name variable
 # Already modeled 4-Seam as pfx_FA_pct with baseballr so we'll stick with this format
-clean_savant <- savant %>%
-  filter(pitch_type != 'FA') %>%
+clean_savant <- savant  |>
+  filter(pitch_type != 'FA') |>
   mutate(pitch_type = ifelse(pitch_type == 'FF', 'FA', pitch_type))
 
 
 # Flip Player Name Format for consistent formatting
 reformat_name <- function(name) {
+  
   parts <- strsplit(name, ', ')[[1]]
+  
   return(paste(parts[2], parts[1]))
 }
 
 # Apply the function to the player_name column
-clean_savant <- clean_savant %>% 
+clean_savant <- clean_savant |> 
   mutate(player_name = sapply(player_name, reformat_name))
 
 
@@ -370,8 +370,8 @@ pitch_type_mappings <- c(
 
 
 # Filter and transform all pitch types, retaining necessary columns**
-filtered_savant <- clean_savant %>% 
-  mutate(PitchType = recode(pitch_type, !!!pitch_type_mappings))%>% 
+filtered_savant <- clean_savant |> 
+  mutate(PitchType = recode(pitch_type, !!!pitch_type_mappings))|> 
   select(PlayerName = player_name, PitchType, game_year, 
          release_speed, effective_speed, release_spin_rate, 
          release_pos_x, release_pos_y, release_pos_z) 
@@ -379,15 +379,15 @@ filtered_savant <- clean_savant %>%
 
 
 # Streamline focus to arsenal metrics only and compute relative weights
-pitch_metric <- filtered_savant %>% 
-  group_by(PlayerName, PitchType, game_year) %>% 
-  summarize(PitchCount = n(), .groups = 'drop') %>% 
-  group_by(PlayerName, game_year) %>% 
-  mutate(TotalPitchCount = sum(PitchCount)) %>% 
-  ungroup() %>% 
-  mutate(UsagePct = round(PitchCount / TotalPitchCount, 3)) %>% 
-  select(PlayerName, PitchType, game_year, UsagePct) %>% 
-  pivot_wider(names_from = game_year, values_from = UsagePct, names_prefix = 'Year_') %>% 
+pitch_metric <- filtered_savant |> 
+  group_by(PlayerName, PitchType, game_year) |> 
+  summarize(PitchCount = n(), .groups = 'drop') |> 
+  group_by(PlayerName, game_year) |> 
+  mutate(TotalPitchCount = sum(PitchCount)) |> 
+  ungroup() |> 
+  mutate(UsagePct = round(PitchCount / TotalPitchCount, 3)) |> 
+  select(PlayerName, PitchType, game_year, UsagePct) |> 
+  pivot_wider(names_from = game_year, values_from = UsagePct, names_prefix = 'Year_') |> 
   replace_na(list(Year_2021 = 0, Year_2022 = 0, Year_2023 = 0))
 
 
@@ -442,8 +442,8 @@ ggplot(cond_data, aes(x=`xFIP-`, colour = ind_curve))+
 geom_density()+
 facet_wrap(vars(ind_curve), nrow=2)
 
-cond_data %>%
-  filter(ind_slider == "Yes") %>%
+cond_data |>
+  filter(ind_slider == "Yes") |>
   ggplot(aes(x = `pfx_SL-X`, y = sp_s_SL)) +
   geom_point(na.rm = TRUE) +
   geom_smooth(method = "lm") +
@@ -470,9 +470,9 @@ has_changed_fastball <- function(data) {
 }
 
 # Group data by pitcher and filter for those who have changed their fastball indicator
-changed_fastball_pitchers <- cond_data %>%
-  group_by(xMLBAMID) %>%
-  do(has_changed_fastball(.)) %>%
+changed_fastball_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_fastball(.)) |>
   ungroup()
 
 # Example Visualization for Fastball Indicator Change
@@ -486,19 +486,19 @@ ggplot(changed_fastball_pitchers, aes(x = factor(Season), y = ind_fastball, grou
   theme_minimal()
 
 # Calculate the difference in 'FIP-' between consecutive years for each pitcher
-fip_diff <- changed_fastball_pitchers %>%
-  arrange(xMLBAMID, Season) %>%
-  group_by(xMLBAMID, PlayerNameRoute) %>%
-  mutate(FIP_diff = `FIP-` - lag(`FIP-`)) %>%
-  filter(!is.na(FIP_diff)) %>%
+fip_diff <- changed_fastball_pitchers |>
+  arrange(xMLBAMID, Season) |>
+  group_by(xMLBAMID, PlayerNameRoute) |>
+  mutate(FIP_diff = `FIP-` - lag(`FIP-`)) |>
+  filter(!is.na(FIP_diff)) |>
   ungroup()
 
 # Determine if fastball was added or subtracted
-fip_diff <- fip_diff %>%
+fip_diff <- fip_diff |>
   mutate(change_type = case_when(
     ind_fastball == "Yes" & lag(ind_fastball) == "No" ~ "Added",
     ind_fastball == "No" & lag(ind_fastball) == "Yes" ~ "Subtracted"
-  )) %>%
+  )) |>
   filter(!is.na(change_type))  # Exclude rows where change_type is NA (no change)
 
 # Create a bar chart to visualize the change in fastball indicator with color coding
@@ -517,28 +517,28 @@ library(ggplot2)
 
 # Function to handle splitting pitchers with alternating fastball indicators
 split_pitchers <- function(data) {
-  fastball_changes <- data %>%
-    arrange(xMLBAMID, Season) %>%
-    group_by(xMLBAMID) %>%
+  fastball_changes <- data |>
+    arrange(xMLBAMID, Season) |>
+    group_by(xMLBAMID) |>
     mutate(change = ifelse(ind_fastball != lag(ind_fastball), 1, 0),
-           change_group = cumsum(change)) %>%
-    filter(change_group <= 1) %>%
+           change_group = cumsum(change)) |>
+    filter(change_group <= 1) |>
     ungroup()
   
   return(fastball_changes)
 }
 
 # Calculate the difference in 'FIP-' between consecutive years for each pitcher
-fip_diff <- changed_fastball_pitchers %>%
-  arrange(xMLBAMID, Season) %>%
-  group_by(xMLBAMID, PlayerNameRoute) %>%
-  mutate(FIP_diff = `FIP-` - lag(`FIP-`)) %>%
-  ungroup() %>%
-  filter(!is.na(FIP_diff)) %>%
+fip_diff <- changed_fastball_pitchers |>
+  arrange(xMLBAMID, Season) |>
+  group_by(xMLBAMID, PlayerNameRoute) |>
+  mutate(FIP_diff = `FIP-` - lag(`FIP-`)) |>
+  ungroup() |>
+  filter(!is.na(FIP_diff)) |>
   mutate(change_type = case_when(
     ind_fastball == "Yes" & lead(ind_fastball) == "No" ~ "Added",
     ind_fastball == "No" & lead(ind_fastball) == "Yes" ~ "Subtracted"
-  )) %>%
+  )) |>
   filter(!is.na(change_type))  # Exclude rows where change_type is NA
 
 # Create a bar chart to visualize the change in fastball indicator with color coding
