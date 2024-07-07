@@ -16,6 +16,7 @@ for (player in data_2021){
   data_2021$position <- ifelse(data_2021$GS >= (data_2021$G - data_2021$GS), 
                                "SP", "RP")
 }
+
 data_2021 |> 
   ggplot(aes(x= sp_s_FF, y = FBv))+
   geom_point()
