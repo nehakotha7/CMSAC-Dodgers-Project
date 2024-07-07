@@ -5,13 +5,13 @@ library(ggridges)
 library(patchwork)
 library(tidyr)
 library(tidyverse)
-
-
 theme_set(theme_light())
+
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021) |> 
   filter(Pitches >= 250) #only including pitchers who threw more than 250 pitches
 #adjusting the position column to classify into starters (SP) and relievers (RP)
+
 for (player in data_2021){
   data_2021$position <- ifelse(data_2021$GS >= (data_2021$G - data_2021$GS), 
                                "SP", "RP")
@@ -22,15 +22,13 @@ data_2021 |>
   geom_point()
 
 
-
-
 data_2022 = baseballr::fg_pitcher_leaders(startseason = 2022, endseason = 2022) |> 
   filter(Pitches >= 250)
+
 for (player in data_2022){
   data_2022$position <- ifelse(data_2022$GS >= (data_2022$G - data_2022$GS), 
                                "SP", "RP")
 }
-
 
 
 data_2023 = baseballr::fg_pitcher_leaders(startseason = 2023, endseason = 2023) |> 
@@ -43,27 +41,27 @@ for (player in data_2023){
 
 
 
-
 # Early EDA ---------------------------------------------------------------
-
 
 
 key_vars <- c("team_name", "Throws", "PlayerName", "Age", "W", "L", "ERA", "G", "GS", "SO", "IP", "Pitches", 
               "Balls", "Strikes", "FB_pct", 'FB_pct1', 'SL_pct', "FBv", "SL_pct", "SLv", "CT_pct", "CTv", "CB_pct", "CBv", "CH_pct", "CHv",
               "sp_stuff", "sp_location", 'K_9', "sp_pitching", 'WAR', 'wFB')
+
 cond_data_2021 <- data_2021 |> 
   dplyr::select(all_of(key_vars))
+
 cond_data_2022 <- data_2022 |> 
   dplyr::select(all_of(key_vars))
+
+
 # summary(cond_data_2021)
-
-
-
 # Earned Runs Average
 cond_data_2021 |> 
   ggplot(aes(ERA))+
   geom_histogram(binwidth = 0.5, fill = 'blue', color = 'black')+
   labs(title = "Distribution of ERA", x = "ERA", y = "Frequency")
+
 
 cond_data_2021 |> 
   ggplot(aes(x = FBv, y = K_9))+
@@ -71,11 +69,13 @@ cond_data_2021 |>
   geom_smooth(method = 'lm', color = 'blue', se = F)+
   labs(title = "Fastball Velocity vs Strikeouts per 9 innings", x = "Fastball Velocity (mph)", y = "Strikeouts / 9 innings")
 
+
 # Boxplot of ERA by Pitching Hand (Throws)
 cond_data_2021 |> 
   ggplot(aes(Throws, ERA))+
   geom_boxplot(fill = c('lightblue', 'lightgreen'))+
   labs(title = "ERA by Pitching Hand", x = "Pitching Hand", y = "ERA")
+
 
 cond_data_2021 |> 
   ggplot(aes(x = sp_stuff, y = ERA, color = Throws))+
@@ -87,7 +87,6 @@ cond_data_2021 |>
 # The formula for WAR can be complex and varies by source, 
 # but the aim is to combine these elements to reflect a player's overall value 
 # in terms of additional wins contributed to their team.
-
 # Stuff+ vs Performance
 cond_data_2021 |> 
   ggplot(aes(sp_stuff, WAR))+
@@ -95,13 +94,14 @@ cond_data_2021 |>
   geom_smooth(method = 'lm')+
   labs(title = "WAR vs Stuff+", x = "Stuff+", y = "WAR")
 
+
+
 # Pitch Type vs Performance:
 cond_data_2021 |> 
   ggplot(aes(wFB, ERA))+
   geom_point(alpha = .45, size = .9)+
   geom_smooth(method = 'lm')+
   labs(title = "ERA vs Fastball Value (wFB)", x = "wFB", y = "ERA")
-
 
 
 
@@ -115,6 +115,7 @@ pitch_type_names <- c(
   "CB_pct" = "Curveball %", 
   "CH_pct" = "Changeup %"
 )
+
 
 cond_data_2021 |> 
   pivot_longer(cols = c(FB_pct1, SL_pct, CT_pct, CB_pct, CH_pct), 
@@ -130,9 +131,7 @@ cond_data_2021 |>
     'CH_pct' = 'orange'
   ), labels = pitch_type_names)+
   labs(title = "Pitch Usage Patterns", x = "Pitch Type", y = "Percentage", fill = "Pitch Type")+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 
@@ -140,21 +139,16 @@ cond_data_2021 |>
 
 # Combine datasets for seasonal info --------------------------------------
 
-
 combined_data <- bind_rows(data_2021, data_2022, data_2023)
 
 
-
-
 # identify pitcher who changed pitch usage --------------------------------
-
-
-
 relevant_cols <- c('PlayerName', 'Season', 'pfx_FA_pct', 'pfx_FC_pct', 'pfx_SL_pct', 
                    'pfx_CH_pct', 'pfx_CU_pct', 'pfx_SI_pct', 'pfx_FS_pct', 
                    'pfx_SC_pct', 'pfx_FO_pct', 'pfx_KC_pct', 'pfx_EP_pct', 'pfx_KN_pct')
 colnames_combined_data <- colnames(combined_data)
 pitch_cols <- colnames_combined_data[grep("pfx_", colnames_combined_data)]
+
 
 # Define custom labels for each pitch type
 custom_labels <- c(
@@ -178,7 +172,6 @@ custom_labels <- c(
 )
 
 
-
 # Define the custom color palette
 custom_colors <- c("#E41A1C", 
                    "#377EB8", 
@@ -189,8 +182,9 @@ custom_colors <- c("#E41A1C",
 
 
 
-# Ridge plots but faceted -------------------------------------------------
 
+
+# Ridge plots but faceted -------------------------------------------------
 
 
 # Filter and gather the data to long format
@@ -202,6 +196,7 @@ data_long <- combined_data |>
 
 # Convert 'Season' to a factor for proper grouping
 data_long$Season <- as.factor(data_long$Season)
+
 
 
 # Create ridge plots
@@ -218,11 +213,14 @@ data_long |>
 
 
 
+
+
 # Fluctuation of pitch types for top pitchers -----------------------------
 
 
 # Calculate the change in pitch usage for each pitcher and each pitch type
 usage_change <- combined_data |>
+  usage_change <- combined_data |>
   dplyr::select(PlayerName, Season, pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, 
                 pfx_FA_pct, pfx_SI_pct, pfx_SL_pct, pfx_SC_pct, pfx_FS_pct, pfx_FO_pct, pfx_KC_pct, pfx_KN_pct, pfx_EP_pct) |>
   gather(key = 'PitchType', value = 'UsagePct', pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, 
@@ -249,12 +247,10 @@ data_top_pitchers <- combined_data |>
 data_top_pitchers$Season <- as.factor(data_top_pitchers$Season)
 
 
-
 # Gather the data to long format for plotting
 data_long_top <- data_top_pitchers |> 
   dplyr::select(PlayerName, Season, pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, pfx_FA_pct, pfx_SI_pct, pfx_SL_pct) |> 
   gather(key = "PitchType", value = "UsagePct", pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, pfx_FA_pct, pfx_SI_pct, pfx_SL_pct)
-
 
 
 # Create a faceted line plot with custom titles and colors
@@ -273,41 +269,39 @@ data_long_top |>
 
 
 
-
-
-
 # Initialize pitch arsenal variation function -----------------------------
-
-
 
 
 # Function to detect changes in pitch arsenal
 detect_arsenal_change <- function(data) {
-  
-  
+
   
   # Group by PlayerName and PitchType, calculate changes
   data_changes <- data |>
-    group_by(PlayerName, PitchType) |>
-    summarize(
-      Change_2021_2022 = `Year_2022` - `Year_2021`,
-      Change_2022_2023 = `Year_2023` - `Year_2022`,
-      .groups = 'drop'
-    ) |>
+      group_by(PlayerName, PitchType) |>
+      summarize(
+        Change_2021_2022 = `Year_2022` - `Year_2021`,
+        Change_2022_2023 = `Year_2023` - `Year_2022`,
+        .groups = 'drop'
+      ) |>
 
-    # Threshold of 2%
-    mutate(
-      Added_2021_2022 = ifelse(Change_2021_2022 > .02, 1, 0),
-      Dropped_2021_2022 = ifelse(Change_2021_2022 <= -.02, 1, 0),
-      Added_2022_2023 = ifelse(Change_2022_2023 > .02, 1, 0),
-      Dropped_2022_2023 = ifelse(Change_2022_2023 <= -.02, 1, 0)
-    )
-  
-  # Update original dataset with new columns
-  result <- data |>
-    left_join(data_changes, by = c("PlayerName", "PitchType"))
-  
-  return(result)
+  # Threshold of 2%
+  mutate(
+    Added_2021_2022 = ifelse(Change_2021_2022 > .02, 1, 0),
+    Dropped_2021_2022 = ifelse(Change_2021_2022 <= -.02, 1, 0),
+    Added_2022_2023 = ifelse(Change_2022_2023 > .02, 1, 0),
+    Dropped_2022_2023 = ifelse(Change_2022_2023 <= -.02, 1, 0)
+  )
+
+# Update original dataset with new columns
+result <- data |>
+  left_join(data_changes, by = c("PlayerName", "PitchType"))
+
+# Only drop NA's at the end of arsenal creation
+result <- result |> 
+  drop_na()
+
+return(result)
 }
 
 
@@ -316,16 +310,16 @@ usage_change <- detect_arsenal_change(usage_change)
 
 
 
-
-
-
 # Exploring savant dataset ------------------------------------------------
+
+
 
 # Different assignments in savant as 'FA' is assigned other
   # 'FF' is assigned 4-Seam fastball all under pitch_name variable
 # Already modeled 4-Seam as pfx_FA_pct with baseballr so we'll stick with this format
-clean_savant <- savant  |>
-  filter(pitch_type != 'FA') |>
+  # merge with 'FA' other count (2-seam fastball ?) to prevent data loss
+
+clean_savant <- savant |>
   mutate(pitch_type = ifelse(pitch_type == 'FF', 'FA', pitch_type))
 
 
@@ -337,9 +331,11 @@ reformat_name <- function(name) {
   return(paste(parts[2], parts[1]))
 }
 
+
 # Apply the function to the player_name column
 clean_savant <- clean_savant |> 
   mutate(player_name = sapply(player_name, reformat_name))
+
 
 
 
@@ -368,7 +364,6 @@ pitch_type_mappings <- c(
 )
 
 
-
 # Filter and transform all pitch types, retaining necessary columns**
 filtered_savant <- clean_savant |> 
   mutate(PitchType = recode(pitch_type, !!!pitch_type_mappings))|> 
@@ -391,16 +386,15 @@ pitch_metric <- filtered_savant |>
   replace_na(list(Year_2021 = 0, Year_2022 = 0, Year_2023 = 0))
 
 
-
 # Apply function
 pitch_arsenal <- detect_arsenal_change(pitch_metric)
 
 
 
 
+
+
 # From King Danny ---------------------------------------------------------
-
-
 
 #Setting the cutoff at 5% usage
 cond_data <- combined_data |> 
@@ -416,7 +410,6 @@ cond_data <- combined_data |>
          ind_kc = ifelse(is.na(pfx_KC_pct) | pfx_KC_pct < 0.05, "No", "Yes"),
          ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct < 0.05, "No", "Yes")
   )
-
 #Adjusting the horizontal movement variable
 cond_data <- combined_data |> 
   mutate(`pfx_FA-X` = ifelse(Throws == "R", `pfx_SL-X` * -1, `pfx_SL-X`),
@@ -431,26 +424,21 @@ cond_data <- combined_data |>
          `pfx_KC-X` = ifelse(Throws == "L", `pfx_KC-X` * -1, `pfx_KC-X`),
          `pfx_KN-X` = abs(`pfx_KN-X`)
   )
-
-
-
-
-
 #Experimenting with visualizations
 library(ggplot2)
 ggplot(cond_data, aes(x=`xFIP-`, colour = ind_curve))+
-geom_density()+
-facet_wrap(vars(ind_curve), nrow=2)
+  geom_density()+
+  facet_wrap(vars(ind_curve), nrow=2)
 
 cond_data |>
+  filter(ind_slider == "Yes") |>
+  cond_data |>
   filter(ind_slider == "Yes") |>
   ggplot(aes(x = `pfx_SL-X`, y = sp_s_SL)) +
   geom_point(na.rm = TRUE) +
   geom_smooth(method = "lm") +
   labs(x = "pfx_SL-X", y = "sp_s_SL") +
   ggtitle("Scatterplot of pfx_SL-X vs sp_s_SL (Slider Indicator = Yes)")
-
-
 # Function to check if fastball indicator has changed from Yes to No
 # and exclude consecutive years with the same indicator
 has_changed_fastball <- function(data) {
@@ -473,6 +461,9 @@ has_changed_fastball <- function(data) {
 changed_fastball_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_fastball(.)) |>
+  changed_fastball_pitchers <- cond_data |>
+  group_by(xMLBAMID) |>
+  do(has_changed_fastball(.)) |>
   ungroup()
 
 # Example Visualization for Fastball Indicator Change
@@ -491,15 +482,23 @@ fip_diff <- changed_fastball_pitchers |>
   group_by(xMLBAMID, PlayerNameRoute) |>
   mutate(FIP_diff = `FIP-` - lag(`FIP-`)) |>
   filter(!is.na(FIP_diff)) |>
+  fip_diff <- changed_fastball_pitchers |>
+  arrange(xMLBAMID, Season) |>
+  group_by(xMLBAMID, PlayerNameRoute) |>
+  mutate(FIP_diff = `FIP-` - lag(`FIP-`)) |>
+  filter(!is.na(FIP_diff)) |>
   ungroup()
 
 # Determine if fastball was added or subtracted
 fip_diff <- fip_diff |>
+  fip_diff <- fip_diff |>
   mutate(change_type = case_when(
     ind_fastball == "Yes" & lag(ind_fastball) == "No" ~ "Added",
     ind_fastball == "No" & lag(ind_fastball) == "Yes" ~ "Subtracted"
   )) |>
+  )) |>
   filter(!is.na(change_type))  # Exclude rows where change_type is NA (no change)
+
 
 # Create a bar chart to visualize the change in fastball indicator with color coding
 ggplot(fip_diff, aes(x = FIP_diff, y = reorder(PlayerNameRoute, FIP_diff), fill = change_type)) +
@@ -510,26 +509,37 @@ ggplot(fip_diff, aes(x = FIP_diff, y = reorder(PlayerNameRoute, FIP_diff), fill 
        x = "Change in FIP-",
        y = "Player Name") +
   theme_minimal()
-
-
 library(dplyr)
 library(ggplot2)
+
 
 # Function to handle splitting pitchers with alternating fastball indicators
 split_pitchers <- function(data) {
   fastball_changes <- data |>
     arrange(xMLBAMID, Season) |>
     group_by(xMLBAMID) |>
-    mutate(change = ifelse(ind_fastball != lag(ind_fastball), 1, 0),
-           change_group = cumsum(change)) |>
-    filter(change_group <= 1) |>
-    ungroup()
-  
-  return(fastball_changes)
+    fastball_changes <- data |>
+      arrange(xMLBAMID, Season) |>
+      group_by(xMLBAMID) |>
+      mutate(change = ifelse(ind_fastball != lag(ind_fastball), 1, 0),
+             change_group = cumsum(change)) |>
+      filter(change_group <= 1) |>
+      change_group = cumsum(change)) |>
+  filter(change_group <= 1) |>
+  ungroup()
+
+return(fastball_changes)
 }
+
 
 # Calculate the difference in 'FIP-' between consecutive years for each pitcher
 fip_diff <- changed_fastball_pitchers |>
+  arrange(xMLBAMID, Season) |>
+  group_by(xMLBAMID, PlayerNameRoute) |>
+  mutate(FIP_diff = `FIP-` - lag(`FIP-`)) |>
+  ungroup() |>
+  filter(!is.na(FIP_diff)) |>
+  fip_diff <- changed_fastball_pitchers |>
   arrange(xMLBAMID, Season) |>
   group_by(xMLBAMID, PlayerNameRoute) |>
   mutate(FIP_diff = `FIP-` - lag(`FIP-`)) |>
@@ -539,7 +549,9 @@ fip_diff <- changed_fastball_pitchers |>
     ind_fastball == "Yes" & lead(ind_fastball) == "No" ~ "Added",
     ind_fastball == "No" & lead(ind_fastball) == "Yes" ~ "Subtracted"
   )) |>
+  )) |>
   filter(!is.na(change_type))  # Exclude rows where change_type is NA
+
 
 # Create a bar chart to visualize the change in fastball indicator with color coding
 ggplot(fip_diff, aes(x = FIP_diff, y = reorder(PlayerNameRoute, FIP_diff), fill = change_type)) +
@@ -557,41 +569,27 @@ ggplot(fip_diff, aes(x = FIP_diff, y = reorder(PlayerNameRoute, FIP_diff), fill 
 
 
 
-
 # note to self ------------------------------------------------------------
-
-
 # Out of the myriads of variables which one is important?
 # EDA
 # runs above average to stuff+
-
-
 # ridge plots over time !boxplot
-  # a way to tally changes in arsenal
-
-
+# a way to tally changes in arsenal
 # binary column variable as factor checker to detect a change between consecutive years
 # just keep conditioning - already have the motherboard
-  # Stick with it but remain gracious to flexibility
-
-
+# Stick with it but remain gracious to flexibility
 # generalize line plots to no of pitchers per year instead of usage percentage
-  # frequency of added and subtracted pitchers
-
+# frequency of added and subtracted pitchers
 # tree base approach to output potential run value
 # plots movements vs avg on each axis(pfx with dash)
-  # color by maybe slider for now
+# color by maybe slider for now
 # Limitation
-  # In creating these metrics for pitch arsenal, stuff plus (sp) doesn't take into account the batter's action
-
-
+# In creating these metrics for pitch arsenal, stuff plus (sp) doesn't take into account the batter's action
 # model stuff+ based on attributes using gam
-  # compare to pfx_stuff+ given
-  # get a run value for pitchers
+# compare to pfx_stuff+ given
+# get a run value for pitchers
 # ridge and lasso regression for initially modeling for stuff+
-  # cross validation
-  # toss it in see what sticks
-
-
+# cross validation
+# toss it in see what sticks
 # Individual gam based on pitch types
 # predicting aggregate characteristics
