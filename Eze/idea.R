@@ -223,15 +223,15 @@ data_long |>
 
 
 # Calculate the change in pitch usage for each pitcher and each pitch type
-usage_change <- combined_data |> 
+usage_change <- combined_data %>%
   dplyr::select(PlayerName, Season, pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, 
-                pfx_FA_pct, pfx_SI_pct, pfx_SL_pct, pfx_SC_pct, pfx_FS_pct, pfx_FO_pct, pfx_KC_pct, pfx_KN_pct, pfx_EP_pct) |> 
+                pfx_FA_pct, pfx_SI_pct, pfx_SL_pct, pfx_SC_pct, pfx_FS_pct, pfx_FO_pct, pfx_KC_pct, pfx_KN_pct, pfx_EP_pct) %>%
   gather(key = 'PitchType', value = 'UsagePct', pfx_CH_pct, pfx_CU_pct, pfx_FC_pct, 
-         pfx_FA_pct, pfx_SI_pct, pfx_SL_pct, pfx_SC_pct, pfx_FS_pct, pfx_FO_pct, pfx_KC_pct, pfx_KN_pct, pfx_EP_pct) |> 
-  spread(key = Season, value = UsagePct) |> 
-  mutate(Change = `2023` - `2021`) |> 
-  filter(!is.na(Change))
-
+         pfx_FA_pct, pfx_SI_pct, pfx_SL_pct, pfx_SC_pct, pfx_FS_pct, pfx_FO_pct, pfx_KC_pct, pfx_KN_pct, pfx_EP_pct) %>%
+  pivot_wider(names_from = Season, values_from = UsagePct, names_prefix = "Year_") %>%
+  mutate(Change = `Year_2023` - `Year_2021`) %>%
+  filter(!is.na(Change)) %>%
+  select(-Change)
 
 # Get the top 5 pitchers with the most significant changes yearly
 top_pitchers <- usage_change |> 
@@ -276,24 +276,26 @@ data_long_top |>
 
 
 
-# Create a new dataset with binary columns indicating pitch changes -------
 
-usage_change <- usage_change %>% 
-  select(-Change) %>% 
-  drop_na()
+# Initialize pitch arsenal variation function -----------------------------
+
+
+
 
 # Function to detect changes in pitch arsenal
 detect_arsenal_change <- function(data) {
+  
+  
   
   # Group by PlayerName and PitchType, calculate changes
   data_changes <- data %>%
     group_by(PlayerName, PitchType) %>%
     summarize(
-      Change_2021_2022 = `2022` - `2021`,
-      Change_2022_2023 = `2023` - `2022`
+      Change_2021_2022 = `Year_2022` - `Year_2021`,
+      Change_2022_2023 = `Year_2023` - `Year_2022`,
+      .groups = 'drop'
     ) %>%
-    ungroup() %>%
-    
+
     # Threshold of 2%
     mutate(
       Added_2021_2022 = ifelse(Change_2021_2022 > .02, 1, 0),
@@ -303,9 +305,10 @@ detect_arsenal_change <- function(data) {
     )
   
   # Update original dataset with new columns
-  data <- data %>% 
-    left_join(data_changes, by = c('PlayerName', 'PitchType'))
-  return(data)
+  result <- data %>%
+    left_join(data_changes, by = c("PlayerName", "PitchType"))
+  
+  return(result)
 }
 
 
@@ -343,45 +346,53 @@ clean_savant <- clean_savant %>%
 # Creating arsenal --------------------------------------------------------
 
 
+# Define the pitch type mappings
+pitch_type_mappings <- c(
+  CH = 'pfx_CH_pct',
+  CU = 'pfx_CU_pct',
+  FA = 'pfx_FA_pct',
+  SI = 'pfx_SI_pct',
+  SL = 'pfx_SL_pct',
+  FC = 'pfx_FC_pct',
+  SC = 'pfx_SC_pct',
+  FS = 'pfx_FS_pct',
+  FO = 'pfx_FO_pct',
+  KC = 'pfx_KC_pct',
+  EP = 'pfx_EP_pct',
+  KN = 'pfx_KN_pct',
+  PO = 'pfx_PO_pct',
+  SV = 'pfx_SV_pct',
+  CS = 'pfx_CS_pct',
+  ST = 'pfx_ST_pct'
+)
+
+
 
 # Filter and transform all pitch types, retaining necessary columns**
 filtered_savant <- clean_savant %>% 
-  mutate(pitch_type = case_when(
-    pitch_type == 'CH' ~ 'pfx_CH_pct',
-    pitch_type == 'CU' ~ 'pfx_CU_pct',
-    pitch_type == 'FA' ~ 'pfx_FA_pct',
-    pitch_type == 'SI' ~ 'pfx_SI_pct',
-    pitch_type == 'SL' ~ 'pfx_SL_pct',
-    pitch_type == 'FC' ~ 'pfx_FC_pct',
-    pitch_type == 'SC' ~ 'pfx_SC_pct',
-    pitch_type == 'FS' ~ 'pfx_FS_pct',
-    pitch_type == 'FO' ~ 'pfx_FO_pct',
-    pitch_type == 'KC' ~ 'pfx_KC_pct',
-    pitch_type == 'EP' ~ 'pfx_EP_pct',
-    pitch_type == 'KN' ~ 'pfx_KN_pct',
-    pitch_type == 'PO' ~ 'pfx_PO_pct',
-    pitch_type == 'SV' ~ 'pfx_SV_pct',
-    pitch_type == 'CS' ~ 'pfx_CS_pct',
-    pitch_type == 'ST' ~ 'pfx_ST_pct',
-    TRUE ~ as.character(pitch_type)
-  )) %>% 
-  select(PlayerName = player_name, PitchType = pitch_type, game_year, release_speed) 
+  mutate(PitchType = recode(pitch_type, !!!pitch_type_mappings))%>% 
+  select(PlayerName = player_name, PitchType, game_year, 
+         release_speed, effective_speed, release_spin_rate, 
+         release_pos_x, release_pos_y, release_pos_z) 
 
 
-# Calculate usage percentages
-pitch_arsenal <- filtered_savant %>%
-  distinct(PlayerName, PitchType, game_year, .keep_all = TRUE) %>%  # Remove duplicates
-  group_by(PlayerName, game_year, PitchType) %>%
-  summarise(Count = n()) %>%
-  group_by(PlayerName, game_year) %>%
-  mutate(UsagePct = round(Count / sum(Count), 3)) %>%
-  ungroup() %>%
-  spread(key = game_year, value = UsagePct, fill = 0) %>% 
-  select(-Count)
+
+# Streamline focus to arsenal metrics only and compute relative weights
+pitch_metric <- filtered_savant %>% 
+  group_by(PlayerName, PitchType, game_year) %>% 
+  summarize(PitchCount = n(), .groups = 'drop') %>% 
+  group_by(PlayerName, game_year) %>% 
+  mutate(TotalPitchCount = sum(PitchCount)) %>% 
+  ungroup() %>% 
+  mutate(UsagePct = round(PitchCount / TotalPitchCount, 3)) %>% 
+  select(PlayerName, PitchType, game_year, UsagePct) %>% 
+  pivot_wider(names_from = game_year, values_from = UsagePct, names_prefix = 'Year_') %>% 
+  replace_na(list(Year_2021 = 0, Year_2022 = 0, Year_2023 = 0))
+
 
 
 # Apply function
-pitch_arsenal <- detect_arsenal_change(pitch_arsenal)
+pitch_arsenal <- detect_arsenal_change(pitch_metric)
 
 
 
