@@ -189,7 +189,6 @@ has_changed_fastball <- function(data) {
 changed_fastball_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_fastball(.)) |>
-  ungroup() |> 
   select(1:12, 97)
 
 changed_fastball_pitchers <- changed_fastball_pitchers |> 
@@ -588,7 +587,6 @@ fb_change <- changed_fastball_pitchers |>
   group_by(Season) |> 
   summarize(fb_added = sum(change_type == "Added", na.rm = TRUE),
             fb_sub = sum(change_type == "Subtracted", na.rm = TRUE))
-#Something's not right with the next three pitches
 si_change <- changed_sinker_pitchers |> 
   group_by(Season) |> 
   summarize(si_added = sum(change_type == "Added", na.rm = TRUE),
@@ -601,4 +599,56 @@ sl_change <- changed_slider_pitchers |>
   group_by(Season) |> 
   summarize(sl_added = sum(change_type == "Added", na.rm = TRUE),
             sl_sub = sum(change_type == "Subtracted", na.rm = TRUE))
-ovr_change <- bind_cols(fb_change ,si_change, fc_change, sl_change)
+ch_change <- changed_change_pitchers |> 
+  group_by(Season) |> 
+  summarize(ch_added = sum(change_type == "Added", na.rm = TRUE),
+            ch_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+cu_change <- changed_curve_pitchers |> 
+  group_by(Season) |> 
+  summarize(cu_added = sum(change_type == "Added", na.rm = TRUE),
+            cu_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+fs_change <- changed_split_pitchers |> 
+  group_by(Season) |> 
+  summarize(fs_added = sum(change_type == "Added", na.rm = TRUE),
+            fs_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+kc_change <- changed_kc_pitchers |> 
+  group_by(Season) |> 
+  summarize(kc_added = sum(change_type == "Added", na.rm = TRUE),
+            kc_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+#NO DATA HERE: No one added or removed any of these
+fk_change <- changed_fork_pitchers |> 
+  group_by(Season) |> 
+  summarize(fk_added = sum(change_type == "Added", na.rm = TRUE),
+            fk_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+kn_change <- changed_knuckle_pitchers |> 
+  group_by(Season) |> 
+  summarize(kn_added = sum(change_type == "Added", na.rm = TRUE),
+            kn_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+sc_change <- changed_screw_pitchers |> 
+  group_by(Season) |> 
+  summarize(sc_added = sum(change_type == "Added", na.rm = TRUE),
+            sc_sub = sum(change_type == "Subtracted", na.rm = TRUE))
+ovr_change <- bind_cols(fb_change ,si_change, fc_change, sl_change, ch_change,
+                        cu_change, fs_change, kc_change) |> 
+  select(!c(4, 7, 10, 13, 16, 19, 22)) |> 
+  slice(-1) |> 
+  rename(Season = Season...1)
+#rename columns here
+ovr_change <- ovr_change |>
+  pivot_longer(
+    cols = -Season,
+    names_to = "Pitch Change",
+    values_to = "Count"
+  )
+
+# Plot the data
+ggplot(ovr_change, aes(x = Season, y = Count, color = `Pitch Change`)) +
+  geom_point()+
+  geom_line(linewidth = 1) +
+  labs(
+    title = "Number of Pitchers Throwing Each Pitch Type by Season",
+    x = "Season",
+    y = "Number of Pitchers",
+    color = "Pitch Type"
+  ) +
+  theme_minimal()
