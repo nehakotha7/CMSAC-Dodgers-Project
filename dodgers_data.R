@@ -640,10 +640,28 @@ ovr_change <- ovr_change |>
     names_to = "Pitch Change",
     values_to = "Count"
   )
+ovr_change <- ovr_change |> 
+  mutate(Pitch_Class = case_when(
+    substr(`Pitch Change`, 1, 2) == "fb" ~ "Fastball",
+    substr(`Pitch Change`, 1, 2) == "si" ~ "Sinker",
+    substr(`Pitch Change`, 1, 2) == "fc" ~ "Cutter",
+    substr(`Pitch Change`, 1, 2) == "sl" ~ "Slider",
+    substr(`Pitch Change`, 1, 2) == "ch" ~ "Changeup",
+    substr(`Pitch Change`, 1, 2) == "cu" ~ "Curveball",
+    substr(`Pitch Change`, 1, 2) == "fs" ~ "Splitter",
+    substr(`Pitch Change`, 1, 2) == "kc" ~ "Knuckle Curve",
+    TRUE ~ "Other"
+  ))
+
+pitch_order <- c("Fastball", "Sinker", "Cutter", "Slider", "Changeup", 
+                 "Curveball", "Splitter", "Knuckle Curve")
+
+ovr_change <- ovr_change |>
+  mutate(Pitch_Class = factor(Pitch_Class, levels = pitch_order))
 
 # Plot the data
 ggplot(ovr_change, aes(x = Season, y = Count, color = `Pitch Change`)) +
-  geom_point()+
+  geom_point(shape= 19)+
   geom_line(linewidth = 1) +
   labs(
     title = "Number of Pitchers Throwing Each Pitch Type by Season",
@@ -651,4 +669,24 @@ ggplot(ovr_change, aes(x = Season, y = Count, color = `Pitch Change`)) +
     y = "Number of Pitchers",
     color = "Pitch Type"
   ) +
+  scale_x_continuous(breaks = c(2022, 2023))+
+  scale_color_manual(
+    values = c("fb_added" = "black", "fb_sub" = "gray70",
+               "si_added" = "blue", "si_sub" = "skyblue",
+               "fc_added" = "chartreuse4", "fc_sub" = "chartreuse",
+               "sl_added" = "darkorange3", "sl_sub" = "orange",
+               "ch_added" = "goldenrod4", "ch_sub" = "lightgoldenrod",
+               "cu_added" = "red", "cu_sub" = "pink",
+               "fs_added" = "mediumpurple3", "fs_sub" = "plum3",
+               "kc_added" = "tan4", "kc_sub" = "tan"),
+    labels = c("fb_added" = "Fastball Added", "fb_sub" = "Fastball Subtracted",
+               "si_added" = "Sinker Added","si_sub" = "Sinker Subtracted",
+               "fc_added" = "Cutter Added", "fc_sub" = "Cutter Subtracted",
+               "sl_added" = "Slider Added", "sl_sub" = "Slider Subtracted",
+               "ch_added" = "Changeup Added","ch_sub" = "Changeup Subtracted",
+               "cu_added" = "Curveball Added", "cu_sub" = "Curveball Subtracted",
+               "fs_added" = "Splitter Added", "fs_sub" = "Splitter Subtracted",
+               "kc_added" = "Knuckle Curve Added", "kc_sub" = "Knuckle Curve Subtracted")
+  )+
+  facet_wrap(~ Pitch_Class)+
   theme_minimal()
