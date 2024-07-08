@@ -83,6 +83,34 @@ cond_data_2023 <- data_2023 |>
   select(all_of(key_vars)
   )
 
+
+#Reading in the data from statcast for extension and release point
+savant <- read.csv("savant.csv")
+savant_cond <- savant |> 
+  select(pitch_type, game_date, release_pos_x, release_pos_z, player_name, 
+         pitcher, release_extension) |> 
+  mutate(Season = case_when(
+    substr(game_date, 1, 4) == "2021" ~ "2021",
+    substr(game_date, 1, 4) == "2022" ~ "2022",
+    substr(game_date, 1, 4) == "2023" ~ "2023"
+  )) |> 
+  group_by(player_name, Season) |> 
+  mutate(avg_release_extension = mean(release_extension, na.rm = TRUE),
+         avg_rp_x = mean(release_pos_x, na.rm = TRUE),
+         avg_rp_z = mean(release_pos_z, na.rm = TRUE)) |> 
+  select(Season, player_name, pitcher, avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  distinct(player_name, Season, .keep_all = TRUE) |> 
+  rename(xMLBAMID = pitcher)
+
+savant_cond_2021 <- savant_cond |> 
+  filter(Season == 2021)
+
+savant_cond_2022 <- savant_cond |> 
+  filter(Season == 2022)
+
+savant_cond_2023 <- savant_cond |> 
+  filter(Season == 2023)
+
 #Adding the spin rates for each pitch with a CSV pulled from Statcast
 #Link to the 2021 data:https://baseballsavant.mlb.com/pitch-arsenals?year=2021&
 #min=250&type=n_&hand=&sort=9&sortDir=desc
@@ -90,16 +118,20 @@ cond_data_2023 <- data_2023 |>
 spin_2021 <- read.csv("pitch_spin_2021.csv")
 spin_2021 <- rename(spin_2021, xMLBAMID = pitcher)
 cond_data_2021 <- left_join(cond_data_2021, spin_2021, by="xMLBAMID")
+cond_data_2021 <- left_join(cond_data_2021, savant_cond_2021, by = "xMLBAMID")
 
 #2022
 spin_2022 <- read.csv("pitch_spin_2022.csv")
 spin_2022 <- rename(spin_2022, xMLBAMID = pitcher)
 cond_data_2022 <- left_join(cond_data_2022, spin_2022, by="xMLBAMID")
+cond_data_2022 <- left_join(cond_data_2022, savant_cond_2022, by = "xMLBAMID")
 
 #2023
 spin_2023 <- read.csv("pitch_spin_2023.csv")
 spin_2023 <- rename(spin_2023, xMLBAMID = pitcher)
 cond_data_2023 <- left_join(cond_data_2023, spin_2023, by="xMLBAMID")
+cond_data_2023 <- left_join(cond_data_2023, savant_cond_2023, by = "xMLBAMID")
+
 
 #combining all three condensed datasets
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
@@ -733,3 +765,82 @@ tidy_lasso_coef |>
   geom_vline(xintercept = lasso_cv$lambda.min) +
   geom_vline(xintercept = lasso_cv$lambda.1se, 
              linetype = "dashed", color = "red")
+
+
+
+# Decision Tree -----------------------------------------------------------
+
+set.seed(123)
+train <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
+  select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
+  drop_na() |> 
+  slice_sample(prop = 0.5) 
+  
+test <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
+  select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
+  anti_join(train, by = c("pfx_vCH", "pfx_CH-X", "pfx_CH-Z", "sp_s_CH", "sp_s_FF")) |> 
+  drop_na()
+
+if(anyNA(train) | anyNA(test)) {
+  stop("There are missing values in the training or testing data.")
+}
+
+library(caret)
+hr_tree <- train(sp_s_FF ~ ., 
+                 data = train, 
+                 method = "rpart", 
+                 tuneLength = 20,
+                 trControl = trainControl(method = "cv", number = 10))
+
+
+# Load required packages
+library(dplyr)
+library(caret)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Prepare the data
+train <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
+  select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
+  slice_sample(prop = 0.5) |> 
+  drop_na()
+
+# Ensure no duplicate columns or issues with anti_join by creating a unique identifier
+train <- train |> 
+  mutate(id = row_number())
+
+# Prepare testing data
+test <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_change == "Yes") |>
+  select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
+  drop_na() |> 
+  mutate(id = row_number())
+
+# Exclude training data from testing data
+test <- test |> 
+  anti_join(train, by = "id") |> 
+  select(-id)
+
+# Check dimensions to ensure there is no mismatch
+print(dim(train))
+print(dim(test))
+
+# Ensure no missing values in training and testing data
+if(anyNA(train) | anyNA(test)) {
+  stop("There are missing values in the training or testing data.")
+}
+
+# Train decision tree model
+set.seed(1)
+hr_tree <- train(sp_s_FF ~ ., 
+                 data = train, 
+                 method = "rpart", 
+                 tuneLength = 20,
+                 trControl = trainControl(method = "cv", number = 10))
+
+# Print model summary
+print(hr_tree)
