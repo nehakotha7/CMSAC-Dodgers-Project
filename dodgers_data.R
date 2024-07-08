@@ -690,3 +690,46 @@ ggplot(ovr_change, aes(x = Season, y = Count, color = `Pitch Change`)) +
   )+
   facet_wrap(~ Pitch_Class)+
   theme_minimal()
+
+
+# Lasso Regression --------------------------------------------------------
+#Attempting to model the Stuff+ of a Four Seam Fastball
+library(glmnet)
+#create predictor matrix and response variable
+# predictors
+# Begin using only changeup characteristics
+# Filter, select relevant columns, and remove rows with any NA values
+# Create predictor matrix
+model_x <- cond_data |> 
+  filter(ind_change == "Yes") |> 
+  select(pfx_CH_pct, pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, ch_avg_spin, sp_s_CH) |> 
+  drop_na() |> 
+  as.matrix()
+
+# Create response variable
+model_y <- cond_data |> 
+  filter(ind_change == "Yes" & !is.na(ch_avg_spin)) |> 
+  pull(sp_s_FF)
+  
+#Linear Model: For testing purposes  
+ch_to_ff_lm = lm(sp_s_FF ~ pfx_CH_pct + pfx_vCH + `pfx_CH-X` + `pfx_CH-Z` + 
+                   ch_avg_spin + sp_s_CH,
+                 data=cond_data)
+library(broom)
+library(tidyverse)
+tidy(ch_to_ff_lm) |> 
+  mutate(term = fct_reorder(term, estimate)) |> 
+  ggplot(aes(x = estimate, y = term))+
+  geom_col(aes(fill=estimate>0), show.legend = FALSE)
+
+
+lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+tidy_lasso_coef <- tidy(lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = lasso_cv$lambda.min) +
+  geom_vline(xintercept = lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
