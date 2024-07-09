@@ -114,7 +114,8 @@ savant_cond_2023 <- savant_cond |>
 #Adding the spin rates for each pitch with a CSV pulled from Statcast
 #Link to the 2021 data:https://baseballsavant.mlb.com/pitch-arsenals?year=2021&
 #min=250&type=n_&hand=&sort=9&sortDir=desc
-
+#Issue here: we aren't recognizing sweepers and slurves, Statcast isn't recognizing
+#knuckle curves and possibly forkballs.
 spin_2021 <- read.csv("pitch_spin_2021.csv")
 spin_2021 <- rename(spin_2021, xMLBAMID = pitcher)
 cond_data_2021 <- left_join(cond_data_2021, spin_2021, by="xMLBAMID")
@@ -166,9 +167,6 @@ cond_data <- cond_data |>
          `pfx_KC-X` = ifelse(Throws == "L", `pfx_KC-X` * -1, `pfx_KC-X`),
          `pfx_KN-X` = abs(`pfx_KN-X`)
          )
-
-
-
 
 
 #Experimenting with visualizations
@@ -894,7 +892,7 @@ cond_data_a |>
              color = "red", linewidth = 2) +
   # plot the residual mean
   geom_smooth(se = FALSE)
-
+#Multiple Linear Regression with Sinker Characteristics (plus release data)
 multiple_lm <- lm(sp_s_FF ~ pfx_vSI + si_avg_spin + `pfx_SI-X` + `pfx_SI-Z` + 
                     avg_release_extension + avg_rp_x + avg_rp_z, data = cond_data_a)
 summary(multiple_lm)
@@ -912,3 +910,95 @@ cond_data_a |>
               linetype = "dashed",
               color = "red",
               linewidth = 2)
+
+#Attempting Multiple Linear Regression with Sinker Velo and Slider Velo
+cond_data_b <- cond_data |> 
+  filter(ind_fastball == "Yes") |> 
+  filter(ind_sinker == "Yes" | ind_slider == "Yes") |> 
+  select(pfx_vSI, sp_s_FF, pfx_vSL)
+
+multiple_lm2 <- lm(sp_s_FF ~ pfx_vSI + pfx_vSL, data=cond_data_b)
+summary(multiple_lm2)
+train_preds2 <- predict(multiple_lm2)
+head(train_preds2)
+cond_data_b <- cond_data_b |>
+  mutate(pred_vals = train_preds2)
+
+#Multiple Linear Regression with the speed of every pitch: NOT WORKING
+cond_data_c <- cond_data |> 
+  filter(ind_fastball == "Yes") |> 
+  filter(ind_sinker == "Yes" | ind_slider == "Yes" | ind_change == "Yes" | 
+           ind_curve == "Yes" | ind_cutter == "Yes" | ind_split == "Yes" |
+           ind_screw == "Yes" | ind_kc == "Yes" | ind_knuckle =="Yes" | 
+           ind_fork == "Yes") |> 
+  select(sp_s_FF, pfx_vSL, pfx_vSI, pfx_vCH, pfx_vCU, pfx_vFC, pfx_vFS, pfx_vSC, 
+         pfx_vKC, pfx_vKN, pfx_vFO)
+multiple_lm3 <- lm(sp_s_FF ~ pfx_vSL + pfx_vSI + pfx_vCH + pfx_vCU + pfx_vFC + 
+                   pfx_vFS + pfx_vKC,
+                   data = cond_data_c)
+#Error comes from: screwball, knuckleball, forkball
+summary(multiple_lm3)
+
+#Since combining pitches isn't working, temporarily pivoting to looking at every
+#trait for each pitch (Sinker is above)
+#Multiple Linear Regression with Slider Characteristics (plus release data)
+sl_data <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_slider == "Yes") |> 
+  select(pfx_vSL, sp_s_FF, sl_avg_spin, `pfx_SL-X`, `pfx_SL-Z`, sp_s_SL, 
+         avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  drop_na()
+multiple_lm_sl <- lm(sp_s_FF ~ pfx_vSL + sl_avg_spin + `pfx_SL-X` + `pfx_SL-Z` + 
+                    avg_release_extension + avg_rp_x + avg_rp_z, data = sl_data)
+summary(multiple_lm_sl)
+
+#Multiple Linear Regression with Curveball Characteristics (plus release data)
+cu_data <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_curve == "Yes") |> 
+  select(pfx_vCU, sp_s_FF, cu_avg_spin, `pfx_CU-X`, `pfx_CU-Z`, sp_s_CU, 
+         avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  drop_na()
+multiple_lm_cu <- lm(sp_s_FF ~ pfx_vCU + cu_avg_spin + `pfx_CU-X` + `pfx_CU-Z` + 
+                       avg_release_extension + avg_rp_x + avg_rp_z, data = cu_data)
+summary(multiple_lm_cu)
+
+#Multiple Linear Regression with Changeup Characteristics (plus release data)
+ch_data <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
+  select(pfx_vCH, sp_s_FF, ch_avg_spin, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, 
+         avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  drop_na()
+multiple_lm_ch <- lm(sp_s_FF ~ pfx_vCH + ch_avg_spin + `pfx_CH-X` + `pfx_CH-Z` + 
+                       avg_release_extension + avg_rp_x + avg_rp_z, data = ch_data)
+summary(multiple_lm_ch)
+
+#Multiple Linear Regression with Cutter Characteristics (plus release data)
+fc_data <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_cutter == "Yes") |> 
+  select(pfx_vFC, sp_s_FF, fc_avg_spin, `pfx_FC-X`, `pfx_FC-Z`, sp_s_FC, 
+         avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  drop_na()
+multiple_lm_fc <- lm(sp_s_FF ~ pfx_vFC + fc_avg_spin + `pfx_FC-X` + `pfx_FC-Z` + 
+                       avg_release_extension + avg_rp_x + avg_rp_z, data = fc_data)
+summary(multiple_lm_fc)
+
+#Multiple Linear Regression with Splitter Characteristics (plus release data)
+fs_data <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_split == "Yes") |> 
+  select(pfx_vFS, sp_s_FF, fs_avg_spin, `pfx_FS-X`, `pfx_FS-Z`, sp_s_FS, 
+         avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  drop_na()
+multiple_lm_fs <- lm(sp_s_FF ~ pfx_vFS + fs_avg_spin + `pfx_FS-X` + `pfx_FS-Z` + 
+                       avg_release_extension + avg_rp_x + avg_rp_z, data = fs_data)
+summary(multiple_lm_fs)
+
+#Multiple Linear Regression with Knuckle Curve Characteristics (plus release data)
+#Error with the spin: Statcast doesn't give knuckle curve spin and instead includes 
+# it with curveballs
+kc_data <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_kc == "Yes") |> 
+  select(pfx_vKC, sp_s_FF, kc_avg_spin, `pfx_KC-X`, `pfx_KC-Z`, sp_s_KC, 
+         avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  drop_na()
+multiple_lm_kc <- lm(sp_s_FF ~ pfx_vKC + kc_avg_spin + `pfx_KC-X` + `pfx_KC-Z` + 
+                       avg_release_extension + avg_rp_x + avg_rp_z, data = kc_data)
+summary(multiple_lm_kc)
