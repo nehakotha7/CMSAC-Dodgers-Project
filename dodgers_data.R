@@ -844,3 +844,69 @@ hr_tree <- train(sp_s_FF ~ .,
 
 # Print model summary
 print(hr_tree)
+
+
+# Simple Linear Regression ------------------------------------------------
+#Going step-by-step like the slides
+#Interested in modeling a pitcher's Fastball Stuff+
+cond_data |>
+  filter(ind_fastball == "Yes") |> 
+  ggplot(aes(x = sp_s_FF)) +
+  geom_histogram(color = "black", fill = "gray")
+
+#Relationship Between Sinker Velocity and Fastball Stuff
+cond_data_a <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_sinker == "Yes") |> 
+  select(pfx_vSI, sp_s_FF, si_avg_spin) |> 
+  drop_na()
+  
+plot_a <- cond_data_a |>
+  ggplot(aes(x = pfx_vSI, y = sp_s_FF)) +
+  geom_point(size = 3, alpha = 0.5)
+plot_a
+
+simple_lm <- lm(sp_s_FF ~ pfx_vSI, 
+                data = cond_data_a) 
+summary(simple_lm) #or use tidy() or glance()
+
+train_preds <- predict(simple_lm)
+head(train_preds)
+
+cond_data_a <- cond_data_a |>
+  mutate(pred_vals = train_preds) 
+
+cond_data_a |>
+  mutate(pred_vals = predict(simple_lm)) |> 
+  ggplot(aes(x = pred_vals, y = sp_s_FF)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, 
+              linetype = "dashed",
+              color = "red",
+              linewidth = 2)
+cond_data_a <- simple_lm |> 
+  augment(cond_data_a)
+
+cond_data_a |>
+  ggplot(aes(x = .fitted, y = .resid)) + 
+  geom_point(alpha = 0.5, size = 3) +
+  geom_hline(yintercept = 0, linetype = "dashed", 
+             color = "red", linewidth = 2) +
+  # plot the residual mean
+  geom_smooth(se = FALSE)
+
+multiple_lm <- lm(sp_s_FF ~ pfx_vSI + si_avg_spin, data = cond_data_a)
+summary(multiple_lm)
+train_preds <- predict(multiple_lm)
+head(train_preds)
+
+cond_data_a <- cond_data_a |>
+  mutate(pred_vals = train_preds) 
+
+cond_data_a |>
+  mutate(pred_vals = predict(simple_lm)) |> 
+  ggplot(aes(x = pred_vals, y = sp_s_FF)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, 
+              linetype = "dashed",
+              color = "red",
+              linewidth = 2)
