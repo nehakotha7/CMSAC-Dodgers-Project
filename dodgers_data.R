@@ -857,7 +857,8 @@ cond_data |>
 #Relationship Between Sinker Velocity and Fastball Stuff
 cond_data_a <- cond_data |> 
   filter(ind_fastball == "Yes" & ind_sinker == "Yes") |> 
-  select(pfx_vSI, sp_s_FF, si_avg_spin) |> 
+  select(pfx_vSI, sp_s_FF, si_avg_spin, `pfx_SI-X`, `pfx_SI-Z`, sp_s_SI, 
+         avg_release_extension, avg_rp_x, avg_rp_z) |> 
   drop_na()
   
 plot_a <- cond_data_a |>
@@ -894,7 +895,8 @@ cond_data_a |>
   # plot the residual mean
   geom_smooth(se = FALSE)
 
-multiple_lm <- lm(sp_s_FF ~ pfx_vSI + si_avg_spin, data = cond_data_a)
+multiple_lm <- lm(sp_s_FF ~ pfx_vSI + si_avg_spin + `pfx_SI-X` + `pfx_SI-Z` + 
+                    avg_release_extension + avg_rp_x + avg_rp_z, data = cond_data_a)
 summary(multiple_lm)
 train_preds <- predict(multiple_lm)
 head(train_preds)
@@ -903,7 +905,7 @@ cond_data_a <- cond_data_a |>
   mutate(pred_vals = train_preds) 
 
 cond_data_a |>
-  mutate(pred_vals = predict(simple_lm)) |> 
+  mutate(pred_vals = predict(multiple_lm)) |> 
   ggplot(aes(x = pred_vals, y = sp_s_FF)) +
   geom_point(alpha = 0.5, size = 3) +
   geom_abline(slope = 1, intercept = 0, 
