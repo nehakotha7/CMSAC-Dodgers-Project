@@ -1,8 +1,14 @@
 
 # Data Wrangling ----------------------------------------------------------
+library(baseballr)
+library(ggplot2)
+library(tidyr)
+library(glmnet)
+library(broom)
+library(caret)
+library(tidyverse)
+library(dplyr)
 
-
-library(baseballr) #install the package beforehand
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021)
 #only including pitchers who threw more than 250 pitches 
@@ -91,29 +97,25 @@ cond_data_2023 <- data_2023 |>
 #Reading in the data from statcast for extension and release point
 savant <- read.csv("savant.csv")
 savant_cond <- savant |> 
-  select(pitch_type, game_date, release_pos_x, release_pos_z, player_name, 
+  select(pitch_type, game_year, release_pos_x, release_pos_z, player_name, 
          pitcher, release_extension) |> 
-  mutate(Season = case_when(
-    substr(game_date, 1, 4) == "2021" ~ "2021",
-    substr(game_date, 1, 4) == "2022" ~ "2022",
-    substr(game_date, 1, 4) == "2023" ~ "2023"
-  )) |> 
-  group_by(player_name, Season) |> 
+  mutate(season = game_year) |> 
+  group_by(player_name, season) |> 
   mutate(avg_release_extension = mean(release_extension, na.rm = TRUE),
          avg_rp_x = mean(release_pos_x, na.rm = TRUE),
          avg_rp_z = mean(release_pos_z, na.rm = TRUE)) |> 
-  select(Season, player_name, pitcher, avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  distinct(player_name, Season, .keep_all = TRUE) |> 
+  select(season, player_name, pitcher, avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  distinct(player_name, season, .keep_all = TRUE) |> 
   rename(xMLBAMID = pitcher)
 
 savant_cond_2021 <- savant_cond |> 
-  filter(Season == 2021)
+  filter(season == 2021)
 
 savant_cond_2022 <- savant_cond |> 
-  filter(Season == 2022)
+  filter(season == 2022)
 
 savant_cond_2023 <- savant_cond |> 
-  filter(Season == 2023)
+  filter(season == 2023)
 
 #Adding the spin rates for each pitch with a CSV pulled from Statcast
 #Link to the 2021 data:https://baseballsavant.mlb.com/pitch-arsenals?year=2021&
@@ -157,7 +159,7 @@ cond_data <- cond_data |>
          ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct < 0.05, "No", "Yes")
   )
 
-#Adjusting the horizontal movement variable
+#Adjusting the horizontal movement variable so that it is (almost) always positive
 cond_data <- cond_data |> 
   mutate(`pfx_FA-X` = ifelse(Throws == "R", `pfx_SL-X` * -1, `pfx_SL-X`),
          `pfx_SL-X` = ifelse(Throws == "L", `pfx_SL-X` * -1, `pfx_SL-X`),
@@ -813,28 +815,28 @@ cond_data |>
   geom_histogram(color = "black", fill = "gray")
 
 #Relationship Between Sinker Velocity and Fastball Stuff
-cond_data_a <- cond_data |> 
+cond_data_si <- cond_data |> 
   filter(ind_fastball == "Yes" & ind_sinker == "Yes") |> 
-  select(pfx_vSI, sp_s_FF, si_avg_spin, `pfx_SI-X`, `pfx_SI-Z`, sp_s_SI, 
-         avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  select(season, PlayerNameRoute, pfx_vSI, sp_s_FF, si_avg_spin, `pfx_SI-X`, 
+         `pfx_SI-Z`, sp_s_SI, avg_release_extension, avg_rp_x, avg_rp_z) |> 
   drop_na()
   
-plot_a <- cond_data_a |>
+plot_si <- cond_data_si |>
   ggplot(aes(x = pfx_vSI, y = sp_s_FF)) +
   geom_point(size = 3, alpha = 0.5)
-plot_a
+plot_si
 
 simple_lm <- lm(sp_s_FF ~ pfx_vSI, 
-                data = cond_data_a) 
+                data = cond_data_si) 
 summary(simple_lm) #or use tidy() or glance()
 
 train_preds <- predict(simple_lm)
 head(train_preds)
 
-cond_data_a <- cond_data_a |>
+cond_data_si <- cond_data_si |>
   mutate(pred_vals = train_preds) 
 
-cond_data_a |>
+cond_data_si |>
   mutate(pred_vals = predict(simple_lm)) |> 
   ggplot(aes(x = pred_vals, y = sp_s_FF)) +
   geom_point(alpha = 0.5, size = 3) +
@@ -842,10 +844,10 @@ cond_data_a |>
               linetype = "dashed",
               color = "red",
               linewidth = 2)
-cond_data_a <- simple_lm |> 
-  augment(cond_data_a)
+cond_data_si <- simple_lm |> 
+  augment(cond_data_si)
 
-cond_data_a |>
+cond_data_si |>
   ggplot(aes(x = .fitted, y = .resid)) + 
   geom_point(alpha = 0.5, size = 3) +
   geom_hline(yintercept = 0, linetype = "dashed", 
@@ -854,7 +856,8 @@ cond_data_a |>
   geom_smooth(se = FALSE)
 #Multiple Linear Regression with Sinker Characteristics (plus release data)
 multiple_lm <- lm(sp_s_FF ~ pfx_vSI + si_avg_spin + `pfx_SI-X` + `pfx_SI-Z` + 
-                    avg_release_extension + avg_rp_x + avg_rp_z, data = cond_data_a)
+                    avg_release_extension + avg_rp_x + avg_rp_z, 
+                  data = cond_data_si)
 summary(multiple_lm)
 train_preds <- predict(multiple_lm)
 head(train_preds)
@@ -902,6 +905,7 @@ summary(multiple_lm3)
 #Since combining pitches isn't working, temporarily pivoting to looking at every
 #trait for each pitch (Sinker is above)
 #Multiple Linear Regression with Slider Characteristics (plus release data)
+#Don't forget spin problem
 sl_data <- cond_data |> 
   filter(ind_fastball == "Yes" & ind_slider == "Yes") |> 
   select(pfx_vSL, sp_s_FF, sl_avg_spin, `pfx_SL-X`, `pfx_SL-Z`, sp_s_SL, 
@@ -967,7 +971,6 @@ summary(multiple_lm_kc)
 # Ridge and Lasso Regression --------------------------------------------------------
 #Attempting to model Fastball Stuff+ Using Sinker Traits
 #Ridge
-library(glmnet)
 cond_data_d <- cond_data |> 
   filter(ind_fastball == "Yes" & ind_sinker == "Yes") |> 
   select(pfx_vSI, sp_s_FF, si_avg_spin, `pfx_SI-X`, `pfx_SI-Z`, sp_s_SI, 
