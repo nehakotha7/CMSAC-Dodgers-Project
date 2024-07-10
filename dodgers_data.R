@@ -1,3 +1,7 @@
+
+# Data Wrangling ----------------------------------------------------------
+
+
 library(baseballr) #install the package beforehand
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021)
@@ -722,50 +726,6 @@ ggplot(ovr_change, aes(x = Season, y = Count, color = `Pitch Change`)) +
   theme_minimal()
 
 
-# Lasso Regression --------------------------------------------------------
-#Attempting to model the Stuff+ of a Four Seam Fastball
-library(glmnet)
-#create predictor matrix and response variable
-# predictors
-# Begin using only changeup characteristics
-# Filter, select relevant columns, and remove rows with any NA values
-# Create predictor matrix
-model_x <- cond_data |> 
-  filter(ind_change == "Yes") |> 
-  select(pfx_CH_pct, pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, ch_avg_spin, sp_s_CH) |> 
-  drop_na() |> 
-  as.matrix()
-
-# Create response variable
-model_y <- cond_data |> 
-  filter(ind_change == "Yes" & !is.na(ch_avg_spin)) |> 
-  pull(sp_s_FF)
-  
-#Linear Model: For testing purposes  
-ch_to_ff_lm = lm(sp_s_FF ~ pfx_CH_pct + pfx_vCH + `pfx_CH-X` + `pfx_CH-Z` + 
-                   ch_avg_spin + sp_s_CH,
-                 data=cond_data)
-library(broom)
-library(tidyverse)
-tidy(ch_to_ff_lm) |> 
-  mutate(term = fct_reorder(term, estimate)) |> 
-  ggplot(aes(x = estimate, y = term))+
-  geom_col(aes(fill=estimate>0), show.legend = FALSE)
-
-
-lasso_cv <- cv.glmnet(model_x, model_y, 
-                               alpha = 1)
-tidy_lasso_coef <- tidy(lasso_cv$glmnet.fit)
-tidy_lasso_coef |> 
-  ggplot(aes(x = lambda, y = estimate, group = term)) +
-  scale_x_log10() +
-  geom_line(alpha = 0.75) +
-  geom_vline(xintercept = lasso_cv$lambda.min) +
-  geom_vline(xintercept = lasso_cv$lambda.1se, 
-             linetype = "dashed", color = "red")
-
-
-
 # Decision Tree -----------------------------------------------------------
 
 set.seed(123)
@@ -1002,3 +962,60 @@ kc_data <- cond_data |>
 multiple_lm_kc <- lm(sp_s_FF ~ pfx_vKC + kc_avg_spin + `pfx_KC-X` + `pfx_KC-Z` + 
                        avg_release_extension + avg_rp_x + avg_rp_z, data = kc_data)
 summary(multiple_lm_kc)
+
+
+# Ridge and Lasso Regression --------------------------------------------------------
+#Attempting to model Fastball Stuff+ Using Sinker Traits
+#Ridge
+library(glmnet)
+cond_data_d <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_sinker == "Yes") |> 
+  select(pfx_vSI, sp_s_FF, si_avg_spin, `pfx_SI-X`, `pfx_SI-Z`, sp_s_SI, 
+         avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  drop_na()
+# predictors
+# model_x <- model.matrix(lpsa ~ ., prostate)
+model_x <- cond_data_d |> 
+  select(pfx_vSI, si_avg_spin, `pfx_SI-X`, `pfx_SI-Z`, sp_s_SI, 
+         avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  as.matrix()
+
+# response
+# model_y <- prostate$lpsa
+model_y <- cond_data_d |> 
+  pull(sp_s_FF)
+
+sinker_ridge <- glmnet(model_x, model_y, alpha = 0)
+plot(sinker_ridge, xvar = "lambda")
+
+sinker_ridge_cv <- cv.glmnet(model_x, model_y, alpha = 0)
+plot(sinker_ridge_cv)
+
+# str(prostate_ridge_cv)
+sinker_ridge_coef <- tidy(sinker_ridge_cv$glmnet.fit)
+sinker_ridge_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = sinker_ridge_cv$lambda.min) +
+  geom_vline(xintercept = sinker_ridge_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_ridge_cv <- tidy(sinker_ridge_cv)
+tidy_ridge_cv |> 
+  ggplot(aes(x = lambda, y = estimate)) +
+  geom_line() + 
+  scale_x_log10() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha = 0.2) +
+  geom_vline(xintercept = sinker_ridge_cv$lambda.min) +
+  geom_vline(xintercept = sinker_ridge_cv$lambda.1se,
+             linetype = "dashed", color = "red")
+
+sinker_ridge_coef |>
+  filter(lambda == sinker_ridge_cv$lambda.1se) |>
+  mutate(term = fct_reorder(term, estimate)) |>
+  ggplot(aes(x = estimate, y = term, 
+             fill = estimate > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue"))
