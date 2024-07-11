@@ -75,7 +75,7 @@ key_vars <- c("Season", 'position', 'IP', 'Throws', 'xMLBAMID', 'PlayerNameRoute
               "sp_stuff"
               
 )
-#no stuff+ for screwball (only one pitcher throws it)
+#no stuff+ for screwball or knuckleball (only one pitcher throws it)
 
 #creating condensed dataset for 2021
 library(dplyr)
@@ -174,6 +174,214 @@ cond_data <- cond_data |>
          `pfx_KN-X` = abs(`pfx_KN-X`)
          )
 
+#Fully excluding the pitches that were thrown <5% of the time
+#Before, we had created indicator variables but left the data in
+cond_data <- cond_data |>
+  mutate(pfx_vFA = ifelse(ind_fastball == "No", NA, pfx_vFA), #Fastball
+         `pfx_FA-X` = ifelse(ind_fastball == "No", NA, `pfx_FA-X`),
+         `pfx_FA-Z` = ifelse(ind_fastball == "No", NA, `pfx_FA-Z`),
+         ff_avg_spin = ifelse(ind_fastball == "No", NA, ff_avg_spin),
+         sp_s_FF = ifelse(ind_fastball == "No", NA, sp_s_FF),
+         pfx_vSI = ifelse(ind_sinker == "No", NA, pfx_vSI), #sinker
+         `pfx_SI-X` = ifelse(ind_sinker == "No", NA, `pfx_SI-X`),
+         `pfx_SI-Z` = ifelse(ind_sinker == "No", NA, `pfx_SI-Z`),
+         si_avg_spin = ifelse(ind_sinker == "No", NA, si_avg_spin),
+         sp_s_SI = ifelse(ind_sinker == "No", NA, sp_s_SI),
+         pfx_vFC = ifelse(ind_cutter == "No", NA, pfx_vFC), #cutter
+         `pfx_FC-X` = ifelse(ind_cutter == "No", NA, `pfx_FC-X`),
+         `pfx_FC-Z` = ifelse(ind_cutter == "No", NA, `pfx_FC-Z`),
+         fc_avg_spin = ifelse(ind_cutter == "No", NA, fc_avg_spin),
+         sp_s_FC = ifelse(ind_cutter == "No", NA, sp_s_FC),
+         pfx_vSL = ifelse(ind_slider == "No", NA, pfx_vSL), #slider
+         `pfx_SL-X` = ifelse(ind_slider == "No", NA, `pfx_SL-X`),
+         `pfx_SL-Z` = ifelse(ind_slider == "No", NA, `pfx_SL-Z`),
+         sl_avg_spin = ifelse(ind_slider == "No", NA, sl_avg_spin),
+         sp_s_SL = ifelse(ind_slider == "No", NA, sp_s_SL),
+         pfx_vCH = ifelse(ind_change == "No", NA, pfx_vCH), #changeup
+         `pfx_CH-X` = ifelse(ind_change == "No", NA, `pfx_CH-X`),
+         `pfx_CH-Z` = ifelse(ind_change == "No", NA, `pfx_CH-Z`),
+         ch_avg_spin = ifelse(ind_change == "No", NA, ch_avg_spin),
+         sp_s_CH = ifelse(ind_change == "No", NA, sp_s_CH),
+         pfx_vCU = ifelse(ind_curve == "No", NA, pfx_vCU), #curveball
+         `pfx_CU-X` = ifelse(ind_curve == "No", NA, `pfx_CU-X`),
+         `pfx_CU-Z` = ifelse(ind_curve == "No", NA, `pfx_CU-Z`),
+         cu_avg_spin = ifelse(ind_curve == "No", NA, cu_avg_spin),
+         sp_s_CU = ifelse(ind_curve == "No", NA, sp_s_CU),
+         #no knuckle curve avg spin
+         pfx_vKC = ifelse(ind_kc == "No", NA, pfx_vKC), #knuckle curve
+         `pfx_KC-X` = ifelse(ind_kc == "No", NA, `pfx_KC-X`),
+         `pfx_KC-Z` = ifelse(ind_kc == "No", NA, `pfx_KC-Z`),
+         sp_s_KC = ifelse(ind_kc == "No", NA, sp_s_KC),
+         #no knuckle curve stuff+
+         pfx_vKN = ifelse(ind_knuckle == "No", NA, pfx_vKN), #knuckleball
+         `pfx_KN-X` = ifelse(ind_knuckle == "No", NA, `pfx_KN-X`),
+         `pfx_KN-Z` = ifelse(ind_knuckle == "No", NA, `pfx_KN-Z`),
+         kn_avg_spin = ifelse(ind_knuckle == "No", NA, kn_avg_spin),
+         #no forkball avg spin
+         pfx_vFO = ifelse(ind_fork == "No", NA, pfx_vFO), #forkball
+         `pfx_FO-X` = ifelse(ind_fork == "No", NA, `pfx_FO-X`),
+         `pfx_FO-Z` = ifelse(ind_fork == "No", NA, `pfx_FO-Z`),
+         sp_s_FO = ifelse(ind_fork == "No", NA, sp_s_FO),
+         pfx_vFS = ifelse(ind_split == "No", NA, pfx_vFS), #splitter
+         `pfx_FS-X` = ifelse(ind_split == "No", NA, `pfx_FS-X`),
+         `pfx_FS-Z` = ifelse(ind_split == "No", NA, `pfx_FS-Z`),
+         fs_avg_spin = ifelse(ind_split == "No", NA, fs_avg_spin),
+         sp_s_FS = ifelse(ind_split == "No", NA, sp_s_FS),
+         #no screwball avg spin, stuff+
+         pfx_vSC = ifelse(ind_screw == "No", NA, pfx_vSC), #screwball
+         `pfx_SC-X` = ifelse(ind_screw == "No", NA, `pfx_SC-X`),
+         `pfx_SC-Z` = ifelse(ind_screw == "No", NA, `pfx_SC-Z`),)
+#only avg spin for sweeper
+#only avg spin for slurve
+
+#Pivot Tables
+cond_data_freq <- cond_data |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_FA_pct, pfx_SI_pct, pfx_FC_pct, 
+         pfx_SL_pct, pfx_CH_pct, pfx_CU_pct, pfx_FS_pct, pfx_KC_pct, pfx_KN_pct, 
+         pfx_SC_pct, pfx_FO_pct) |> 
+  pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
+                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
+                 contains("KC") | contains("KN") | contains("SC") | contains("FO"),
+               names_to = "Pitch_Type",
+               values_to = "Percentage") |>
+  mutate(Pitch_Type = case_when(
+    str_detect(Pitch_Type, "FA") ~ "Fastball",
+    str_detect(Pitch_Type, "SI") ~ "Sinker",
+    str_detect(Pitch_Type, "FC") ~ "Cutter",
+    str_detect(Pitch_Type, "SL") ~ "Slider",
+    str_detect(Pitch_Type, "CH") ~ "Changeup",
+    str_detect(Pitch_Type, "CU") ~ "Curveball",
+    str_detect(Pitch_Type, "FS") ~ "Splitter",
+    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
+    str_detect(Pitch_Type, "SC") ~ "Screwball",
+    str_detect(Pitch_Type, "FO") ~ "Forkball",
+    TRUE ~ Pitch_Type
+  )) |> 
+  drop_na()
+
+cond_data_velo <- cond_data |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, pfx_vSI, pfx_vFC, pfx_vSL, 
+         pfx_vCH, pfx_vCU, pfx_vFS, pfx_vKC, pfx_vKN, pfx_vSC, pfx_vFO) |> 
+  pivot_longer(cols = ends_with("FA") | ends_with("SI") | ends_with("FC") | 
+                 ends_with("SL") | ends_with("CH") | ends_with("CU") | ends_with("FS") |
+                 ends_with("KC") | ends_with("KN") | ends_with("SC") | ends_with("FO"),
+               names_to = "Pitch_Type",
+               values_to = "Velocity") |>
+  mutate(Pitch_Type = case_when(
+    str_detect(Pitch_Type, "FA") ~ "Fastball",
+    str_detect(Pitch_Type, "SI") ~ "Sinker",
+    str_detect(Pitch_Type, "FC") ~ "Cutter",
+    str_detect(Pitch_Type, "SL") ~ "Slider",
+    str_detect(Pitch_Type, "CH") ~ "Changeup",
+    str_detect(Pitch_Type, "CU") ~ "Curveball",
+    str_detect(Pitch_Type, "FS") ~ "Splitter",
+    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
+    str_detect(Pitch_Type, "SC") ~ "Screwball",
+    str_detect(Pitch_Type, "FO") ~ "Forkball",
+    TRUE ~ Pitch_Type
+  )) |> 
+  drop_na()
+
+cond_data_horizontal <- cond_data |> 
+  select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-X`, `pfx_SI-X`, `pfx_FC-X`, 
+         `pfx_SL-X`, `pfx_CH-X`, `pfx_CU-X`, `pfx_FS-X`, `pfx_KC-X`, `pfx_KN-X`, 
+         `pfx_SC-X`, `pfx_FO-X`) |> 
+  pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
+                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
+                 contains("KC") | contains("KN") | contains("SC") | contains("FO"),
+               names_to = "Pitch_Type",
+               values_to = "Horizontal_Movement") |>
+  mutate(Pitch_Type = case_when(
+    str_detect(Pitch_Type, "FA") ~ "Fastball",
+    str_detect(Pitch_Type, "SI") ~ "Sinker",
+    str_detect(Pitch_Type, "FC") ~ "Cutter",
+    str_detect(Pitch_Type, "SL") ~ "Slider",
+    str_detect(Pitch_Type, "CH") ~ "Changeup",
+    str_detect(Pitch_Type, "CU") ~ "Curveball",
+    str_detect(Pitch_Type, "FS") ~ "Splitter",
+    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
+    str_detect(Pitch_Type, "SC") ~ "Screwball",
+    str_detect(Pitch_Type, "FO") ~ "Forkball",
+    TRUE ~ Pitch_Type
+  )) |> 
+  drop_na()
+
+cond_data_vertical <- cond_data |> 
+  select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-Z`, `pfx_SI-Z`, `pfx_FC-Z`, 
+         `pfx_SL-Z`, `pfx_CH-Z`, `pfx_CU-Z`, `pfx_FS-Z`, `pfx_KC-Z`, `pfx_KN-Z`, 
+         `pfx_SC-Z`, `pfx_FO-Z`) |> 
+  pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
+                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
+                 contains("KC") | contains("KN") | contains("SC") | contains("FO"),
+               names_to = "Pitch_Type",
+               values_to = "Vertical_Movement") |>
+  mutate(Pitch_Type = case_when(
+    str_detect(Pitch_Type, "FA") ~ "Fastball",
+    str_detect(Pitch_Type, "SI") ~ "Sinker",
+    str_detect(Pitch_Type, "FC") ~ "Cutter",
+    str_detect(Pitch_Type, "SL") ~ "Slider",
+    str_detect(Pitch_Type, "CH") ~ "Changeup",
+    str_detect(Pitch_Type, "CU") ~ "Curveball",
+    str_detect(Pitch_Type, "FS") ~ "Splitter",
+    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
+    str_detect(Pitch_Type, "SC") ~ "Screwball",
+    str_detect(Pitch_Type, "FO") ~ "Forkball",
+    TRUE ~ Pitch_Type
+  )) |> 
+  drop_na()
+
+#Spin Data Problem
+cond_data_spin <- cond_data |> 
+  select(Season, PlayerNameRoute, xMLBAMID, ff_avg_spin, si_avg_spin, fc_avg_spin, 
+         sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, kn_avg_spin) |> 
+  pivot_longer(cols = contains("ff") | contains("si") | contains("fc") | 
+                 contains("sl") | contains("ch") | contains("cu") | contains("fs") |
+                 contains("kn"),
+               names_to = "Pitch_Type",
+               values_to = "Spin") |>
+  mutate(Pitch_Type = case_when(
+    str_detect(Pitch_Type, "ff") ~ "Fastball",
+    str_detect(Pitch_Type, "si") ~ "Sinker",
+    str_detect(Pitch_Type, "fc") ~ "Cutter",
+    str_detect(Pitch_Type, "sl") ~ "Slider",
+    str_detect(Pitch_Type, "ch") ~ "Changeup",
+    str_detect(Pitch_Type, "cu") ~ "Curveball",
+    str_detect(Pitch_Type, "fs") ~ "Splitter",
+    str_detect(Pitch_Type, "kn") ~ "Knuckleball",
+    TRUE ~ Pitch_Type
+  )) |> 
+  drop_na()
+
+cond_data_stuff_plus <- cond_data |> 
+  select(Season, PlayerNameRoute, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL, 
+         sp_s_CH, sp_s_CU, sp_s_FS, sp_s_KC, sp_s_FO) |> 
+  pivot_longer(cols = contains("FF") | contains("SI") | contains("FC") | 
+                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
+                 contains("KC") | contains("FO"),
+               names_to = "Pitch_Type",
+               values_to = "Stuff_Plus") |>
+  mutate(Pitch_Type = case_when(
+    str_detect(Pitch_Type, "FF") ~ "Fastball",
+    str_detect(Pitch_Type, "SI") ~ "Sinker",
+    str_detect(Pitch_Type, "FC") ~ "Cutter",
+    str_detect(Pitch_Type, "SL") ~ "Slider",
+    str_detect(Pitch_Type, "CH") ~ "Changeup",
+    str_detect(Pitch_Type, "CU") ~ "Curveball",
+    str_detect(Pitch_Type, "FS") ~ "Splitter",
+    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+    str_detect(Pitch_Type, "FO") ~ "Forkball",
+    TRUE ~ Pitch_Type
+  )) |> 
+  drop_na()
+
+#Why certain NAs here?
+cond_data_longer <- list(cond_data_freq, cond_data_velo, cond_data_horizontal, 
+                         cond_data_vertical, cond_data_spin, cond_data_stuff_plus) |> 
+  reduce(left_join, by = c("Season", "xMLBAMID", "PlayerNameRoute", "Pitch_Type"))
 
 #Experimenting with visualizations
 library(ggplot2)
@@ -183,7 +391,7 @@ cond_data |>
   geom_point()
 
 cond_data |> 
-  ggplot(aes(x=sp_s_FF))+
+  ggplot(aes(x=sp_s_SL))+
   geom_histogram()  
 
 ggplot(cond_data, aes(x=`xFIP-`, colour = ind_curve))+
@@ -966,6 +1174,34 @@ kc_data <- cond_data |>
 multiple_lm_kc <- lm(sp_s_FF ~ pfx_vKC + kc_avg_spin + `pfx_KC-X` + `pfx_KC-Z` + 
                        avg_release_extension + avg_rp_x + avg_rp_z, data = kc_data)
 summary(multiple_lm_kc)
+
+
+
+#Linear Regression with Cond_Data_Longer - Sinker Velo and Fastball Stuff+
+# Filter for sinker velocity
+sinker_velo <- cond_data_velo |>
+  filter(Pitch_Type == "Sinker") |>
+  select(Season, PlayerNameRoute, xMLBAMID, Velocity) |>
+  rename(Sinker_Velocity = Velocity)
+
+# Filter for fastball stuff plus
+fastball_stuff_plus <- cond_data_stuff_plus |>
+  filter(Pitch_Type == "Fastball") |>
+  select(Season, PlayerNameRoute, xMLBAMID, Stuff_Plus) |>
+  rename(Fastball_Stuff_Plus = Stuff_Plus)
+
+# Merge the tables on Season, PlayerNameRoute, and xMLBAMID
+merged_data <- sinker_velo |>
+  left_join(fastball_stuff_plus, by = c("Season", "PlayerNameRoute", "xMLBAMID"))
+
+# Run the linear regression
+simple_lm <- lm(Fastball_Stuff_Plus ~ Sinker_Velocity, data = merged_data)
+
+# Summary of the linear model
+summary(simple_lm)
+
+
+
 
 
 # Ridge and Lasso Regression --------------------------------------------------------
