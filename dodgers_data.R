@@ -8,6 +8,7 @@ library(broom)
 library(caret)
 library(tidyverse)
 library(dplyr)
+library(Metrics)
 
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021)
@@ -49,7 +50,6 @@ for (player in data_2022){
   data_2022$sp_s_FO = NA
 }
 
-
 #process repeated for 2023
 data_2023 = baseballr::fg_pitcher_leaders(startseason = 2023, endseason = 2023)
 data_2023 <- data_2023[which(data_2023$Pitches >= 250),]
@@ -58,6 +58,7 @@ for (player in data_2023){
                                "SP", "RP")
 }
 
+#selecting variables we care about
 key_vars <- c("Season", 'position', 'IP', 'Throws', 'xMLBAMID', 'PlayerNameRoute',
               "ERA-", "K_9+", "K_BB+", "HR_9+", "WHIP+", "AVG+", "FIP-", 
               "BABIP+", "RAR", "WAR", "RA9-Wins", "xFIP-", "WPA", "RE24", 
@@ -80,19 +81,18 @@ key_vars <- c("Season", 'position', 'IP', 'Throws', 'xMLBAMID', 'PlayerNameRoute
 #creating condensed dataset for 2021
 library(dplyr)
 cond_data_2021 <- data_2021 |> 
-  select(all_of(key_vars)
-         )
+  select(all_of(key_vars))
 
 #Creating condensed dataset for 2022 
 #missing some Pitch Info variables.  Check on pitchFX
 cond_data_2022 <- data_2022 |> 
-  select(all_of(key_vars)
-  )
+  select(all_of(key_vars))
+
 #Creating condensed dataset for 2023
 cond_data_2023 <- data_2023 |> 
-  select(all_of(key_vars)
-  )
+  select(all_of(key_vars))
 
+# Merging with Other Data -------------------------------------------------
 
 #Reading in the data from statcast for extension and release point
 savant <- read.csv("savant.csv")
@@ -139,9 +139,10 @@ spin_2023 <- rename(spin_2023, xMLBAMID = pitcher)
 cond_data_2023 <- left_join(cond_data_2023, spin_2023, by="xMLBAMID")
 cond_data_2023 <- left_join(cond_data_2023, savant_cond_2023, by = "xMLBAMID")
 
-
 #combining all three condensed datasets
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
+
+# Indicator Variable and Horizontal Movement Changes ----------------------
 
 #Adding indicator variables for each pitch
 #Setting the cutoff at 5% usage
@@ -174,7 +175,9 @@ cond_data <- cond_data |>
          `pfx_KN-X` = abs(`pfx_KN-X`)
          )
 
-#Fully excluding the pitches that were thrown <5% of the time
+
+# Fully excluding the pitches that were thrown <5% of the time ------------
+
 #Before, we had created indicator variables but left the data in
 cond_data <- cond_data |>
   mutate(pfx_vFA = ifelse(ind_fastball == "No", NA, pfx_vFA), #Fastball
@@ -790,6 +793,8 @@ changed_knuckle_pitchers <- changed_knuckle_pitchers |>
     ind_knuckle == "No" & lag(ind_knuckle) == "Yes" ~ "Subtracted"
   ))
 
+# Line Graphs -------------------------------------------------------------
+
 #Attempting to Build a Line Graph: This ISN'T for ADDING and SUBTRACTING
 pitch_freq <- cond_data |> 
   group_by(Season) |> 
@@ -1023,28 +1028,28 @@ cond_data |>
   geom_histogram(color = "black", fill = "gray")
 
 #Relationship Between Sinker Velocity and Fastball Stuff
-cond_data_si <- cond_data |> 
+si_data <- cond_data |> 
   filter(ind_fastball == "Yes" & ind_sinker == "Yes") |> 
   select(season, PlayerNameRoute, pfx_vSI, sp_s_FF, si_avg_spin, `pfx_SI-X`, 
          `pfx_SI-Z`, sp_s_SI, avg_release_extension, avg_rp_x, avg_rp_z) |> 
   drop_na()
   
-plot_si <- cond_data_si |>
+plot_si <- si_data |>
   ggplot(aes(x = pfx_vSI, y = sp_s_FF)) +
   geom_point(size = 3, alpha = 0.5)
 plot_si
 
 simple_lm <- lm(sp_s_FF ~ pfx_vSI, 
-                data = cond_data_si) 
+                data = si_data) 
 summary(simple_lm) #or use tidy() or glance()
 
 train_preds <- predict(simple_lm)
 head(train_preds)
 
-cond_data_si <- cond_data_si |>
+si_data <- si_data |>
   mutate(pred_vals = train_preds) 
 
-cond_data_si |>
+si_data |>
   mutate(pred_vals = predict(simple_lm)) |> 
   ggplot(aes(x = pred_vals, y = sp_s_FF)) +
   geom_point(alpha = 0.5, size = 3) +
@@ -1052,10 +1057,10 @@ cond_data_si |>
               linetype = "dashed",
               color = "red",
               linewidth = 2)
-cond_data_si <- simple_lm |> 
-  augment(cond_data_si)
+si_data <- simple_lm |> 
+  augment(si_data)
 
-cond_data_si |>
+si_data |>
   ggplot(aes(x = .fitted, y = .resid)) + 
   geom_point(alpha = 0.5, size = 3) +
   geom_hline(yintercept = 0, linetype = "dashed", 
@@ -1063,18 +1068,19 @@ cond_data_si |>
   # plot the residual mean
   geom_smooth(se = FALSE)
 #Multiple Linear Regression with Sinker Characteristics (plus release data)
-multiple_lm <- lm(sp_s_FF ~ pfx_vSI + si_avg_spin + `pfx_SI-X` + `pfx_SI-Z` + 
-                    avg_release_extension + avg_rp_x + avg_rp_z, 
-                  data = cond_data_si)
-summary(multiple_lm)
-train_preds <- predict(multiple_lm)
-head(train_preds)
+si_data <- cond_data |> 
+  filter(ind_sinker == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, sp_s_FF, si_avg_spin, 
+         `pfx_SI-X`, `pfx_SI-Z`, sp_s_SI, avg_release_extension, avg_rp_x, avg_rp_z)
 
-cond_data_a <- cond_data_a |>
-  mutate(pred_vals = train_preds) 
+si_lm <- lm(sp_s_FF ~ pfx_vSI + si_avg_spin + `pfx_SI-X` + `pfx_SI-Z` + 
+                       avg_release_extension + avg_rp_x + avg_rp_z, data = si_data)
+summary(si_lm)
 
-cond_data_a |>
-  mutate(pred_vals = predict(multiple_lm)) |> 
+si_data <- si_data |> 
+  mutate(pred_vals = predict(si_lm, newdata = si_data))
+
+si_data |>
   ggplot(aes(x = pred_vals, y = sp_s_FF)) +
   geom_point(alpha = 0.5, size = 3) +
   geom_abline(slope = 1, intercept = 0, 
@@ -1082,100 +1088,271 @@ cond_data_a |>
               color = "red",
               linewidth = 2)
 
-#Attempting Multiple Linear Regression with Sinker Velo and Slider Velo
-cond_data_b <- cond_data |> 
-  filter(ind_fastball == "Yes") |> 
-  filter(ind_sinker == "Yes" | ind_slider == "Yes") |> 
-  select(pfx_vSI, sp_s_FF, pfx_vSL)
+si_filtered <- si_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
 
-multiple_lm2 <- lm(sp_s_FF ~ pfx_vSI + pfx_vSL, data=cond_data_b)
-summary(multiple_lm2)
-train_preds2 <- predict(multiple_lm2)
-head(train_preds2)
-cond_data_b <- cond_data_b |>
-  mutate(pred_vals = train_preds2)
+rmse_value <- rmse(si_filtered$sp_s_FF, si_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
 
-#Multiple Linear Regression with the speed of every pitch: NOT WORKING
-cond_data_c <- cond_data |> 
-  filter(ind_fastball == "Yes") |> 
-  filter(ind_sinker == "Yes" | ind_slider == "Yes" | ind_change == "Yes" | 
-           ind_curve == "Yes" | ind_cutter == "Yes" | ind_split == "Yes" |
-           ind_screw == "Yes" | ind_kc == "Yes" | ind_knuckle =="Yes" | 
-           ind_fork == "Yes") |> 
-  select(sp_s_FF, pfx_vSL, pfx_vSI, pfx_vCH, pfx_vCU, pfx_vFC, pfx_vFS, pfx_vSC, 
-         pfx_vKC, pfx_vKN, pfx_vFO)
-multiple_lm3 <- lm(sp_s_FF ~ pfx_vSL + pfx_vSI + pfx_vCH + pfx_vCU + pfx_vFC + 
-                   pfx_vFS + pfx_vKC,
-                   data = cond_data_c)
-#Error comes from: screwball, knuckleball, forkball
-summary(multiple_lm3)
+#Multiple Linear Regression with SIGNIFICANT Sinker Characteristics (plus release data)
+si_lm <- lm(sp_s_FF ~ pfx_vSI + si_avg_spin + `pfx_SI-Z` + 
+              avg_release_extension + avg_rp_z, data = si_data)
+summary(si_lm)
+
+si_data <- si_data |> 
+  mutate(pred_vals = predict(si_lm, newdata = si_data))
+
+si_filtered <- si_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(si_filtered$sp_s_FF, si_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+# #Attempting Multiple Linear Regression with Sinker Velo and Slider Velo
+# cond_data_b <- cond_data |> 
+#   filter(ind_fastball == "Yes") |> 
+#   filter(ind_sinker == "Yes" | ind_slider == "Yes") |> 
+#   select(pfx_vSI, sp_s_FF, pfx_vSL)
+# 
+# multiple_lm2 <- lm(sp_s_FF ~ pfx_vSI + pfx_vSL, data=cond_data_b)
+# summary(multiple_lm2)
+# train_preds2 <- predict(multiple_lm2)
+# head(train_preds2)
+# cond_data_b <- cond_data_b |>
+#   mutate(pred_vals = train_preds2)
+# 
+# #Multiple Linear Regression with the speed of every pitch: NOT WORKING
+# cond_data_c <- cond_data |> 
+#   filter(ind_fastball == "Yes") |> 
+#   filter(ind_sinker == "Yes" | ind_slider == "Yes" | ind_change == "Yes" | 
+#            ind_curve == "Yes" | ind_cutter == "Yes" | ind_split == "Yes" |
+#            ind_screw == "Yes" | ind_kc == "Yes" | ind_knuckle =="Yes" | 
+#            ind_fork == "Yes") |> 
+#   select(sp_s_FF, pfx_vSL, pfx_vSI, pfx_vCH, pfx_vCU, pfx_vFC, pfx_vFS, pfx_vSC, 
+#          pfx_vKC, pfx_vKN, pfx_vFO)
+# multiple_lm3 <- lm(sp_s_FF ~ pfx_vSL + pfx_vSI + pfx_vCH + pfx_vCU + pfx_vFC + 
+#                    pfx_vFS + pfx_vKC,
+#                    data = cond_data_c)
+# #Error comes from: screwball, knuckleball, forkball
+# summary(multiple_lm3)
 
 #Since combining pitches isn't working, temporarily pivoting to looking at every
 #trait for each pitch (Sinker is above)
-#Multiple Linear Regression with Slider Characteristics (plus release data)
-#Don't forget spin problem
-sl_data <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_slider == "Yes") |> 
-  select(pfx_vSL, sp_s_FF, sl_avg_spin, `pfx_SL-X`, `pfx_SL-Z`, sp_s_SL, 
-         avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  drop_na()
-multiple_lm_sl <- lm(sp_s_FF ~ pfx_vSL + sl_avg_spin + `pfx_SL-X` + `pfx_SL-Z` + 
-                    avg_release_extension + avg_rp_x + avg_rp_z, data = sl_data)
-summary(multiple_lm_sl)
-
-#Multiple Linear Regression with Curveball Characteristics (plus release data)
-cu_data <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_curve == "Yes") |> 
-  select(pfx_vCU, sp_s_FF, cu_avg_spin, `pfx_CU-X`, `pfx_CU-Z`, sp_s_CU, 
-         avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  drop_na()
-multiple_lm_cu <- lm(sp_s_FF ~ pfx_vCU + cu_avg_spin + `pfx_CU-X` + `pfx_CU-Z` + 
-                       avg_release_extension + avg_rp_x + avg_rp_z, data = cu_data)
-summary(multiple_lm_cu)
-
-#Multiple Linear Regression with Changeup Characteristics (plus release data)
-ch_data <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
-  select(pfx_vCH, sp_s_FF, ch_avg_spin, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, 
-         avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  drop_na()
-multiple_lm_ch <- lm(sp_s_FF ~ pfx_vCH + ch_avg_spin + `pfx_CH-X` + `pfx_CH-Z` + 
-                       avg_release_extension + avg_rp_x + avg_rp_z, data = ch_data)
-summary(multiple_lm_ch)
 
 #Multiple Linear Regression with Cutter Characteristics (plus release data)
 fc_data <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_cutter == "Yes") |> 
-  select(pfx_vFC, sp_s_FF, fc_avg_spin, `pfx_FC-X`, `pfx_FC-Z`, sp_s_FC, 
-         avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  drop_na()
-multiple_lm_fc <- lm(sp_s_FF ~ pfx_vFC + fc_avg_spin + `pfx_FC-X` + `pfx_FC-Z` + 
-                       avg_release_extension + avg_rp_x + avg_rp_z, data = fc_data)
-summary(multiple_lm_fc)
+  filter(ind_cutter == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFC, sp_s_FF, fc_avg_spin, 
+         `pfx_FC-X`, `pfx_FC-Z`, sp_s_FC, avg_release_extension, avg_rp_x, avg_rp_z)
 
-#Multiple Linear Regression with Splitter Characteristics (plus release data)
-fs_data <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_split == "Yes") |> 
-  select(pfx_vFS, sp_s_FF, fs_avg_spin, `pfx_FS-X`, `pfx_FS-Z`, sp_s_FS, 
-         avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  drop_na()
-multiple_lm_fs <- lm(sp_s_FF ~ pfx_vFS + fs_avg_spin + `pfx_FS-X` + `pfx_FS-Z` + 
-                       avg_release_extension + avg_rp_x + avg_rp_z, data = fs_data)
-summary(multiple_lm_fs)
+fc_lm <- lm(sp_s_FF ~ pfx_vFC + fc_avg_spin + `pfx_FC-X` + `pfx_FC-Z` + 
+              avg_release_extension + avg_rp_x + avg_rp_z, data = fc_data)
+summary(fc_lm)
+
+fc_data <- fc_data |> 
+  mutate(pred_vals = predict(fc_lm, newdata = fc_data))
+
+fc_filtered <- fc_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(fc_filtered$sp_s_FF, fc_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+#Multiple Linear Regression with SIGNIFICANT Cutter Characteristics (plus release data)
+fc_lm <- lm(sp_s_FF ~ pfx_vFC + fc_avg_spin + `pfx_FC-Z` + 
+              avg_release_extension + avg_rp_z, data = fc_data)
+summary(fc_lm)
+
+fc_data <- fc_data |> 
+  mutate(pred_vals = predict(fc_lm, newdata = fc_data))
+
+fc_filtered <- fc_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(fc_filtered$sp_s_FF, fc_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+
+#Multiple Linear Regression with Slider Characteristics (plus release data)
+#Don't forget spin problem
+sl_data <- cond_data |> 
+  filter(ind_slider == "Yes") |> 
+  select(pfx_vSL, sp_s_FF, sl_avg_spin, `pfx_SL-X`, `pfx_SL-Z`, sp_s_SL, 
+         avg_release_extension, avg_rp_x, avg_rp_z)
+
+sl_lm <- lm(sp_s_FF ~ pfx_vSL + sl_avg_spin + `pfx_SL-X` + `pfx_SL-Z` + 
+                    avg_release_extension + avg_rp_x + avg_rp_z, data = sl_data)
+summary(sl_lm)
+
+sl_data <- sl_data |> 
+  mutate(pred_vals = predict(sl_lm, newdata = sl_data))
+
+sl_filtered <- sl_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(sl_filtered$sp_s_FF, sl_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+#Multiple Linear Regression with SIGNIFICANT Slider Characteristics (plus release data)
+#Don't forget spin problem
+sl_lm <- lm(sp_s_FF ~ pfx_vSL + sl_avg_spin + `pfx_SL-X` + `pfx_SL-Z` + 
+              avg_release_extension + avg_rp_z, data = sl_data)
+summary(sl_lm)
+
+sl_data <- sl_data |> 
+  mutate(pred_vals = predict(sl_lm, newdata = sl_data))
+
+sl_filtered <- sl_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(sl_filtered$sp_s_FF, sl_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+
+#Multiple Linear Regression with Curveball Characteristics (plus release data)
+cu_data <- cond_data |> 
+  filter(ind_curve == "Yes") |> 
+  select(pfx_vCU, sp_s_FF, cu_avg_spin, `pfx_CU-X`, `pfx_CU-Z`, sp_s_CU, 
+         avg_release_extension, avg_rp_x, avg_rp_z)
+cu_lm <- lm(sp_s_FF ~ pfx_vCU + cu_avg_spin + `pfx_CU-X` + `pfx_CU-Z` + 
+                       avg_release_extension + avg_rp_x + avg_rp_z, data = cu_data)
+summary(cu_lm)
+
+cu_data <- cu_data |> 
+  mutate(pred_vals = predict(cu_lm, newdata = cu_data))
+
+cu_filtered <- cu_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(cu_filtered$sp_s_FF, cu_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+#Multiple Linear Regression with SIGNIFICANT Curveball Characteristics (plus release data)
+cu_lm <- lm(sp_s_FF ~ pfx_vCU + cu_avg_spin + `pfx_CU-Z` + avg_release_extension, 
+            data = cu_data)
+summary(cu_lm)
+
+cu_data <- cu_data |> 
+  mutate(pred_vals = predict(cu_lm, newdata = cu_data))
+
+cu_filtered <- cu_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(cu_filtered$sp_s_FF, cu_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+#Multiple Linear Regression with Changeup Characteristics (plus release data)
+ch_data <- cond_data |> 
+  filter(ind_change == "Yes") |> 
+  select(pfx_vCH, sp_s_FF, ch_avg_spin, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, 
+         avg_release_extension, avg_rp_x, avg_rp_z)
+ch_lm <- lm(sp_s_FF ~ pfx_vCH + ch_avg_spin + `pfx_CH-X` + `pfx_CH-Z` + 
+              avg_release_extension + avg_rp_x + avg_rp_z, data = ch_data)
+summary(ch_lm)
+
+ch_data <- ch_data |> 
+  mutate(pred_vals = predict(ch_lm, newdata = ch_data))
+
+ch_filtered <- ch_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(ch_filtered$sp_s_FF, ch_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+#Multiple Linear Regression with SIGNIFICANT Changeup Characteristics (plus release data)
+ch_lm <- lm(sp_s_FF ~ pfx_vCH + ch_avg_spin + `pfx_CH-Z` + 
+              avg_release_extension + avg_rp_x + avg_rp_z, data = ch_data)
+summary(ch_lm)
+
+ch_data <- ch_data |> 
+  mutate(pred_vals = predict(ch_lm, newdata = ch_data))
+
+ch_filtered <- ch_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(ch_filtered$sp_s_FF, ch_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
 
 #Multiple Linear Regression with Knuckle Curve Characteristics (plus release data)
 #Error with the spin: Statcast doesn't give knuckle curve spin and instead includes 
 # it with curveballs
 kc_data <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_kc == "Yes") |> 
-  select(pfx_vKC, sp_s_FF, kc_avg_spin, `pfx_KC-X`, `pfx_KC-Z`, sp_s_KC, 
-         avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  drop_na()
-multiple_lm_kc <- lm(sp_s_FF ~ pfx_vKC + kc_avg_spin + `pfx_KC-X` + `pfx_KC-Z` + 
-                       avg_release_extension + avg_rp_x + avg_rp_z, data = kc_data)
-summary(multiple_lm_kc)
+  filter(ind_kc == "Yes") |> 
+  select(pfx_vKC, sp_s_FF, `pfx_KC-X`, `pfx_KC-Z`, sp_s_KC, 
+         avg_release_extension, avg_rp_x, avg_rp_z)
+kc_lm <- lm(sp_s_FF ~ pfx_vKC + `pfx_KC-X` + `pfx_KC-Z` + 
+              avg_release_extension + avg_rp_x + avg_rp_z, data = kc_data)
+summary(kc_lm)
 
+kc_data <- kc_data |> 
+  mutate(pred_vals = predict(kc_lm, newdata = kc_data))
 
+kc_filtered <- kc_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(kc_filtered$sp_s_FF, kc_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+#Multiple Linear Regression with SIGNIFICANT Knuckle Curve Characteristics 
+#(plus release data)
+#Error with the spin: Statcast doesn't give knuckle curve spin and instead includes 
+# it with curveballs
+kc_lm <- lm(sp_s_FF ~ pfx_vKC + `pfx_KC-Z`, data = kc_data)
+summary(kc_lm)
+
+kc_data <- kc_data |> 
+  mutate(pred_vals = predict(kc_lm, newdata = kc_data))
+
+kc_filtered <- kc_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(kc_filtered$sp_s_FF, kc_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+#Multiple Linear Regression with Splitter Characteristics (plus release data)
+fs_data <- cond_data |> 
+  filter(ind_split == "Yes") |> 
+  select(pfx_vFS, sp_s_FF, fs_avg_spin, `pfx_FS-X`, `pfx_FS-Z`, sp_s_FS, 
+         avg_release_extension, avg_rp_x, avg_rp_z)
+fs_lm <- lm(sp_s_FF ~ pfx_vFS + fs_avg_spin + `pfx_FS-X` + `pfx_FS-Z` + 
+              avg_release_extension + avg_rp_x + avg_rp_z, data = fs_data)
+summary(fs_lm)
+
+fs_data <- fs_data |> 
+  mutate(pred_vals = predict(fs_lm, newdata = fs_data))
+
+fs_filtered <- fs_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(fs_filtered$sp_s_FF, fs_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+#Multiple Linear Regression with SIGNIFICANT Splitter Characteristics (plus release data)
+fs_lm <- lm(sp_s_FF ~ pfx_vFS + `pfx_FS-Z` + avg_release_extension, data = fs_data)
+summary(fs_lm)
+
+fs_data <- fs_data |> 
+  mutate(pred_vals = predict(fs_lm, newdata = fs_data))
+
+fs_filtered <- fs_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(fs_filtered$sp_s_FF, fs_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+
+#Sinker Stuff+ experiment
+si_lm <- lm(sp_s_FF ~ sp_s_SI, data = si_data)
+summary(si_lm)
+
+si_data <- si_data |> 
+  mutate(pred_vals = predict(si_lm, newdata = si_data))
+
+si_filtered <- si_data |>
+  filter(!is.na(sp_s_FF) & !is.na(pred_vals))
+
+rmse_value <- rmse(si_filtered$sp_s_FF, si_filtered$pred_vals)
+print(paste("RMSE:", rmse_value))
+#Adjusted R^2 and RMSE are not better than the other sinker models
 
 #Linear Regression with Cond_Data_Longer - Sinker Velo and Fastball Stuff+
 # Filter for sinker velocity
@@ -1200,8 +1377,11 @@ simple_lm <- lm(Fastball_Stuff_Plus ~ Sinker_Velocity, data = merged_data)
 # Summary of the linear model
 summary(simple_lm)
 
-
-
+#Multiple Linear Regression with all Velocities and Fastball Stuff+
+all_velo <- cond_data_velo |> 
+  left_join(fastball_stuff_plus, by = c("Season", "PlayerNameRoute", "xMLBAMID"))
+all_velo_lm <- lm(Fastball_Stuff_Plus ~ Velocity, data = all_velo)
+summary(all_velo_lm)
 
 
 # Ridge and Lasso Regression --------------------------------------------------------
