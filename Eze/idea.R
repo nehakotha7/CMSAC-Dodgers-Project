@@ -1156,7 +1156,7 @@ test_pool <- test_data |>
     position = as.factor(position)
   ) |> 
   select(-Season, -PlayerName) |> 
-  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
 
 
 
@@ -1369,7 +1369,7 @@ test_pool <- test_data |>
     position = as.factor(position)
   ) |> 
   select(-Season, -PlayerName) |> 
-  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
 
 
 
@@ -1582,7 +1582,7 @@ test_pool <- test_data |>
     position = as.factor(position)
   ) |> 
   select(-Season, -PlayerName) |> 
-  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
 
 
 
