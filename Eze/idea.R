@@ -6,16 +6,17 @@ library(tidyr)
 library(tidyverse)
 library(catboost)
 library(mgcv)
+library(caret)
 set.seed(123)
 theme_set(theme_light())
 
-library(baseballr) #install the package beforehand
-#scraping pitching data from 2021
+library(baseballr) # install the package beforehand
+# scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021)
-#only including pitchers who threw more than 250 pitches 
-#*Might want to be more selective*
+# only including pitchers who threw more than 250 pitches 
+# *Might want to be more selective*
 data_2021 <- data_2021[which(data_2021$Pitches >= 250),]
-#adjusting the position column to classify into starters (SP) and relievers (RP)
+# adjusting the position column to classify into starters (SP) and relievers (RP)
 for (player in data_2021){
   data_2021$position <- ifelse(data_2021$GS >= (data_2021$G - data_2021$GS), 
                                "SP", "RP")
@@ -29,7 +30,7 @@ for (player in data_2021){
   data_2021$sp_s_FO = NA
 }
 
-#Process repeated for 2022
+# Process repeated for 2022
 data_2022 = baseballr::fg_pitcher_leaders(startseason = 2022, endseason = 2022)
 data_2022 <- data_2022[which(data_2022$Pitches >= 250),]
 for (player in data_2022){
@@ -51,7 +52,7 @@ for (player in data_2022){
 }
 
 
-#process repeated for 2023
+# process repeated for 2023
 data_2023 = baseballr::fg_pitcher_leaders(startseason = 2023, endseason = 2023)
 data_2023 <- data_2023[which(data_2023$Pitches >= 250),]
 for (player in data_2023){
@@ -76,25 +77,25 @@ key_vars <- c("Season", 'position', 'IP', 'Throws', 'xMLBAMID', 'PlayerNameRoute
               "sp_stuff"
               
 )
-#no stuff+ for screwball (only one pitcher throws it)
+# no stuff+ for screwball (only one pitcher throws it)
 
-#creating condensed dataset for 2021
+# creating condensed dataset for 2021
 cond_data_2021 <- data_2021 |> 
   select(all_of(key_vars)
   )
 
-#Creating condensed dataset for 2022 
-#missing some Pitch Info variables.  Check on pitchFX
+# Creating condensed dataset for 2022 
+# missing some Pitch Info variables.  Check on pitchFX
 cond_data_2022 <- data_2022 |> 
   select(all_of(key_vars)
   )
-#Creating condensed dataset for 2023
+# Creating condensed dataset for 2023
 cond_data_2023 <- data_2023 |> 
   select(all_of(key_vars)
   )
 
 
-#Reading in the data from statcast for extension and release point
+# Reading in the data from statcast for extension and release point
 savant <- read.csv("savant.csv")
 savant_cond <- savant |> 
   select(pitch_type, game_year, release_pos_x, release_pos_z, player_name, 
@@ -117,33 +118,33 @@ savant_cond_2023 <- savant_cond |>
   filter(Season == 2023)
 
 
-#Adding the spin rates for each pitch with a CSV pulled from Statcast
-#Link to the 2021 data:https://baseballsavant.mlb.com/pitch-arsenals?year=2021&
-#min=250&type=n_&hand=&sort=9&sortDir=desc
+# Adding the spin rates for each pitch with a CSV pulled from Statcast
+# Link to the 2021 data:https://baseballsavant.mlb.com/pitch-arsenals?year=2021&
+# min=250&type=n_&hand=&sort=9&sortDir=desc
 
 spin_2021 <- read.csv("pitch_spin_2021.csv")
 spin_2021 <- rename(spin_2021, xMLBAMID = pitcher)
 cond_data_2021 <- left_join(cond_data_2021, spin_2021, by="xMLBAMID")
 cond_data_2021 <- left_join(cond_data_2021, savant_cond_2021, by = "xMLBAMID")
 
-#2022
+# 2022
 spin_2022 <- read.csv("pitch_spin_2022.csv")
 spin_2022 <- rename(spin_2022, xMLBAMID = pitcher)
 cond_data_2022 <- left_join(cond_data_2022, spin_2022, by="xMLBAMID")
 cond_data_2022 <- left_join(cond_data_2022, savant_cond_2022, by = "xMLBAMID")
 
-#2023
+# 2023
 spin_2023 <- read.csv("pitch_spin_2023.csv")
 spin_2023 <- rename(spin_2023, xMLBAMID = pitcher)
 cond_data_2023 <- left_join(cond_data_2023, spin_2023, by="xMLBAMID")
 cond_data_2023 <- left_join(cond_data_2023, savant_cond_2023, by = "xMLBAMID")
 
 
-#combining all three condensed datasets
+# combining all three condensed datasets
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
 
-#Adding indicator variables for each pitch
-#Setting the cutoff at 5% usage
+# Adding indicator variables for each pitch
+# Setting the cutoff at 5% usage
 cond_data <- cond_data |>
   mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct < 0.05, "No", "Yes"),
          ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct < 0.05, "No", "Yes"),
@@ -158,7 +159,7 @@ cond_data <- cond_data |>
          ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct < 0.05, "No", "Yes")
   )
 
-#Adjusting the horizontal movement variable
+# Adjusting the horizontal movement variable
 cond_data <- cond_data |> 
   mutate(`pfx_FA-X` = ifelse(Throws == "R", `pfx_SL-X` * -1, `pfx_SL-X`),
          `pfx_SL-X` = ifelse(Throws == "L", `pfx_SL-X` * -1, `pfx_SL-X`),
@@ -394,73 +395,9 @@ data_long_top |>
 
 
 
-# Initialize pitch arsenal variation function -----------------------------
+# Exploring savant & condensed datasets ------------------------------------------------
 
 
-detect_arsenal_change <- function(data) {
-
-  
-  # Group by PlayerName and PitchType, calculate changes
-  data_changes <- data |>
-      group_by(PlayerName, PitchType) |>
-      summarize(
-        Change_2021_2022 = `Year_2022` - `Year_2021`,
-        Change_2022_2023 = `Year_2023` - `Year_2022`,
-        .groups = 'drop'
-      ) |>
-
-  # Threshold of 2%
-  mutate(
-    Added_2021_2022 = ifelse(Change_2021_2022 > .02, 1, 0),
-    Dropped_2021_2022 = ifelse(Change_2021_2022 <= -.02, 1, 0),
-    Added_2022_2023 = ifelse(Change_2022_2023 > .02, 1, 0),
-    Dropped_2022_2023 = ifelse(Change_2022_2023 <= -.02, 1, 0)
-  )
-
-# Update original dataset with new columns
-result <- data |>
-  left_join(data_changes, by = c("PlayerName", "PitchType"))
-
-# Only drop NA's at the end of arsenal creation
-result <- result |> 
-  drop_na()
-
-return(result)
-}
-
-
-# Overwrite with new dataset`
-usage_change <- detect_arsenal_change(usage_change)
-
-
-
-# Exploring savant & condensed dataset ------------------------------------------------
-
-
-
-# Different assignments in savant as 'FA' is assigned other
-  # 'FF' is assigned 4-Seam fastball all under pitch_name variable
-# Already modeled 4-Seam as pfx_FA_pct with baseballr so we'll stick with this format
-  # merge with 'FA' other count (2-seam fastball ?) to prevent data loss
-
-clean_savant <- savant |>
-  mutate(pitch_type = ifelse(pitch_type == 'FF', 'FA', pitch_type)) |> 
-  filter(pitch_type %in% c('CH', 'CU', 'FA', 'SI', 'SL', 'FC'))
-
-
-# Flip Player Name Format for consistent formatting
-reformat_name <- function(name) {
-  
-  parts <- strsplit(name, ', ')[[1]]
-  
-  return(paste(parts[2], parts[1]))
-}
-
-
-# Apply the function to the player_name column
-
-clean_savant <- clean_savant |> 
-  mutate(player_name = sapply(player_name, reformat_name))
 
 
 # Rename columns for usability
@@ -639,7 +576,7 @@ for (i in 1:k) {
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Calculate metrics
+  # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
   Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
@@ -830,7 +767,7 @@ for (i in 1:k) {
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Calculate metrics
+  # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
   Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
@@ -1022,7 +959,7 @@ for (i in 1:k) {
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Calculate metrics
+  # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
   Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
@@ -1101,7 +1038,7 @@ print(predicted_stuff_plus)
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_FA_pct', 
                    'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
-                   'avg_rp_z', 'avg_release_extension', 'fa_avg_spin', 
+                   'avg_rp_z', 'avg_release_extension', 'ff_avg_spin', 
                    'pfx_vFA')
 
 
@@ -1208,13 +1145,13 @@ for (i in 1:k) {
   gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
                      s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
                      s(avg_rp_x, avg_rp_z) + s(pfx_FA_pct, pfx_vFA) +
-                     s(pfx_vFA, fa_avg_spin),
+                     s(pfx_vFA, ff_avg_spin),
                    data = train_set)
   
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Calculate metrics
+  # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
   Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
@@ -1231,18 +1168,16 @@ print(avg_results)
 
 
 
-
 # Fit final GAM calculator
 
 final_gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
                          s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
                          s(avg_rp_x, avg_rp_z) + s(pfx_FA_pct, pfx_vFA) +
-                         s(pfx_vFA, fa_avg_spin),
+                         s(pfx_vFA, ff_avg_spin),
                        data = data_filled)
 
 
 summary(final_gam_model)
-
 
 
 # Make Predictions
@@ -1404,7 +1339,7 @@ for (i in 1:k) {
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Calculate metrics
+  # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
   Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
@@ -1594,7 +1529,7 @@ for (i in 1:k) {
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Calculate metrics
+  # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
   Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
