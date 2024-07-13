@@ -464,7 +464,7 @@ pitch_arsenal <- cond_data |>
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_CH_pct', 
                    'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'ch_avg_spin', 
-                   'pfx_vCH')
+                   'pfx_vCH', 'sp_s_CH', 'RAR')
 
 
 # Ensure target and primary predictor are not missing
@@ -567,11 +567,13 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                     s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_CH_pct, pfx_vCH) +
-                     s(pfx_vCH, ch_avg_spin),
+  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                     s(pfx_CH_pct, pfx_vCH) + s(pfx_CH_pct, sp_s_CH) + 
+                     s(pfx_vCH, ch_avg_spin) + s(ERA_minus, FIP_minus) + 
+                     s(WHIP_plus, BABIP_plus), 
                    data = train_set)
+  
   
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
@@ -596,10 +598,11 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                         s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_CH_pct, pfx_vCH) +
-                         s(pfx_vCH, ch_avg_spin),
+final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                         s(pfx_CH_pct, pfx_vCH) + s(pfx_CH_pct, sp_s_CH) + 
+                         s(pfx_vCH, ch_avg_spin) + s(ERA_minus, FIP_minus) + 
+                         s(WHIP_plus, BABIP_plus), 
                        data = data_filled)
 
 
@@ -655,7 +658,7 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_CU_pct', 
                    'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'cu_avg_spin', 
-                   'pfx_vCU')
+                   'pfx_vCU', 'sp_s_CU', 'RAR')
 
 
 # Ensure target and primary predictor are not missing
@@ -758,10 +761,11 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                     s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_CU_pct, pfx_vCU) +
-                     s(pfx_vCU, cu_avg_spin),
+  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                     s(pfx_CU_pct, pfx_vCU) + s(pfx_CU_pct, sp_s_CU) + 
+                     s(pfx_vCU, cu_avg_spin) + s(ERA_minus, FIP_minus) + 
+                     s(WHIP_plus, BABIP_plus), 
                    data = train_set)
   
   # Predict on validation set
@@ -787,10 +791,11 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                         s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_CU_pct, pfx_vCU) +
-                         s(pfx_vCU, cu_avg_spin),
+final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                         s(pfx_CU_pct, pfx_vCU) + s(pfx_CU_pct, sp_s_CU) + 
+                         s(pfx_vCU, cu_avg_spin) + s(ERA_minus, FIP_minus) + 
+                         s(WHIP_plus, BABIP_plus), 
                        data = data_filled)
 
 
@@ -847,7 +852,7 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_FC_pct', 
                    'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'fc_avg_spin', 
-                   'pfx_vFC')
+                   'pfx_vFC', 'sp_s_FC', 'RAR')
 
 
 # Ensure target and primary predictor are not missing
@@ -950,10 +955,11 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                     s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_FC_pct, pfx_vFC) +
-                     s(pfx_vFC, fc_avg_spin),
+  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                     s(pfx_FC_pct, pfx_vFC) + s(pfx_FC_pct, sp_s_FC) + 
+                     s(pfx_vFC, fc_avg_spin) + s(ERA_minus, FIP_minus) + 
+                     s(WHIP_plus, BABIP_plus), 
                    data = train_set)
   
   # Predict on validation set
@@ -979,10 +985,11 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                         s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_FC_pct, pfx_vFC) +
-                         s(pfx_vFC, fc_avg_spin),
+final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                         s(pfx_FC_pct, pfx_vFC) + s(pfx_FC_pct, sp_s_FC) + 
+                         s(pfx_vFC, fc_avg_spin) + s(ERA_minus, FIP_minus) + 
+                         s(WHIP_plus, BABIP_plus), 
                        data = data_filled)
 
 
@@ -1039,8 +1046,7 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_FA_pct', 
                    'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'ff_avg_spin', 
-                   'pfx_vFA')
-
+                   'pfx_vFA', 'sp_s_FF', 'RAR')
 
 # Ensure target and primary predictor are not missing
 
@@ -1142,10 +1148,11 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                     s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_FA_pct, pfx_vFA) +
-                     s(pfx_vFA, ff_avg_spin),
+  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                     s(pfx_FA_pct, pfx_vFA) + s(pfx_FA_pct, sp_s_FF) + 
+                     s(pfx_vFA, ff_avg_spin) + s(ERA_minus, FIP_minus) + 
+                     s(WHIP_plus, BABIP_plus), 
                    data = train_set)
   
   # Predict on validation set
@@ -1170,10 +1177,11 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                         s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_FA_pct, pfx_vFA) +
-                         s(pfx_vFA, ff_avg_spin),
+final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                         s(pfx_FA_pct, pfx_vFA) + s(pfx_FA_pct, sp_s_FF) + 
+                         s(pfx_vFA, ff_avg_spin) + s(ERA_minus, FIP_minus) + 
+                         s(WHIP_plus, BABIP_plus), 
                        data = data_filled)
 
 
@@ -1227,7 +1235,7 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_SI_pct', 
                    'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'si_avg_spin', 
-                   'pfx_vSI')
+                   'pfx_vSI', 'sp_s_SI', 'RAR')
 
 
 # Ensure target and primary predictor are not missing
@@ -1330,10 +1338,11 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                     s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_SI_pct, pfx_vSI) +
-                     s(pfx_vSI, si_avg_spin),
+  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                     s(pfx_SI_pct, pfx_vSI) + s(pfx_SI_pct, sp_s_SI) + 
+                     s(pfx_vSI, si_avg_spin) + s(ERA_minus, FIP_minus) + 
+                     s(WHIP_plus, BABIP_plus), 
                    data = train_set)
   
   # Predict on validation set
@@ -1359,10 +1368,11 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                         s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_SI_pct, pfx_vSI) +
-                         s(pfx_vSI, si_avg_spin),
+final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                         s(pfx_SI_pct, pfx_vSI) + s(pfx_SI_pct, sp_s_SI) + 
+                         s(pfx_vSI, si_avg_spin) + s(ERA_minus, FIP_minus) + 
+                         s(WHIP_plus, BABIP_plus), 
                        data = data_filled)
 
 
@@ -1417,7 +1427,7 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_SL_pct', 
                    'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'sl_avg_spin', 
-                   'pfx_vSL')
+                   'pfx_vSL', 'sp_s_SL', 'RAR')
 
 
 # Ensure target and primary predictor are not missing
@@ -1520,10 +1530,11 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                     s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_SL_pct, pfx_vSL) +
-                     s(pfx_vSL, sl_avg_spin),
+  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                     s(pfx_SL_pct, pfx_vSL) + s(pfx_SL_pct, sp_s_SL) + 
+                     s(pfx_vSL, sl_avg_spin) + s(ERA_minus, FIP_minus) + 
+                     s(WHIP_plus, BABIP_plus), 
                    data = train_set)
   
   # Predict on validation set
@@ -1549,10 +1560,11 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(ERA_minus) + s(K_9_plus) + s(WHIP_plus) + 
-                         s(BABIP_plus) + s(FIP_minus) + s(avg_release_extension) +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_SL_pct, pfx_vSL) +
-                         s(pfx_vSL, sl_avg_spin),
+final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
+                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
+                         s(pfx_SL_pct, pfx_vSL) + s(pfx_SL_pct, sp_s_SL) + 
+                         s(pfx_vSL, sl_avg_spin) + s(ERA_minus, FIP_minus) + 
+                         s(WHIP_plus, BABIP_plus), 
                        data = data_filled)
 
 
