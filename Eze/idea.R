@@ -465,14 +465,14 @@ pitch_arsenal$position <- as.factor(pitch_arsenal$position)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct', 
                    'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'ch_avg_spin', 
-                   'pfx_vCH', 'sp_s_CH', 'Throws', 'position')
+                   'pfx_vCH', 'ind_change', 'sp_s_CH', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), !is.na(pfx_CH_pct))
+  filter(!is.na(sp_stuff), ind_change == 'Yes')
 
 
 # Rename columns in the filtered_data 
@@ -503,7 +503,7 @@ train_pool <- train_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_change) |> 
   catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
 
 test_pool <- test_data |> 
@@ -511,7 +511,7 @@ test_pool <- test_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_change) |> 
   catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
 
 
@@ -679,14 +679,14 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CU_pct', 
                    'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'cu_avg_spin', 
-                   'pfx_vCU', 'sp_s_CU', 'Throws', 'position')
+                   'pfx_vCU', 'ind_curve', 'sp_s_CU', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), !is.na(pfx_CU_pct))
+  filter(!is.na(sp_stuff), ind_curve == 'Yes')
 
 
 # Rename columns in the filtered_data 
@@ -717,7 +717,7 @@ train_pool <- train_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_curve) |> 
   catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
 
 test_pool <- test_data |> 
@@ -725,7 +725,7 @@ test_pool <- test_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_curve) |> 
   catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
 
 
@@ -894,14 +894,14 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FC_pct', 
                    'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'fc_avg_spin', 
-                   'pfx_vFC', 'sp_s_FC', 'Throws', 'position')
+                   'pfx_vFC', 'ind_cutter', 'sp_s_FC', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), !is.na(pfx_FC_pct))
+  filter(!is.na(sp_stuff), ind_cutter == 'Yes')
 
 
 # Rename columns in the filtered_data 
@@ -932,7 +932,7 @@ train_pool <- train_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_cutter) |> 
   catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
 
 test_pool <- test_data |> 
@@ -940,7 +940,7 @@ test_pool <- test_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_cutter) |> 
   catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
 
 
@@ -1109,14 +1109,14 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FA_pct', 
                    'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'ff_avg_spin', 
-                   'pfx_vFA', 'sp_s_FF', 'Throws', 'position')
+                   'pfx_vFA', 'ind_fastball', 'sp_s_FF', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), !is.na(pfx_FA_pct))
+  filter(!is.na(sp_stuff), ind_fastball == 'Yes')
 
 
 # Rename columns in the filtered_data 
@@ -1147,7 +1147,7 @@ train_pool <- train_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_fastball) |> 
   catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
 
 test_pool <- test_data |> 
@@ -1155,7 +1155,7 @@ test_pool <- test_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_fastball) |> 
   catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
 
 
@@ -1322,14 +1322,14 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SI_pct', 
                    'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'si_avg_spin', 
-                   'pfx_vSI', 'sp_s_SI', 'Throws', 'position')
+                   'pfx_vSI', 'ind_sinker', 'sp_s_SI', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), !is.na(pfx_SI_pct))
+  filter(!is.na(sp_stuff), ind_sinker == 'Yes')
 
 
 # Rename columns in the filtered_data 
@@ -1360,7 +1360,7 @@ train_pool <- train_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_sinker) |> 
   catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
 
 test_pool <- test_data |> 
@@ -1368,7 +1368,7 @@ test_pool <- test_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_sinker) |> 
   catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
 
 
@@ -1535,14 +1535,14 @@ print(predicted_stuff_plus)
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SL_pct', 
                    'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'sl_avg_spin', 
-                   'pfx_vSL', 'sp_s_SL', 'Throws', 'position')
+                   'pfx_vSL', 'ind_slider', 'sp_s_SL', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), !is.na(pfx_SL_pct))
+  filter(!is.na(sp_stuff), ind_slider == 'Yes')
 
 
 # Rename columns in the filtered_data 
@@ -1573,7 +1573,7 @@ train_pool <- train_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_slider) |> 
   catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
 
 test_pool <- test_data |> 
@@ -1581,7 +1581,7 @@ test_pool <- test_data |>
     Throws = as.factor(Throws),
     position = as.factor(position)
   ) |> 
-  select(-Season, -PlayerName) |> 
+  select(-Season, -PlayerName, -ind_slider) |> 
   catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
 
 
