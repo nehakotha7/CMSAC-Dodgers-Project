@@ -585,7 +585,7 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ sp_s_CH +
+  gam_model <- gam(sp_stuff ~ s(sp_s_CH) +
                      s(avg_release_extension, by = Throws) + Throws +
                      s(pfx_CH_pct, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_vCH, ch_avg_spin) +
@@ -618,7 +618,7 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ sp_s_CH +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_CH) +
                          s(avg_release_extension, by = Throws) + Throws +
                          s(pfx_CH_pct, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_vCH, ch_avg_spin) +
@@ -799,7 +799,7 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ sp_s_CU +
+  gam_model <- gam(sp_stuff ~ s(sp_s_CU) +
                      s(avg_release_extension, by = Throws) + Throws +
                      s(pfx_CU_pct, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_vCU, cu_avg_spin) +
@@ -832,7 +832,7 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ sp_s_CU +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_CU) +
                          s(avg_release_extension, by = Throws) + Throws +
                          s(pfx_CU_pct, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_vCU, cu_avg_spin) +
@@ -1014,7 +1014,7 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ sp_s_FC +
+  gam_model <- gam(sp_stuff ~ s(sp_s_FC) +
                      s(avg_release_extension, by = Throws) + Throws +
                      s(pfx_FC_pct, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_vFC, fc_avg_spin) +
@@ -1047,7 +1047,7 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ sp_s_FC +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_FC) +
                          s(avg_release_extension, by = Throws) + Throws +
                          s(pfx_FC_pct, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_vFC, fc_avg_spin) +
@@ -1229,7 +1229,7 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ sp_s_FF +
+  gam_model <- gam(sp_stuff ~ s(sp_s_FF) +
                      s(avg_release_extension, by = Throws) + Throws +
                      s(pfx_FA_pct, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_vFA, ff_avg_spin) +
@@ -1262,7 +1262,7 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ sp_s_FF +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_FF) +
                          s(avg_release_extension, by = Throws) + Throws +
                          s(pfx_FA_pct, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_vFA, ff_avg_spin) +
@@ -1442,7 +1442,7 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ sp_s_SI +
+  gam_model <- gam(sp_stuff ~ s(sp_s_SI) +
                      s(avg_release_extension, by = Throws) + Throws +
                      s(pfx_SI_pct, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_vSI, si_avg_spin) +
@@ -1475,7 +1475,7 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ sp_s_SI +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_SI) +
                          s(avg_release_extension, by = Throws) + Throws +
                          s(pfx_SI_pct, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_vSI, si_avg_spin) +
@@ -1655,7 +1655,7 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ sp_s_SL +
+  gam_model <- gam(sp_stuff ~ s(sp_s_S)L +
                      s(avg_release_extension, by = Throws) + Throws +
                      s(pfx_SL_pct, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_vSL, sl_avg_spin) +
@@ -1688,7 +1688,7 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ sp_s_SL +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_SL) +
                          s(avg_release_extension, by = Throws) + Throws +
                          s(pfx_SL_pct, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_vSL, sl_avg_spin) +
