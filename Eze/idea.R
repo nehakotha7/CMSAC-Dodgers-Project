@@ -444,8 +444,9 @@ pitch_arsenal <- cond_data |>
   ) |> 
   ungroup()
 
-
-
+# Ensure categorical variables are factors
+pitch_arsenal$Throws <- as.factor(pitch_arsenal$Throws)
+pitch_arsenal$position <- as.factor(pitch_arsenal$position)
 
 
 
@@ -461,10 +462,10 @@ pitch_arsenal <- cond_data |>
 
 # Select relevant columns
 
-relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_CH_pct', 
-                   'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
+relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct', 
+                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'ch_avg_spin', 
-                   'pfx_vCH', 'sp_s_CH', 'RAR')
+                   'pfx_vCH', 'sp_s_CH', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -472,13 +473,12 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_CH_pct',
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
   filter(!is.na(sp_stuff), !is.na(pfx_CH_pct))
-  
+
 
 # Rename columns in the filtered_data 
 
 names(filtered_data) <- gsub('-', '_minus', names(filtered_data))
 names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
-
 
 
 
@@ -496,9 +496,24 @@ test_data <- filtered_data[-train_index, ]
 
 
 # Convert to catboost pool
+  # with extra categorical levels
 
-train_pool <- catboost.load_pool(data = train_data[ , -which(names(train_data) == 'sp_stuff')], label = train_data$sp_stuff)
-test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == 'sp_stuff')], label = test_data$sp_stuff)
+train_pool <- train_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+
+test_pool <- test_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
+
 
 
 
@@ -506,7 +521,7 @@ test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == '
 
 catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
                         iterations = 1000, depth = 6, learning_rate = .1, 
-                        nan_mode = 'Min')
+                        random_seed = 42)
 catboost_model <- catboost.train(train_pool, params = catboost_params)
 
 
@@ -543,7 +558,10 @@ for (col in colnames(train_data_filled)) {
 
 
 # Combine filled training and test data
+
 data_filled <- rbind(train_data_filled, test_data_filled)
+data_filled$Throws <- as.factor(data_filled$Throws)
+data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
@@ -567,20 +585,22 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                     s(pfx_CH_pct, pfx_vCH) + s(pfx_CH_pct, sp_s_CH) + 
-                     s(pfx_vCH, ch_avg_spin) + s(ERA_minus, FIP_minus) + 
-                     s(WHIP_plus, BABIP_plus), 
+  gam_model <- gam(sp_stuff ~ sp_s_CH +
+                     s(avg_release_extension, by = Throws) + Throws +
+                     s(pfx_CH_pct, by = position) + position +
+                     s(avg_rp_x, avg_rp_z) + s(pfx_vCH, ch_avg_spin) +
+                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                     s(K_9_plus, RAR),
                    data = train_set)
-  
   
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
   # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
-  Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
+  df <- length(gam_model$coefficients)
+  n <- nrow(val_set)
+  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
   
   # Store results
@@ -598,11 +618,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                         s(pfx_CH_pct, pfx_vCH) + s(pfx_CH_pct, sp_s_CH) + 
-                         s(pfx_vCH, ch_avg_spin) + s(ERA_minus, FIP_minus) + 
-                         s(WHIP_plus, BABIP_plus), 
+final_gam_model <- gam(sp_stuff ~ sp_s_CH +
+                         s(avg_release_extension, by = Throws) + Throws +
+                         s(pfx_CH_pct, by = position) + position +
+                         s(avg_rp_x, avg_rp_z) + s(pfx_vCH, ch_avg_spin) +
+                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                         s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -655,10 +676,10 @@ print(predicted_stuff_plus)
 
 # Select relevant columns
 
-relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_CU_pct', 
-                   'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
+relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CU_pct', 
+                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'cu_avg_spin', 
-                   'pfx_vCU', 'sp_s_CU', 'RAR')
+                   'pfx_vCU', 'sp_s_CU', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -677,7 +698,6 @@ names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
 
 
 
-
 # Handling missing values using catboost 
 
 
@@ -690,9 +710,24 @@ test_data <- filtered_data[-train_index, ]
 
 
 # Convert to catboost pool
+  # with extra categorical levels
 
-train_pool <- catboost.load_pool(data = train_data[ , -which(names(train_data) == 'sp_stuff')], label = train_data$sp_stuff)
-test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == 'sp_stuff')], label = test_data$sp_stuff)
+train_pool <- train_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+
+test_pool <- test_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
+
 
 
 
@@ -700,7 +735,7 @@ test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == '
 
 catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
                         iterations = 1000, depth = 6, learning_rate = .1, 
-                        nan_mode = 'Min')
+                        random_seed = 42)
 catboost_model <- catboost.train(train_pool, params = catboost_params)
 
 
@@ -737,7 +772,10 @@ for (col in colnames(train_data_filled)) {
 
 
 # Combine filled training and test data
+
 data_filled <- rbind(train_data_filled, test_data_filled)
+data_filled$Throws <- as.factor(data_filled$Throws)
+data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
@@ -761,11 +799,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                     s(pfx_CU_pct, pfx_vCU) + s(pfx_CU_pct, sp_s_CU) + 
-                     s(pfx_vCU, cu_avg_spin) + s(ERA_minus, FIP_minus) + 
-                     s(WHIP_plus, BABIP_plus), 
+  gam_model <- gam(sp_stuff ~ sp_s_CU +
+                     s(avg_release_extension, by = Throws) + Throws +
+                     s(pfx_CU_pct, by = position) + position +
+                     s(avg_rp_x, avg_rp_z) + s(pfx_vCU, cu_avg_spin) +
+                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                     s(K_9_plus, RAR),
                    data = train_set)
   
   # Predict on validation set
@@ -773,7 +812,9 @@ for (i in 1:k) {
   
   # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
-  Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
+  df <- length(gam_model$coefficients)
+  n <- nrow(val_set)
+  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
   
   # Store results
@@ -791,11 +832,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                         s(pfx_CU_pct, pfx_vCU) + s(pfx_CU_pct, sp_s_CU) + 
-                         s(pfx_vCU, cu_avg_spin) + s(ERA_minus, FIP_minus) + 
-                         s(WHIP_plus, BABIP_plus), 
+final_gam_model <- gam(sp_stuff ~ sp_s_CU +
+                         s(avg_release_extension, by = Throws) + Throws +
+                         s(pfx_CU_pct, by = position) + position +
+                         s(avg_rp_x, avg_rp_z) + s(pfx_vCU, cu_avg_spin) +
+                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                         s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -849,10 +891,10 @@ print(predicted_stuff_plus)
 
 # Select relevant columns
 
-relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_FC_pct', 
-                   'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
+relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FC_pct', 
+                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'fc_avg_spin', 
-                   'pfx_vFC', 'sp_s_FC', 'RAR')
+                   'pfx_vFC', 'sp_s_FC', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -871,7 +913,6 @@ names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
 
 
 
-
 # Handling missing values using catboost 
 
 
@@ -884,9 +925,24 @@ test_data <- filtered_data[-train_index, ]
 
 
 # Convert to catboost pool
+  # with extra categorical levels
 
-train_pool <- catboost.load_pool(data = train_data[ , -which(names(train_data) == 'sp_stuff')], label = train_data$sp_stuff)
-test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == 'sp_stuff')], label = test_data$sp_stuff)
+train_pool <- train_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+
+test_pool <- test_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
+
 
 
 
@@ -894,7 +950,7 @@ test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == '
 
 catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
                         iterations = 1000, depth = 6, learning_rate = .1, 
-                        nan_mode = 'Min')
+                        random_seed = 42)
 catboost_model <- catboost.train(train_pool, params = catboost_params)
 
 
@@ -931,7 +987,10 @@ for (col in colnames(train_data_filled)) {
 
 
 # Combine filled training and test data
+
 data_filled <- rbind(train_data_filled, test_data_filled)
+data_filled$Throws <- as.factor(data_filled$Throws)
+data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
@@ -955,11 +1014,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                     s(pfx_FC_pct, pfx_vFC) + s(pfx_FC_pct, sp_s_FC) + 
-                     s(pfx_vFC, fc_avg_spin) + s(ERA_minus, FIP_minus) + 
-                     s(WHIP_plus, BABIP_plus), 
+  gam_model <- gam(sp_stuff ~ sp_s_FC +
+                     s(avg_release_extension, by = Throws) + Throws +
+                     s(pfx_FC_pct, by = position) + position +
+                     s(avg_rp_x, avg_rp_z) + s(pfx_vFC, fc_avg_spin) +
+                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                     s(K_9_plus, RAR),
                    data = train_set)
   
   # Predict on validation set
@@ -967,7 +1027,9 @@ for (i in 1:k) {
   
   # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
-  Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
+  df <- length(gam_model$coefficients)
+  n <- nrow(val_set)
+  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
   
   # Store results
@@ -985,11 +1047,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                         s(pfx_FC_pct, pfx_vFC) + s(pfx_FC_pct, sp_s_FC) + 
-                         s(pfx_vFC, fc_avg_spin) + s(ERA_minus, FIP_minus) + 
-                         s(WHIP_plus, BABIP_plus), 
+final_gam_model <- gam(sp_stuff ~ sp_s_FC +
+                         s(avg_release_extension, by = Throws) + Throws +
+                         s(pfx_FC_pct, by = position) + position +
+                         s(avg_rp_x, avg_rp_z) + s(pfx_vFC, fc_avg_spin) +
+                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                         s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -1043,10 +1106,11 @@ print(predicted_stuff_plus)
 
 # Select relevant columns
 
-relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_FA_pct', 
-                   'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
+relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FA_pct', 
+                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'ff_avg_spin', 
-                   'pfx_vFA', 'sp_s_FF', 'RAR')
+                   'pfx_vFA', 'sp_s_FF', 'Throws', 'position')
+
 
 # Ensure target and primary predictor are not missing
 
@@ -1064,7 +1128,6 @@ names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
 
 
 
-
 # Handling missing values using catboost 
 
 
@@ -1077,9 +1140,24 @@ test_data <- filtered_data[-train_index, ]
 
 
 # Convert to catboost pool
+  # with extra categorical levels
 
-train_pool <- catboost.load_pool(data = train_data[ , -which(names(train_data) == 'sp_stuff')], label = train_data$sp_stuff)
-test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == 'sp_stuff')], label = test_data$sp_stuff)
+train_pool <- train_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+
+test_pool <- test_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+
 
 
 
@@ -1087,7 +1165,7 @@ test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == '
 
 catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
                         iterations = 1000, depth = 6, learning_rate = .1, 
-                        nan_mode = 'Min')
+                        random_seed = 42)
 catboost_model <- catboost.train(train_pool, params = catboost_params)
 
 
@@ -1124,7 +1202,10 @@ for (col in colnames(train_data_filled)) {
 
 
 # Combine filled training and test data
+
 data_filled <- rbind(train_data_filled, test_data_filled)
+data_filled$Throws <- as.factor(data_filled$Throws)
+data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
@@ -1148,11 +1229,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                     s(pfx_FA_pct, pfx_vFA) + s(pfx_FA_pct, sp_s_FF) + 
-                     s(pfx_vFA, ff_avg_spin) + s(ERA_minus, FIP_minus) + 
-                     s(WHIP_plus, BABIP_plus), 
+  gam_model <- gam(sp_stuff ~ sp_s_FF +
+                     s(avg_release_extension, by = Throws) + Throws +
+                     s(pfx_FA_pct, by = position) + position +
+                     s(avg_rp_x, avg_rp_z) + s(pfx_vFA, ff_avg_spin) +
+                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                     s(K_9_plus, RAR),
                    data = train_set)
   
   # Predict on validation set
@@ -1160,7 +1242,9 @@ for (i in 1:k) {
   
   # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
-  Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
+  df <- length(gam_model$coefficients)
+  n <- nrow(val_set)
+  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
   
   # Store results
@@ -1175,17 +1259,20 @@ print(avg_results)
 
 
 
+
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                         s(pfx_FA_pct, pfx_vFA) + s(pfx_FA_pct, sp_s_FF) + 
-                         s(pfx_vFA, ff_avg_spin) + s(ERA_minus, FIP_minus) + 
-                         s(WHIP_plus, BABIP_plus), 
+final_gam_model <- gam(sp_stuff ~ sp_s_FF +
+                         s(avg_release_extension, by = Throws) + Throws +
+                         s(pfx_FA_pct, by = position) + position +
+                         s(avg_rp_x, avg_rp_z) + s(pfx_vFA, ff_avg_spin) +
+                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                         s(K_9_plus, RAR),
                        data = data_filled)
 
 
 summary(final_gam_model)
+
 
 
 # Make Predictions
@@ -1232,10 +1319,10 @@ print(predicted_stuff_plus)
 
 # Select relevant columns
 
-relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_SI_pct', 
-                   'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
+relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SI_pct', 
+                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'si_avg_spin', 
-                   'pfx_vSI', 'sp_s_SI', 'RAR')
+                   'pfx_vSI', 'sp_s_SI', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -1254,7 +1341,6 @@ names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
 
 
 
-
 # Handling missing values using catboost 
 
 
@@ -1267,9 +1353,24 @@ test_data <- filtered_data[-train_index, ]
 
 
 # Convert to catboost pool
+  # with extra categorical levels
 
-train_pool <- catboost.load_pool(data = train_data[ , -which(names(train_data) == 'sp_stuff')], label = train_data$sp_stuff)
-test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == 'sp_stuff')], label = test_data$sp_stuff)
+train_pool <- train_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+
+test_pool <- test_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+
 
 
 
@@ -1277,7 +1378,7 @@ test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == '
 
 catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
                         iterations = 1000, depth = 6, learning_rate = .1, 
-                        nan_mode = 'Min')
+                        random_seed = 42)
 catboost_model <- catboost.train(train_pool, params = catboost_params)
 
 
@@ -1314,7 +1415,10 @@ for (col in colnames(train_data_filled)) {
 
 
 # Combine filled training and test data
+
 data_filled <- rbind(train_data_filled, test_data_filled)
+data_filled$Throws <- as.factor(data_filled$Throws)
+data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
@@ -1338,11 +1442,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                     s(pfx_SI_pct, pfx_vSI) + s(pfx_SI_pct, sp_s_SI) + 
-                     s(pfx_vSI, si_avg_spin) + s(ERA_minus, FIP_minus) + 
-                     s(WHIP_plus, BABIP_plus), 
+  gam_model <- gam(sp_stuff ~ sp_s_SI +
+                     s(avg_release_extension, by = Throws) + Throws +
+                     s(pfx_SI_pct, by = position) + position +
+                     s(avg_rp_x, avg_rp_z) + s(pfx_vSI, si_avg_spin) +
+                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                     s(K_9_plus, RAR),
                    data = train_set)
   
   # Predict on validation set
@@ -1350,7 +1455,9 @@ for (i in 1:k) {
   
   # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
-  Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
+  df <- length(gam_model$coefficients)
+  n <- nrow(val_set)
+  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
   
   # Store results
@@ -1368,11 +1475,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                         s(pfx_SI_pct, pfx_vSI) + s(pfx_SI_pct, sp_s_SI) + 
-                         s(pfx_vSI, si_avg_spin) + s(ERA_minus, FIP_minus) + 
-                         s(WHIP_plus, BABIP_plus), 
+final_gam_model <- gam(sp_stuff ~ sp_s_SI +
+                         s(avg_release_extension, by = Throws) + Throws +
+                         s(pfx_SI_pct, by = position) + position +
+                         s(avg_rp_x, avg_rp_z) + s(pfx_vSI, si_avg_spin) +
+                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                         s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -1424,10 +1532,10 @@ print(predicted_stuff_plus)
 
 # Select relevant columns
 
-relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'pfx_SL_pct', 
-                   'ERA-', 'K_9+', 'WHIP+', 'BABIP+', 'FIP-', 'avg_rp_x', 
+relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SL_pct', 
+                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'sl_avg_spin', 
-                   'pfx_vSL', 'sp_s_SL', 'RAR')
+                   'pfx_vSL', 'sp_s_SL', 'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -1446,7 +1554,6 @@ names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
 
 
 
-
 # Handling missing values using catboost 
 
 
@@ -1459,9 +1566,24 @@ test_data <- filtered_data[-train_index, ]
 
 
 # Convert to catboost pool
+  # with extra categorical levels
 
-train_pool <- catboost.load_pool(data = train_data[ , -which(names(train_data) == 'sp_stuff')], label = train_data$sp_stuff)
-test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == 'sp_stuff')], label = test_data$sp_stuff)
+train_pool <- train_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+
+test_pool <- test_data |> 
+  mutate(
+    Throws = as.factor(Throws),
+    position = as.factor(position)
+  ) |> 
+  select(-Season, -PlayerName) |> 
+  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
+
 
 
 
@@ -1469,7 +1591,7 @@ test_pool <- catboost.load_pool(data = test_data[ , -which(names(test_data) == '
 
 catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
                         iterations = 1000, depth = 6, learning_rate = .1, 
-                        nan_mode = 'Min')
+                        random_seed = 42)
 catboost_model <- catboost.train(train_pool, params = catboost_params)
 
 
@@ -1506,7 +1628,10 @@ for (col in colnames(train_data_filled)) {
 
 
 # Combine filled training and test data
+
 data_filled <- rbind(train_data_filled, test_data_filled)
+data_filled$Throws <- as.factor(data_filled$Throws)
+data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
@@ -1530,11 +1655,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                     s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                     s(pfx_SL_pct, pfx_vSL) + s(pfx_SL_pct, sp_s_SL) + 
-                     s(pfx_vSL, sl_avg_spin) + s(ERA_minus, FIP_minus) + 
-                     s(WHIP_plus, BABIP_plus), 
+  gam_model <- gam(sp_stuff ~ sp_s_SL +
+                     s(avg_release_extension, by = Throws) + Throws +
+                     s(pfx_SL_pct, by = position) + position +
+                     s(avg_rp_x, avg_rp_z) + s(pfx_vSL, sl_avg_spin) +
+                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                     s(K_9_plus, RAR),
                    data = train_set)
   
   # Predict on validation set
@@ -1542,7 +1668,9 @@ for (i in 1:k) {
   
   # Tentatively calculate metrics
   R2 <- cor(val_preds, val_set$sp_stuff)^2
-  Adjusted_R2 <- 1 - ((1 - R2) * (nrow(val_set) - 1) / (nrow(val_set) - length(gam_model$coefficients) - 1))
+  df <- length(gam_model$coefficients)
+  n <- nrow(val_set)
+  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
   Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
   
   # Store results
@@ -1560,11 +1688,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(K_9_plus) + s(RAR) + 
-                         s(avg_release_extension) + s(avg_rp_x, avg_rp_z) + 
-                         s(pfx_SL_pct, pfx_vSL) + s(pfx_SL_pct, sp_s_SL) + 
-                         s(pfx_vSL, sl_avg_spin) + s(ERA_minus, FIP_minus) + 
-                         s(WHIP_plus, BABIP_plus), 
+final_gam_model <- gam(sp_stuff ~ sp_s_SL +
+                         s(avg_release_extension, by = Throws) + Throws +
+                         s(pfx_SL_pct, by = position) + position +
+                         s(avg_rp_x, avg_rp_z) + s(pfx_vSL, sl_avg_spin) +
+                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
+                         s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -1594,7 +1723,6 @@ predict_sp_stuff <- function(player_name, new_data) {
   predict(final_gam_model, newdata = new_data_filled[new_data_filled$PlayerName == player_name, ])
   
 }
-
 
 # Example Use
 
