@@ -593,15 +593,19 @@ for (i in 1:k) {
                      s(K_9_plus, RAR),
                    data = train_set)
   
+  
+  
+  # Get model summary
+  gam_summary <- summary(gam_model)
+  
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Tentatively calculate metrics
-  R2 <- cor(val_preds, val_set$sp_stuff)^2
-  df <- length(gam_model$coefficients)
-  n <- nrow(val_set)
-  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
-  Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
+  # Extract metrics
+  R2 <- gam_summary$r.sq
+  Adjusted_R2 <- gam_summary$adj.r.sq
+  Deviance_Explained <- gam_summary$dev.expl
+  
   
   # Store results
   cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
@@ -807,15 +811,17 @@ for (i in 1:k) {
                      s(K_9_plus, RAR),
                    data = train_set)
   
+  # Get model summary
+  gam_summary <- summary(gam_model)
+  
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Tentatively calculate metrics
-  R2 <- cor(val_preds, val_set$sp_stuff)^2
-  df <- length(gam_model$coefficients)
-  n <- nrow(val_set)
-  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
-  Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
+  # Extract metrics
+  R2 <- gam_summary$r.sq
+  Adjusted_R2 <- gam_summary$adj.r.sq
+  Deviance_Explained <- gam_summary$dev.expl
+  
   
   # Store results
   cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
@@ -1022,15 +1028,17 @@ for (i in 1:k) {
                      s(K_9_plus, RAR),
                    data = train_set)
   
+  # Get model summary
+  gam_summary <- summary(gam_model)
+  
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Tentatively calculate metrics
-  R2 <- cor(val_preds, val_set$sp_stuff)^2
-  df <- length(gam_model$coefficients)
-  n <- nrow(val_set)
-  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
-  Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
+  # Extract metrics
+  R2 <- gam_summary$r.sq
+  Adjusted_R2 <- gam_summary$adj.r.sq
+  Deviance_Explained <- gam_summary$dev.expl
+  
   
   # Store results
   cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
@@ -1237,15 +1245,17 @@ for (i in 1:k) {
                      s(K_9_plus, RAR),
                    data = train_set)
   
+  # Get model summary
+  gam_summary <- summary(gam_model)
+  
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Tentatively calculate metrics
-  R2 <- cor(val_preds, val_set$sp_stuff)^2
-  df <- length(gam_model$coefficients)
-  n <- nrow(val_set)
-  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
-  Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
+  # Extract metrics
+  R2 <- gam_summary$r.sq
+  Adjusted_R2 <- gam_summary$adj.r.sq
+  Deviance_Explained <- gam_summary$dev.expl
+  
   
   # Store results
   cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
@@ -1450,15 +1460,17 @@ for (i in 1:k) {
                      s(K_9_plus, RAR),
                    data = train_set)
   
+  # Get model summary
+  gam_summary <- summary(gam_model)
+  
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Tentatively calculate metrics
-  R2 <- cor(val_preds, val_set$sp_stuff)^2
-  df <- length(gam_model$coefficients)
-  n <- nrow(val_set)
-  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
-  Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
+  # Extract metrics
+  R2 <- gam_summary$r.sq
+  Adjusted_R2 <- gam_summary$adj.r.sq
+  Deviance_Explained <- gam_summary$dev.expl
+  
   
   # Store results
   cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
@@ -1655,7 +1667,7 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_S)L +
+  gam_model <- gam(sp_stuff ~ s(sp_s_SL) +
                      s(avg_release_extension, by = Throws) + Throws +
                      s(pfx_SL_pct, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_vSL, sl_avg_spin) +
@@ -1663,15 +1675,16 @@ for (i in 1:k) {
                      s(K_9_plus, RAR),
                    data = train_set)
   
+  # Get model summary
+  gam_summary <- summary(gam_model)
+  
   # Predict on validation set
   val_preds <- predict(gam_model, newdata = val_set)
   
-  # Tentatively calculate metrics
-  R2 <- cor(val_preds, val_set$sp_stuff)^2
-  df <- length(gam_model$coefficients)
-  n <- nrow(val_set)
-  Adjusted_R2 <- 1 - ((1 - R2) * (n - 1) / (n - df - 1))
-  Deviance_Explained <- 1 - sum((val_set$sp_stuff - val_preds)^2) / sum((val_set$sp_stuff - mean(val_set$sp_stuff))^2)
+  # Extract metrics
+  R2 <- gam_summary$r.sq
+  Adjusted_R2 <- gam_summary$adj.r.sq
+  Deviance_Explained <- gam_summary$dev.expl
   
   # Store results
   cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
