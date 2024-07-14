@@ -1712,6 +1712,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
                        data = data_filled)
 
 
+
 summary(final_gam_model)
 
 
