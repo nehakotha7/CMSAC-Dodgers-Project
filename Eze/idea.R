@@ -598,7 +598,8 @@ for (i in 1:k) {
                    + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_CH_pct, pfx_vCH, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
-                     s(pfx_vCH, ch_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                     s(ERA_minus, FIP_minus) +
                      s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
@@ -635,7 +636,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
                        + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_CH_pct, pfx_vCH, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
-                         s(pfx_vCH, ch_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                         s(ERA_minus, FIP_minus) +
                          s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
@@ -814,7 +816,8 @@ for (i in 1:k) {
                    + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_CU_pct, pfx_vCU, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
-                     s(pfx_vCU, cu_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(pfx_vCU, cu_avg_spin, by = Throws) + 
+                     s(ERA_minus, FIP_minus) +
                      s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
@@ -849,7 +852,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
                        + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_CU_pct, pfx_vCU, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
-                         s(pfx_vCU, cu_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(pfx_vCU, cu_avg_spin, by = Throws) + 
+                         s(ERA_minus, FIP_minus) +
                          s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
@@ -1028,7 +1032,8 @@ for (i in 1:k) {
                      s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_FC_pct, pfx_vFC, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
-                     s(pfx_vFC, fc_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(pfx_vFC, fc_avg_spin, by = Throws) + 
+                     s(ERA_minus, FIP_minus) +
                      s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
@@ -1061,7 +1066,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
                        + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_FC_pct, pfx_vFC, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
-                         s(pfx_vFC, fc_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(pfx_vFC, fc_avg_spin, by = Throws) + 
+                         s(ERA_minus, FIP_minus) +
                          s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
@@ -1241,7 +1247,8 @@ for (i in 1:k) {
                    + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_FA_pct, pfx_vFA, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
-                     s(pfx_vFA, ff_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(pfx_vFA, ff_avg_spin, by = Throws) + 
+                     s(ERA_minus, FIP_minus) +
                      s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
@@ -1274,7 +1281,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
                        + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_FA_pct, pfx_vFA, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
-                         s(pfx_vFA, ff_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(pfx_vFA, ff_avg_spin, by = Throws) + 
+                         s(ERA_minus, FIP_minus) +
                          s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
@@ -1452,7 +1460,8 @@ for (i in 1:k) {
                    + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_SI_pct, pfx_vSI, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
-                     s(pfx_vSI, si_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(pfx_vSI, si_avg_spin, by = Throws) + 
+                     s(ERA_minus, FIP_minus) +
                      s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
@@ -1485,7 +1494,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
                        + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_SI_pct, pfx_vSI, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
-                         s(pfx_vSI, si_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(pfx_vSI, si_avg_spin, by = Throws) + 
+                         s(ERA_minus, FIP_minus) +
                          s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
@@ -1662,7 +1672,8 @@ for (i in 1:k) {
                    + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_SL_pct, pfx_vSL, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
-                     s(pfx_vSL, sl_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(pfx_vSL, sl_avg_spin. by = Throws) + 
+                     s(ERA_minus, FIP_minus) +
                      s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
@@ -1695,7 +1706,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
                        + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_SL_pct, pfx_vSL, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
-                         s(pfx_vSL, sl_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(pfx_vSL, sl_avg_spin, by = Throws) + 
+                         s(ERA_minus, FIP_minus) +
                          s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
