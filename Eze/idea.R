@@ -484,7 +484,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_change == 'Yes')
+  filter(!is.na(sp_stuff))
 
 
 # Rename location columns in the filtered_data 
@@ -610,7 +610,7 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  #val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
@@ -703,7 +703,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CU_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_curve == 'Yes')
+  filter(!is.na(sp_stuff))
 
 
 # Rename location columns in the filtered_data 
@@ -828,7 +828,7 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  # val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
@@ -921,7 +921,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FC_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_cutter == 'Yes')
+  filter(!is.na(sp_stuff))
 
 
 # Rename location columns in the filtered_data 
@@ -1043,7 +1043,7 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  #val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
@@ -1136,7 +1136,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FA_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_fastball == 'Yes')
+  filter(!is.na(sp_stuff))
 
 
 # Rename location columns in the filtered_data 
@@ -1259,7 +1259,7 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  #val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
@@ -1350,7 +1350,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SI_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_sinker == 'Yes')
+  filter(!is.na(sp_stuff))
 
 
 # Rename location columns in the filtered_data 
@@ -1473,7 +1473,7 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  #val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
@@ -1564,7 +1564,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SL_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_slider == 'Yes')
+  filter(!is.na(sp_stuff))
 
 
 # Rename location columns in the filtered_data 
@@ -1686,7 +1686,7 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  #val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
