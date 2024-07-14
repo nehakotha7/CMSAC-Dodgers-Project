@@ -498,7 +498,9 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 # Handling missing values using mice 
 
 
-mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+mice_data <- filtered_data |> 
+  select(-PlayerName) |> 
+  mice(method = 'rf', m = 10, maxit = 100)
 
 data_filled <- complete(mice_data)
 
@@ -658,7 +660,9 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 # Handling missing values using mice 
 
 
-mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+mice_data <- filtered_data |> 
+  select(-PlayerName) |> 
+  mice(method = 'rf', m = 10, maxit = 100)
 
 data_filled <- complete(mice_data)
 
@@ -815,7 +819,9 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 # Handling missing values using mice 
 
 
-mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+mice_data <- filtered_data |> 
+  select(-PlayerName) |> 
+  mice(method = 'rf', m = 10, maxit = 100)
 
 data_filled <- complete(mice_data)
 
@@ -971,7 +977,9 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 # Handling missing values using mice 
 
 
-mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+mice_data <- filtered_data |> 
+  select(-PlayerName) |> 
+  mice(method = 'rf', m = 10, maxit = 100)
 
 data_filled <- complete(mice_data)
 
@@ -1127,7 +1135,9 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 # Handling missing values using mice 
 
 
-mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+mice_data <- filtered_data |> 
+  select(-PlayerName) |> 
+  mice(method = 'rf', m = 10, maxit = 100)
 
 data_filled <- complete(mice_data)
 
@@ -1283,7 +1293,9 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 # Handling missing values using mice 
 
 
-mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+mice_data <- filtered_data |> 
+  select(-PlayerName) |> 
+  mice(method = 'rf', m = 10, maxit = 100)
 
 data_filled <- complete(mice_data)
 
