@@ -476,7 +476,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_CH-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_CH-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'ch_avg_spin', 'WPA',
-                   'REW', 'pfx_vCH', 'sp_s_CH', 'xFIP_minus',
+                   'REW', 'pfx_vCH', 'sp_s_CH', 'xFIP_minus', "ind_change",
                    'Throws', 'position', 'Addition_CH', 'Deletion_CH')
 
 
@@ -484,7 +484,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff))
+  filter(!is.na(sp_stuff), ind_change == 'Yes')
 
 
 # Rename location columns in the filtered_data 
@@ -640,14 +640,14 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CU_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_CU-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_CU-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'cu_avg_spin', 'WPA',
-                   'REW', 'pfx_vCU', 'sp_s_CU', 'xFIP_minus',
+                   'REW', 'pfx_vCU', 'sp_s_CU', 'xFIP_minus', 'ind_curve',
                    'Throws', 'position', 'Addition_CU', 'Deletion_CU')
 
 # Ensure target and primary predictor are not missing
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff))
+  filter(!is.na(sp_stuff), ind_curve == 'Yes')
 
 
 # Rename location columns in the filtered_data 
@@ -798,7 +798,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FC_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_FC-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_FC-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'fc_avg_spin', 'WPA',
-                   'REW', 'pfx_vFC', 'sp_s_FC', 'xFIP_minus',
+                   'REW', 'pfx_vFC', 'sp_s_FC', 'xFIP_minus', 'ind_cutter',
                    'Throws', 'position', 'Addition_FC', 'Deletion_FC')
 
 
@@ -806,7 +806,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FC_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff))
+  filter(!is.na(sp_stuff), ind_cutter == 'Yes')
 
 
 # Rename location columns in the filtered_data 
@@ -956,7 +956,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FA_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_FA-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_FA-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'ff_avg_spin', 'WPA',
-                   'REW', 'pfx_vFA', 'sp_s_FF', 'xFIP_minus',
+                   'REW', 'pfx_vFA', 'sp_s_FF', 'xFIP_minus', 'ind_fastball',
                    'Throws', 'position', 'Addition_FA', 'Deletion_FA')
 
 
@@ -964,7 +964,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FA_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff))
+  filter(!is.na(sp_stuff), ind_fastball == 'Yes')
 
 
 # Rename location columns in the filtered_data 
@@ -1114,7 +1114,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SI_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_SI-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_SI-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'si_avg_spin', 'WPA',
-                   'REW', 'pfx_vSI', 'sp_s_SI', 'xFIP_minus',
+                   'REW', 'pfx_vSI', 'sp_s_SI', 'xFIP_minus', 'ind_sinker',
                    'Throws', 'position', 'Addition_SI', 'Deletion_SI')
 
 
@@ -1122,7 +1122,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SI_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff))
+  filter(!is.na(sp_stuff), ind_sinker == 'Yes')
 
 
 # Rename location columns in the filtered_data 
@@ -1272,7 +1272,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SL_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_SL-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_SL-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'sl_avg_spin', 'WPA',
-                   'REW', 'pfx_vSL', 'sp_s_SL', 'xFIP_minus',
+                   'REW', 'pfx_vSL', 'sp_s_SL', 'xFIP_minus', 'ind_slider',
                    'Throws', 'position', 'Addition_SL', 'Deletion_SL')
 
 
@@ -1280,7 +1280,7 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SL_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff))
+  filter(!is.na(sp_stuff), ind_slider == 'Yes')
 
 
 # Rename location columns in the filtered_data 
