@@ -603,7 +603,7 @@ predict_sp_stuff <- function(player_name, new_data) {
   # Handling missing values using mice 
 
   if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
     new_data_filled <- complete(mice_new_data)
   }
   
@@ -758,7 +758,7 @@ predict_sp_stuff <- function(player_name, new_data) {
   # Handling missing values using mice 
   
   if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
     new_data_filled <- complete(mice_new_data)
   }
   
@@ -914,7 +914,7 @@ predict_sp_stuff <- function(player_name, new_data) {
   # Handling missing values using mice 
   
   if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
     new_data_filled <- complete(mice_new_data)
   }
   
@@ -1072,7 +1072,7 @@ predict_sp_stuff <- function(player_name, new_data) {
   # Handling missing values using mice 
   
   if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
     new_data_filled <- complete(mice_new_data)
   }
   
@@ -1228,7 +1228,7 @@ predict_sp_stuff <- function(player_name, new_data) {
   # Handling missing values using mice 
   
   if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
     new_data_filled <- complete(mice_new_data)
   }
   
@@ -1385,7 +1385,7 @@ predict_sp_stuff <- function(player_name, new_data) {
   # Handling missing values using mice 
   
   if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
     new_data_filled <- complete(mice_new_data)
   }
   
