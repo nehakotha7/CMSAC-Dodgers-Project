@@ -459,7 +459,7 @@ names(pitch_arsenal)[names(pitch_arsenal) == 'ERA-'] <- 'ERA_minus'
 names(pitch_arsenal)[names(pitch_arsenal) == 'WHIP+'] <- 'WHIP_plus'
 names(pitch_arsenal)[names(pitch_arsenal) == 'BABIP+'] <- 'BABIP_plus'
 names(pitch_arsenal)[names(pitch_arsenal) == 'FIP-'] <- 'FIP_minus'
-
+names(pitch_arsenal)[names(pitch_arsenal) == 'xFIP-'] <- 'xFIP_minus'
 
 
 
@@ -474,9 +474,10 @@ names(pitch_arsenal)[names(pitch_arsenal) == 'FIP-'] <- 'FIP_minus'
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct', 
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_CH-X',
-                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_CH-Z',
-                   'avg_rp_z', 'avg_release_extension', 'ch_avg_spin', 
-                   'pfx_vCH', 'ind_change', 'sp_s_CH', 'Throws', 'position')
+                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_CH-Z', 'WAR', 'WPA'
+                   ,'avg_rp_z', 'avg_release_extension', 'ch_avg_spin', 'WPA',
+                   'REW', 'pfx_vCH', 'ind_change', 'sp_s_CH', 'xFIP_minus',
+                   'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -599,8 +600,8 @@ for (i in 1:k) {
                      s(pfx_CH_pct, pfx_vCH, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
                      s(pfx_vCH, ch_avg_spin, by = Throws) + 
-                     s(ERA_minus, FIP_minus) +
-                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                     s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                     s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                    data = train_set)
   
   
@@ -637,8 +638,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
                          s(pfx_CH_pct, pfx_vCH, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
                          s(pfx_vCH, ch_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +
-                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                         s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                         s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                        data = data_filled)
 
 
@@ -692,11 +693,11 @@ print(predicted_stuff_plus)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CU_pct', 
-                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'FIP_minus', 
-                   'K_9_plus', 'avg_rp_x', 'pfx_CU-X', 'pfx_CU-Z',
-                   'avg_rp_z', 'avg_release_extension', 'cu_avg_spin', 
-                   'pfx_vCU', 'ind_curve', 'sp_s_CU', 'Throws', 'position')
-
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_CU-X',
+                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_CU-Z', 'WAR', 'WPA'
+                   ,'avg_rp_z', 'avg_release_extension', 'cu_avg_spin', 'WPA',
+                   'REW', 'pfx_vCU', 'ind_curve', 'sp_s_CU', 'xFIP_minus',
+                   'Throws', 'position')
 
 # Ensure target and primary predictor are not missing
 
@@ -817,8 +818,8 @@ for (i in 1:k) {
                      s(pfx_CU_pct, pfx_vCU, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
                      s(pfx_vCU, cu_avg_spin, by = Throws) + 
-                     s(ERA_minus, FIP_minus) +
-                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                     s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                     s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                    data = train_set)
   
   
@@ -853,8 +854,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
                          s(pfx_CU_pct, pfx_vCU, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
                          s(pfx_vCU, cu_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +
-                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                         s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                         s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                        data = data_filled)
 
 
@@ -909,10 +910,11 @@ print(predicted_stuff_plus)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FC_pct', 
-                   'ERA_minus', 'WHIP_plus', 'pfx_FC-X', 'pfx_FC-Z',
-                   'BABIP_plus', 'FIP_minus', 'K_9_plus', 'avg_rp_x', 
-                   'avg_rp_z', 'avg_release_extension', 'fc_avg_spin', 
-                   'pfx_vFC', 'ind_cutter', 'sp_s_FC', 'Throws', 'position')
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_FC-X',
+                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_FC-Z', 'WAR', 'WPA'
+                   ,'avg_rp_z', 'avg_release_extension', 'fc_avg_spin', 'WPA',
+                   'REW', 'pfx_vFC', 'ind_cutter', 'sp_s_FC', 'xFIP_minus',
+                   'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -1028,13 +1030,13 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position)) + 
-                     s(avg_release_extension, by = Throws) + Throws + 
+  gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
+                   + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_FC_pct, pfx_vFC, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
                      s(pfx_vFC, fc_avg_spin, by = Throws) + 
-                     s(ERA_minus, FIP_minus) +
-                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                     s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                     s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                    data = train_set)
   
   # Get model summary
@@ -1067,8 +1069,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
                          s(pfx_FC_pct, pfx_vFC, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
                          s(pfx_vFC, fc_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +
-                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                         s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                         s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                        data = data_filled)
 
 
@@ -1123,10 +1125,11 @@ print(predicted_stuff_plus)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FA_pct', 
-                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'FIP_minus', 
-                   'K_9_plus', 'avg_rp_x', 'pfx_FA-X', 'pfx_FA-Z',
-                   'avg_rp_z', 'avg_release_extension', 'ff_avg_spin', 
-                   'pfx_vFA', 'ind_fastball', 'sp_s_FF', 'Throws', 'position')
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_FA-X',
+                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_FA-Z', 'WAR', 'WPA'
+                   ,'avg_rp_z', 'avg_release_extension', 'ff_avg_spin', 'WPA',
+                   'REW', 'pfx_vFA', 'ind_fastball', 'sp_s_FF', 'xFIP_minus',
+                   'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -1248,8 +1251,8 @@ for (i in 1:k) {
                      s(pfx_FA_pct, pfx_vFA, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
                      s(pfx_vFA, ff_avg_spin, by = Throws) + 
-                     s(ERA_minus, FIP_minus) +
-                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                     s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                     s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                    data = train_set)
   
   # Get model summary
@@ -1282,8 +1285,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
                          s(pfx_FA_pct, pfx_vFA, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
                          s(pfx_vFA, ff_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +
-                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                         s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                         s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                        data = data_filled)
 
 
@@ -1337,9 +1340,10 @@ print(predicted_stuff_plus)
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SI_pct', 
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_SI-X',
-                   'pfx_SI-Z', 'FIP_minus', 'K_9_plus', 'avg_rp_x', 
-                   'avg_rp_z', 'avg_release_extension', 'si_avg_spin', 
-                   'pfx_vSI', 'ind_sinker', 'sp_s_SI', 'Throws', 'position')
+                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_SI-Z', 'WAR', 'WPA'
+                   ,'avg_rp_z', 'avg_release_extension', 'si_avg_spin', 'WPA',
+                   'REW', 'pfx_vSI', 'ind_sinker', 'sp_s_SI', 'xFIP_minus',
+                   'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -1461,8 +1465,8 @@ for (i in 1:k) {
                      s(pfx_SI_pct, pfx_vSI, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
                      s(pfx_vSI, si_avg_spin, by = Throws) + 
-                     s(ERA_minus, FIP_minus) +
-                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                     s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                     s(REW, WAR) + s(FIP_minus, WPA) + s(RAR, xFIP_minus),
                    data = train_set)
   
   # Get model summary
@@ -1495,8 +1499,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
                          s(pfx_SI_pct, pfx_vSI, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
                          s(pfx_vSI, si_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +
-                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                         s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                         s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                        data = data_filled)
 
 
@@ -1549,10 +1553,11 @@ print(predicted_stuff_plus)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SL_pct', 
-                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'FIP_minus', 
-                   'K_9_plus', 'avg_rp_x', 'pfx_SL-X', 'pfx_SL-Z',
-                   'avg_rp_z', 'avg_release_extension', 'sl_avg_spin', 
-                   'pfx_vSL', 'ind_slider', 'sp_s_SL', 'Throws', 'position')
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_SL-X',
+                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_SL-Z', 'WAR', 'WPA'
+                   ,'avg_rp_z', 'avg_release_extension', 'sl_avg_spin', 'WPA',
+                   'REW', 'pfx_vSL', 'ind_slider', 'sp_s_SL', 'xFIP_minus',
+                   'Throws', 'position')
 
 
 # Ensure target and primary predictor are not missing
@@ -1673,8 +1678,8 @@ for (i in 1:k) {
                      s(pfx_SL_pct, pfx_vSL, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
                      s(pfx_vSL, sl_avg_spin, by = Throws) + 
-                     s(ERA_minus, FIP_minus) +
-                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                     s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                     s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                    data = train_set)
   
   # Get model summary
@@ -1707,8 +1712,8 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
                          s(pfx_SL_pct, pfx_vSL, by = position) + position +
                          s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
                          s(pfx_vSL, sl_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +
-                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
+                         s(ERA_minus, BABIP_plus) +  s(K_9_plus, WHIP_plus) + 
+                         s(REW, WAR) + s(RAR, FIP_minus) + s(WPA, xFIP_minus),
                        data = data_filled)
 
 
