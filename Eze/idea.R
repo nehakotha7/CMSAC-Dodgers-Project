@@ -444,11 +444,21 @@ pitch_arsenal <- cond_data |>
   ) |> 
   ungroup()
 
+
+
+
+# Additional adjustments
+
 # Ensure categorical variables are factors
 pitch_arsenal$Throws <- as.factor(pitch_arsenal$Throws)
 pitch_arsenal$position <- as.factor(pitch_arsenal$position)
 
-
+# Edit problematic column names
+names(pitch_arsenal)[names(pitch_arsenal) == 'K_9+'] <- 'K_9_plus'
+names(pitch_arsenal)[names(pitch_arsenal) == 'ERA-'] <- 'ERA_minus'
+names(pitch_arsenal)[names(pitch_arsenal) == 'WHIP+'] <- 'WHIP_plus'
+names(pitch_arsenal)[names(pitch_arsenal) == 'BABIP+'] <- 'BABIP_plus'
+names(pitch_arsenal)[names(pitch_arsenal) == 'FIP-'] <- 'FIP_minus'
 
 
 
@@ -463,7 +473,8 @@ pitch_arsenal$position <- as.factor(pitch_arsenal$position)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct', 
-                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_CH-X',
+                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_CH-Z',
                    'avg_rp_z', 'avg_release_extension', 'ch_avg_spin', 
                    'pfx_vCH', 'ind_change', 'sp_s_CH', 'Throws', 'position')
 
@@ -475,10 +486,9 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_change == 'Yes')
 
 
-# Rename columns in the filtered_data 
+# Rename location columns in the filtered_data 
 
-names(filtered_data) <- gsub('-', '_minus', names(filtered_data))
-names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
+names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
@@ -570,8 +580,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Adjusted_R2 = double()
-                         , Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
 
 
 # Perform k-fold cross-validation
@@ -585,12 +594,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_CH) +
-                     s(avg_release_extension, by = Throws) + Throws +
+  gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                   + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_CH_pct, by = position) + position +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_vCH, ch_avg_spin) +
-                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                     s(K_9_plus, RAR),
+                     s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                     s(pfx_vCH, ch_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
   
@@ -603,15 +612,14 @@ for (i in 1:k) {
   
   # Extract metrics
   R2 <- gam_summary$r.sq
-  Adjusted_R2 <- gam_summary$adj.r.sq
   Deviance_Explained <- gam_summary$dev.expl
   
-  
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
+  
+  
   
 }
-
 
 # Average cross-validation results
 avg_results <- colMeans(cv_results[, -1])
@@ -620,14 +628,15 @@ print(avg_results)
 
 
 
+
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_CH) +
-                         s(avg_release_extension, by = Throws) + Throws +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                       + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_CH_pct, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_vCH, ch_avg_spin) +
-                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                         s(K_9_plus, RAR),
+                         s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                         s(pfx_vCH, ch_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -661,7 +670,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 
 # Example Use
 
-new_player_data <- data_filled[data_filled$PlayerName == 'Aaron Nola', ]
+new_player_data <- filtered_data[filtered_data$PlayerName == 'Aaron Nola', ]
 predicted_stuff_plus <- predict_sp_stuff('Aaron Nola', new_player_data)
 print(predicted_stuff_plus)
 
@@ -681,7 +690,8 @@ print(predicted_stuff_plus)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CU_pct', 
-                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'FIP_minus', 
+                   'K_9_plus', 'avg_rp_x', 'pfx_CU-X', 'pfx_CU-Z',
                    'avg_rp_z', 'avg_release_extension', 'cu_avg_spin', 
                    'pfx_vCU', 'ind_curve', 'sp_s_CU', 'Throws', 'position')
 
@@ -693,10 +703,8 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_curve == 'Yes')
 
 
-# Rename columns in the filtered_data 
-
-names(filtered_data) <- gsub('-', '_minus', names(filtered_data))
-names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
+# Rename location columns in the filtered_data 
+names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
@@ -788,8 +796,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Adjusted_R2 = double()
-                         , Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
 
 
 # Perform k-fold cross-validation
@@ -803,13 +810,15 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_CU) +
-                     s(avg_release_extension, by = Throws) + Throws +
+  gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
+                   + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_CU_pct, by = position) + position +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_vCU, cu_avg_spin) +
-                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                     s(K_9_plus, RAR),
+                     s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
+                     s(pfx_vCU, cu_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
+  
+  
   
   # Get model summary
   gam_summary <- summary(gam_model)
@@ -819,12 +828,10 @@ for (i in 1:k) {
   
   # Extract metrics
   R2 <- gam_summary$r.sq
-  Adjusted_R2 <- gam_summary$adj.r.sq
   Deviance_Explained <- gam_summary$dev.expl
   
-  
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
   
 }
 
@@ -838,12 +845,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_CU) +
-                         s(avg_release_extension, by = Throws) + Throws +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
+                       + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_CU_pct, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_vCU, cu_avg_spin) +
-                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                         s(K_9_plus, RAR),
+                         s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
+                         s(pfx_vCU, cu_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -877,8 +884,8 @@ predict_sp_stuff <- function(player_name, new_data) {
 
 # Example Use
 
-new_player_data <- data_filled[data_filled$PlayerName == 'Aaron Civale', ]
-predicted_stuff_plus <- predict_sp_stuff('Aaron Nola', new_player_data)
+new_player_data <- filtered_data[filtered_data$PlayerName == 'Aaron Civale', ]
+predicted_stuff_plus <- predict_sp_stuff('Aaron Civale', new_player_data)
 print(predicted_stuff_plus)
 
 
@@ -898,7 +905,8 @@ print(predicted_stuff_plus)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FC_pct', 
-                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
+                   'ERA_minus', 'WHIP_plus', 'pfx_FC-X', 'pfx_FC-Z',
+                   'BABIP_plus', 'FIP_minus', 'K_9_plus', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'fc_avg_spin', 
                    'pfx_vFC', 'ind_cutter', 'sp_s_FC', 'Throws', 'position')
 
@@ -910,10 +918,8 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_cutter == 'Yes')
 
 
-# Rename columns in the filtered_data 
-
-names(filtered_data) <- gsub('-', '_minus', names(filtered_data))
-names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
+# Rename location columns in the filtered_data 
+names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
@@ -1005,9 +1011,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Adjusted_R2 = double()
-                         , Deviance_Explained = double())
-
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
 
 # Perform k-fold cross-validation
 for (i in 1:k) {
@@ -1020,12 +1024,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_FC) +
-                     s(avg_release_extension, by = Throws) + Throws +
+  gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position)) + 
+                     s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_FC_pct, by = position) + position +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_vFC, fc_avg_spin) +
-                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                     s(K_9_plus, RAR),
+                     s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
+                     s(pfx_vFC, fc_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
   # Get model summary
@@ -1036,12 +1040,10 @@ for (i in 1:k) {
   
   # Extract metrics
   R2 <- gam_summary$r.sq
-  Adjusted_R2 <- gam_summary$adj.r.sq
   Deviance_Explained <- gam_summary$dev.expl
   
-  
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
   
 }
 
@@ -1055,12 +1057,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_FC) +
-                         s(avg_release_extension, by = Throws) + Throws +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
+                       + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_FC_pct, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_vFC, fc_avg_spin) +
-                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                         s(K_9_plus, RAR),
+                         s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
+                         s(pfx_vFC, fc_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -1094,7 +1096,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 
 # Example Use
 
-new_player_data <- data_filled[data_filled$PlayerName == 'Brooks Raley', ]
+new_player_data <- filtered_data[filtered_data$PlayerName == 'Brooks Raley', ]
 predicted_stuff_plus <- predict_sp_stuff('Brooks Raley', new_player_data)
 print(predicted_stuff_plus)
 
@@ -1115,7 +1117,8 @@ print(predicted_stuff_plus)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FA_pct', 
-                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'FIP_minus', 
+                   'K_9_plus', 'avg_rp_x', 'pfx_FA-X', 'pfx_FA-Z',
                    'avg_rp_z', 'avg_release_extension', 'ff_avg_spin', 
                    'pfx_vFA', 'ind_fastball', 'sp_s_FF', 'Throws', 'position')
 
@@ -1127,10 +1130,8 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_fastball == 'Yes')
 
 
-# Rename columns in the filtered_data 
-
-names(filtered_data) <- gsub('-', '_minus', names(filtered_data))
-names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
+# Rename location columns in the filtered_data 
+names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
@@ -1222,8 +1223,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Adjusted_R2 = double()
-                         , Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
 
 
 # Perform k-fold cross-validation
@@ -1237,12 +1237,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_FF) +
-                     s(avg_release_extension, by = Throws) + Throws +
+  gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
+                   + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_FA_pct, by = position) + position +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_vFA, ff_avg_spin) +
-                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                     s(K_9_plus, RAR),
+                     s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
+                     s(pfx_vFA, ff_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
   # Get model summary
@@ -1253,12 +1253,10 @@ for (i in 1:k) {
   
   # Extract metrics
   R2 <- gam_summary$r.sq
-  Adjusted_R2 <- gam_summary$adj.r.sq
   Deviance_Explained <- gam_summary$dev.expl
   
-  
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
   
 }
 
@@ -1272,12 +1270,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_FF) +
-                         s(avg_release_extension, by = Throws) + Throws +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
+                       + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_FA_pct, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_vFA, ff_avg_spin) +
-                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                         s(K_9_plus, RAR),
+                         s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
+                         s(pfx_vFA, ff_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -1311,7 +1309,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 
 # Example Use
 
-new_player_data <- data_filled[data_filled$PlayerName == 'Anthony Bass', ]
+new_player_data <- filtered_data[filtered_data$PlayerName == 'Anthony Bass', ]
 predicted_stuff_plus <- predict_sp_stuff('Anthony Bass', new_player_data)
 print(predicted_stuff_plus)
 
@@ -1330,7 +1328,8 @@ print(predicted_stuff_plus)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SI_pct', 
-                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_SI-X',
+                   'pfx_SI-Z', 'FIP_minus', 'K_9_plus', 'avg_rp_x', 
                    'avg_rp_z', 'avg_release_extension', 'si_avg_spin', 
                    'pfx_vSI', 'ind_sinker', 'sp_s_SI', 'Throws', 'position')
 
@@ -1342,10 +1341,8 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_sinker == 'Yes')
 
 
-# Rename columns in the filtered_data 
-
-names(filtered_data) <- gsub('-', '_minus', names(filtered_data))
-names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
+# Rename location columns in the filtered_data 
+names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
@@ -1437,8 +1434,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Adjusted_R2 = double()
-                         , Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
 
 
 # Perform k-fold cross-validation
@@ -1452,12 +1448,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_SI) +
-                     s(avg_release_extension, by = Throws) + Throws +
+  gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
+                   + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_SI_pct, by = position) + position +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_vSI, si_avg_spin) +
-                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                     s(K_9_plus, RAR),
+                     s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
+                     s(pfx_vSI, si_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
   # Get model summary
@@ -1468,12 +1464,10 @@ for (i in 1:k) {
   
   # Extract metrics
   R2 <- gam_summary$r.sq
-  Adjusted_R2 <- gam_summary$adj.r.sq
   Deviance_Explained <- gam_summary$dev.expl
   
-  
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
   
 }
 
@@ -1487,12 +1481,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_SI) +
-                         s(avg_release_extension, by = Throws) + Throws +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
+                       + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_SI_pct, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_vSI, si_avg_spin) +
-                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                         s(K_9_plus, RAR),
+                         s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
+                         s(pfx_vSI, si_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -1526,7 +1520,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 
 # Example Use
 
-new_player_data <- data_filled[data_filled$PlayerName == 'Alek Manoah', ]
+new_player_data <- filtered_data[filtered_data$PlayerName == 'Alek Manoah', ]
 predicted_stuff_plus <- predict_sp_stuff('Alek Manoah', new_player_data)
 print(predicted_stuff_plus)
 
@@ -1545,7 +1539,8 @@ print(predicted_stuff_plus)
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SL_pct', 
-                   'ERA-', 'WHIP+', 'BABIP+', 'FIP-', 'K_9+', 'avg_rp_x', 
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'FIP_minus', 
+                   'K_9_plus', 'avg_rp_x', 'pfx_SL-X', 'pfx_SL-Z',
                    'avg_rp_z', 'avg_release_extension', 'sl_avg_spin', 
                    'pfx_vSL', 'ind_slider', 'sp_s_SL', 'Throws', 'position')
 
@@ -1557,10 +1552,8 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_slider == 'Yes')
 
 
-# Rename columns in the filtered_data 
-
-names(filtered_data) <- gsub('-', '_minus', names(filtered_data))
-names(filtered_data) <- gsub('\\+', '_plus', names(filtered_data))
+# Rename location columns in the filtered_data 
+names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
@@ -1652,9 +1645,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Adjusted_R2 = double()
-                         , Deviance_Explained = double())
-
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
 
 # Perform k-fold cross-validation
 for (i in 1:k) {
@@ -1667,12 +1658,12 @@ for (i in 1:k) {
   val_set <- data_filled[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_SL) +
-                     s(avg_release_extension, by = Throws) + Throws +
+  gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
+                   + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_SL_pct, by = position) + position +
-                     s(avg_rp_x, avg_rp_z) + s(pfx_vSL, sl_avg_spin) +
-                     s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                     s(K_9_plus, RAR),
+                     s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
+                     s(pfx_vSL, sl_avg_spin) + s(ERA_minus, FIP_minus) +
+                     s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
   
   # Get model summary
@@ -1683,11 +1674,10 @@ for (i in 1:k) {
   
   # Extract metrics
   R2 <- gam_summary$r.sq
-  Adjusted_R2 <- gam_summary$adj.r.sq
   Deviance_Explained <- gam_summary$dev.expl
   
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Adjusted_R2 = Adjusted_R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
   
 }
 
@@ -1701,12 +1691,12 @@ print(avg_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_SL) +
-                         s(avg_release_extension, by = Throws) + Throws +
+final_gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
+                       + s(avg_release_extension, by = Throws) + Throws + 
                          s(pfx_SL_pct, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_vSL, sl_avg_spin) +
-                         s(ERA_minus, FIP_minus) + s(WHIP_plus, BABIP_plus) +
-                         s(K_9_plus, RAR),
+                         s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
+                         s(pfx_vSL, sl_avg_spin) + s(ERA_minus, FIP_minus) +
+                         s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                        data = data_filled)
 
 
@@ -1739,9 +1729,13 @@ predict_sp_stuff <- function(player_name, new_data) {
 
 # Example Use
 
-new_player_data <- data_filled[data_filled$PlayerName == 'Adrian Houser', ]
+new_player_data <- filtered_data[filtered_data$PlayerName == 'Adrian Houser', ]
 predicted_stuff_plus <- predict_sp_stuff('Adrian Houser', new_player_data)
 print(predicted_stuff_plus)
+
+
+
+
 
 
 # note to self ------------------------------------------------------------
