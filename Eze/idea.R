@@ -4,9 +4,9 @@ library(ggridges)
 library(patchwork)
 library(tidyr)
 library(tidyverse)
-library(catboost)
 library(mgcv)
 library(caret)
+library(mice)
 set.seed(123)
 theme_set(theme_light())
 
@@ -476,8 +476,8 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_CH-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_CH-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'ch_avg_spin', 'WPA',
-                   'REW', 'pfx_vCH', 'ind_change', 'sp_s_CH', 'xFIP_minus',
-                   'Throws', 'position')
+                   'REW', 'pfx_vCH', 'sp_s_CH', 'xFIP_minus',
+                   'Throws', 'position', 'Addition_CH', 'Deletion_CH')
 
 
 # Ensure target and primary predictor are not missing
@@ -495,71 +495,16 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
-# Handling missing values using catboost 
+# Handling missing values using mice 
 
 
-# Split data into training and testing sets
+mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
 
-train_index <- createDataPartition(filtered_data$sp_stuff, p = .8, list = F)
-
-train_data <- filtered_data[train_index, ]
-test_data <- filtered_data[-train_index, ]
+data_filled <- complete(mice_data)
 
 
-# Convert to catboost pool
-  # with extra categorical levels
-
-train_pool <- train_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_change) |> 
-  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
-
-test_pool <- test_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_change) |> 
-  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
-
-
-
-
-# Train CatBoost model to handle missing values
-
-catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
-                        iterations = 1000, depth = 6, learning_rate = .1, 
-                        random_seed = 42)
-catboost_model <- catboost.train(train_pool, params = catboost_params)
-
-
-# Predict on training and test sets
-
-train_preds <- catboost.predict(catboost_model, train_pool)
-test_preds <- catboost.predict(catboost_model, test_pool)
-
-
-
-# Replace missing values with predicted values
-
-train_data_filled <- train_data
-test_data_filled <- test_data
-
-for (col in colnames(train_data_filled)) {
-  
-  if (any(is.na(train_data_filled[[col]]))) {
-    train_data_filled[[col]][is.na(train_data_filled[[col]])] <- 
-      train_preds[is.na(train_data_filled[[col]])]
-  }
-  
-  if (any(is.na(test_data_filled[[col]]))) {
-    test_data_filled[[col]][is.na(test_data_filled[[col]])] <- 
-      test_preds[is.na(test_data_filled[[col]])]
-  }
-}
+# # Split data into training and testing sets
+# 
 
 
 
@@ -568,15 +513,15 @@ for (col in colnames(train_data_filled)) {
 # K-Fold Cross-Validation
 
 
-# Combine filled training and test data
 
-data_filled <- rbind(train_data_filled, test_data_filled)
+#data_filled <- rbind(train_data_filled, test_data_filled)
+
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 3
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -652,21 +597,18 @@ summary(final_gam_model)
 # Function to predict sp_stuff for a given player
 
 predict_sp_stuff <- function(player_name, new_data) {
+  
   new_data_filled <- new_data
   
-  # Replace missing values in new data using catboost model
-  new_data_pool <- catboost.load_pool(data = new_data_filled)
-  new_data_preds <- catboost.predict(catboost_model, new_data_pool)
-  
-  for (col in colnames(new_data_filled)) {
-    if (any(is.na(new_data_filled[[col]]))) {
-      new_data_filled[[col]][is.na(new_data_filled[[col]])] <- 
-        new_data_preds[is.na(new_data_filled[[col]])]
-    }
+  # Handling missing values using mice 
+
+  if (sum(is.na(new_data)) != 0) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    new_data_filled <- complete(mice_new_data)
   }
   
   # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled[new_data_filled$PlayerName == player_name, ])
+  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
@@ -696,8 +638,8 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CU_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_CU-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_CU-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'cu_avg_spin', 'WPA',
-                   'REW', 'pfx_vCU', 'ind_curve', 'sp_s_CU', 'xFIP_minus',
-                   'Throws', 'position')
+                   'REW', 'pfx_vCU', 'sp_s_CU', 'xFIP_minus',
+                   'Throws', 'position', 'Addition_CU', 'Deletion_CU')
 
 # Ensure target and primary predictor are not missing
 
@@ -713,88 +655,30 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
-# Handling missing values using catboost 
+# Handling missing values using mice 
+
+
+mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+
+data_filled <- complete(mice_data)
 
 
 # Split data into training and testing sets
-
-train_index <- createDataPartition(filtered_data$sp_stuff, p = .8, list = F)
-
-train_data <- filtered_data[train_index, ]
-test_data <- filtered_data[-train_index, ]
-
-
-# Convert to catboost pool
-  # with extra categorical levels
-
-train_pool <- train_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_curve) |> 
-  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
-
-test_pool <- test_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_curve) |> 
-  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
-
-
-
-
-# Train CatBoost model to handle missing values
-
-catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
-                        iterations = 1000, depth = 6, learning_rate = .1, 
-                        random_seed = 42)
-catboost_model <- catboost.train(train_pool, params = catboost_params)
-
-
-# Predict on training and test sets
-
-train_preds <- catboost.predict(catboost_model, train_pool)
-test_preds <- catboost.predict(catboost_model, test_pool)
-
-
-
-# Replace missing values with predicted values
-
-train_data_filled <- train_data
-test_data_filled <- test_data
-
-for (col in colnames(train_data_filled)) {
-  
-  if (any(is.na(train_data_filled[[col]]))) {
-    train_data_filled[[col]][is.na(train_data_filled[[col]])] <- 
-      train_preds[is.na(train_data_filled[[col]])]
-  }
-  
-  if (any(is.na(test_data_filled[[col]]))) {
-    test_data_filled[[col]][is.na(test_data_filled[[col]])] <- 
-      test_preds[is.na(test_data_filled[[col]])]
-  }
-}
-
-
 
 
 
 # K-Fold Cross-Validation
 
 
-# Combine filled training and test data
 
-data_filled <- rbind(train_data_filled, test_data_filled)
+#data_filled <- rbind(train_data_filled, test_data_filled)
+
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 3
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -868,21 +752,18 @@ summary(final_gam_model)
 # Function to predict sp_stuff for a given player
 
 predict_sp_stuff <- function(player_name, new_data) {
+  
   new_data_filled <- new_data
   
-  # Replace missing values in new data using catboost model
-  new_data_pool <- catboost.load_pool(data = new_data_filled)
-  new_data_preds <- catboost.predict(catboost_model, new_data_pool)
+  # Handling missing values using mice 
   
-  for (col in colnames(new_data_filled)) {
-    if (any(is.na(new_data_filled[[col]]))) {
-      new_data_filled[[col]][is.na(new_data_filled[[col]])] <- 
-        new_data_preds[is.na(new_data_filled[[col]])]
-    }
+  if (sum(is.na(new_data)) != 0) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    new_data_filled <- complete(mice_new_data)
   }
   
   # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled[new_data_filled$PlayerName == player_name, ])
+  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
@@ -913,8 +794,8 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FC_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_FC-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_FC-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'fc_avg_spin', 'WPA',
-                   'REW', 'pfx_vFC', 'ind_cutter', 'sp_s_FC', 'xFIP_minus',
-                   'Throws', 'position')
+                   'REW', 'pfx_vFC', 'sp_s_FC', 'xFIP_minus',
+                   'Throws', 'position', 'Addition_FC', 'Deletion_FC')
 
 
 # Ensure target and primary predictor are not missing
@@ -931,71 +812,15 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
-# Handling missing values using catboost 
+# Handling missing values using mice 
+
+
+mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+
+data_filled <- complete(mice_data)
 
 
 # Split data into training and testing sets
-
-train_index <- createDataPartition(filtered_data$sp_stuff, p = .8, list = F)
-
-train_data <- filtered_data[train_index, ]
-test_data <- filtered_data[-train_index, ]
-
-
-# Convert to catboost pool
-  # with extra categorical levels
-
-train_pool <- train_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_cutter) |> 
-  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
-
-test_pool <- test_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_cutter) |> 
-  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
-
-
-
-
-# Train CatBoost model to handle missing values
-
-catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
-                        iterations = 1000, depth = 6, learning_rate = .1, 
-                        random_seed = 42)
-catboost_model <- catboost.train(train_pool, params = catboost_params)
-
-
-# Predict on training and test sets
-
-train_preds <- catboost.predict(catboost_model, train_pool)
-test_preds <- catboost.predict(catboost_model, test_pool)
-
-
-
-# Replace missing values with predicted values
-
-train_data_filled <- train_data
-test_data_filled <- test_data
-
-for (col in colnames(train_data_filled)) {
-  
-  if (any(is.na(train_data_filled[[col]]))) {
-    train_data_filled[[col]][is.na(train_data_filled[[col]])] <- 
-      train_preds[is.na(train_data_filled[[col]])]
-  }
-  
-  if (any(is.na(test_data_filled[[col]]))) {
-    test_data_filled[[col]][is.na(test_data_filled[[col]])] <- 
-      test_preds[is.na(test_data_filled[[col]])]
-  }
-}
 
 
 
@@ -1004,15 +829,15 @@ for (col in colnames(train_data_filled)) {
 # K-Fold Cross-Validation
 
 
-# Combine filled training and test data
 
-data_filled <- rbind(train_data_filled, test_data_filled)
+#data_filled <- rbind(train_data_filled, test_data_filled)
+
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 3
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1083,21 +908,18 @@ summary(final_gam_model)
 # Function to predict sp_stuff for a given player
 
 predict_sp_stuff <- function(player_name, new_data) {
+  
   new_data_filled <- new_data
   
-  # Replace missing values in new data using catboost model
-  new_data_pool <- catboost.load_pool(data = new_data_filled)
-  new_data_preds <- catboost.predict(catboost_model, new_data_pool)
+  # Handling missing values using mice 
   
-  for (col in colnames(new_data_filled)) {
-    if (any(is.na(new_data_filled[[col]]))) {
-      new_data_filled[[col]][is.na(new_data_filled[[col]])] <- 
-        new_data_preds[is.na(new_data_filled[[col]])]
-    }
+  if (sum(is.na(new_data)) != 0) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    new_data_filled <- complete(mice_new_data)
   }
   
   # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled[new_data_filled$PlayerName == player_name, ])
+  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
@@ -1128,8 +950,8 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FA_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_FA-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_FA-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'ff_avg_spin', 'WPA',
-                   'REW', 'pfx_vFA', 'ind_fastball', 'sp_s_FF', 'xFIP_minus',
-                   'Throws', 'position')
+                   'REW', 'pfx_vFA', 'sp_s_FF', 'xFIP_minus',
+                   'Throws', 'position', 'Addition_FA', 'Deletion_FA')
 
 
 # Ensure target and primary predictor are not missing
@@ -1146,71 +968,16 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
-# Handling missing values using catboost 
+# Handling missing values using mice 
 
+
+mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+
+data_filled <- complete(mice_data)
 
 # Split data into training and testing sets
 
-train_index <- createDataPartition(filtered_data$sp_stuff, p = .8, list = F)
 
-train_data <- filtered_data[train_index, ]
-test_data <- filtered_data[-train_index, ]
-
-
-# Convert to catboost pool
-  # with extra categorical levels
-
-train_pool <- train_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_fastball) |> 
-  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
-
-test_pool <- test_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_fastball) |> 
-  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
-
-
-
-
-# Train CatBoost model to handle missing values
-
-catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
-                        iterations = 1000, depth = 6, learning_rate = .1, 
-                        random_seed = 42)
-catboost_model <- catboost.train(train_pool, params = catboost_params)
-
-
-# Predict on training and test sets
-
-train_preds <- catboost.predict(catboost_model, train_pool)
-test_preds <- catboost.predict(catboost_model, test_pool)
-
-
-
-# Replace missing values with predicted values
-
-train_data_filled <- train_data
-test_data_filled <- test_data
-
-for (col in colnames(train_data_filled)) {
-  
-  if (any(is.na(train_data_filled[[col]]))) {
-    train_data_filled[[col]][is.na(train_data_filled[[col]])] <- 
-      train_preds[is.na(train_data_filled[[col]])]
-  }
-  
-  if (any(is.na(test_data_filled[[col]]))) {
-    test_data_filled[[col]][is.na(test_data_filled[[col]])] <- 
-      test_preds[is.na(test_data_filled[[col]])]
-  }
-}
 
 
 
@@ -1219,15 +986,15 @@ for (col in colnames(train_data_filled)) {
 # K-Fold Cross-Validation
 
 
-# Combine filled training and test data
 
-data_filled <- rbind(train_data_filled, test_data_filled)
+#data_filled <- rbind(train_data_filled, test_data_filled)
+
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 3
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1299,21 +1066,18 @@ summary(final_gam_model)
 # Function to predict sp_stuff for a given player
 
 predict_sp_stuff <- function(player_name, new_data) {
+  
   new_data_filled <- new_data
   
-  # Replace missing values in new data using catboost model
-  new_data_pool <- catboost.load_pool(data = new_data_filled)
-  new_data_preds <- catboost.predict(catboost_model, new_data_pool)
+  # Handling missing values using mice 
   
-  for (col in colnames(new_data_filled)) {
-    if (any(is.na(new_data_filled[[col]]))) {
-      new_data_filled[[col]][is.na(new_data_filled[[col]])] <- 
-        new_data_preds[is.na(new_data_filled[[col]])]
-    }
+  if (sum(is.na(new_data)) != 0) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    new_data_filled <- complete(mice_new_data)
   }
   
   # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled[new_data_filled$PlayerName == player_name, ])
+  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
@@ -1342,8 +1106,8 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SI_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_SI-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_SI-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'si_avg_spin', 'WPA',
-                   'REW', 'pfx_vSI', 'ind_sinker', 'sp_s_SI', 'xFIP_minus',
-                   'Throws', 'position')
+                   'REW', 'pfx_vSI', 'sp_s_SI', 'xFIP_minus',
+                   'Throws', 'position', 'Addition_SI', 'Deletion_SI')
 
 
 # Ensure target and primary predictor are not missing
@@ -1360,71 +1124,16 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
-# Handling missing values using catboost 
+# Handling missing values using mice 
 
+
+mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+
+data_filled <- complete(mice_data)
 
 # Split data into training and testing sets
 
-train_index <- createDataPartition(filtered_data$sp_stuff, p = .8, list = F)
 
-train_data <- filtered_data[train_index, ]
-test_data <- filtered_data[-train_index, ]
-
-
-# Convert to catboost pool
-  # with extra categorical levels
-
-train_pool <- train_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_sinker) |> 
-  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
-
-test_pool <- test_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_sinker) |> 
-  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
-
-
-
-
-# Train CatBoost model to handle missing values
-
-catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
-                        iterations = 1000, depth = 6, learning_rate = .1, 
-                        random_seed = 42)
-catboost_model <- catboost.train(train_pool, params = catboost_params)
-
-
-# Predict on training and test sets
-
-train_preds <- catboost.predict(catboost_model, train_pool)
-test_preds <- catboost.predict(catboost_model, test_pool)
-
-
-
-# Replace missing values with predicted values
-
-train_data_filled <- train_data
-test_data_filled <- test_data
-
-for (col in colnames(train_data_filled)) {
-  
-  if (any(is.na(train_data_filled[[col]]))) {
-    train_data_filled[[col]][is.na(train_data_filled[[col]])] <- 
-      train_preds[is.na(train_data_filled[[col]])]
-  }
-  
-  if (any(is.na(test_data_filled[[col]]))) {
-    test_data_filled[[col]][is.na(test_data_filled[[col]])] <- 
-      test_preds[is.na(test_data_filled[[col]])]
-  }
-}
 
 
 
@@ -1433,15 +1142,15 @@ for (col in colnames(train_data_filled)) {
 # K-Fold Cross-Validation
 
 
-# Combine filled training and test data
 
-data_filled <- rbind(train_data_filled, test_data_filled)
+#data_filled <- rbind(train_data_filled, test_data_filled)
+
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 3
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1513,21 +1222,18 @@ summary(final_gam_model)
 # Function to predict sp_stuff for a given player
 
 predict_sp_stuff <- function(player_name, new_data) {
+  
   new_data_filled <- new_data
   
-  # Replace missing values in new data using catboost model
-  new_data_pool <- catboost.load_pool(data = new_data_filled)
-  new_data_preds <- catboost.predict(catboost_model, new_data_pool)
+  # Handling missing values using mice 
   
-  for (col in colnames(new_data_filled)) {
-    if (any(is.na(new_data_filled[[col]]))) {
-      new_data_filled[[col]][is.na(new_data_filled[[col]])] <- 
-        new_data_preds[is.na(new_data_filled[[col]])]
-    }
+  if (sum(is.na(new_data)) != 0) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    new_data_filled <- complete(mice_new_data)
   }
   
   # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled[new_data_filled$PlayerName == player_name, ])
+  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
@@ -1556,8 +1262,8 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SL_pct',
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_SL-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_SL-Z', 'WAR', 'WPA'
                    ,'avg_rp_z', 'avg_release_extension', 'sl_avg_spin', 'WPA',
-                   'REW', 'pfx_vSL', 'ind_slider', 'sp_s_SL', 'xFIP_minus',
-                   'Throws', 'position')
+                   'REW', 'pfx_vSL', 'sp_s_SL', 'xFIP_minus',
+                   'Throws', 'position', 'Addition_SL', 'Deletion_SL')
 
 
 # Ensure target and primary predictor are not missing
@@ -1574,71 +1280,17 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
-# Handling missing values using catboost 
+# Handling missing values using mice 
+
+
+mice_data <- mice(filtered_data, method = 'rf', m = 10, maxit = 100)
+
+data_filled <- complete(mice_data)
 
 
 # Split data into training and testing sets
 
-train_index <- createDataPartition(filtered_data$sp_stuff, p = .8, list = F)
 
-train_data <- filtered_data[train_index, ]
-test_data <- filtered_data[-train_index, ]
-
-
-# Convert to catboost pool
-  # with extra categorical levels
-
-train_pool <- train_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_slider) |> 
-  catboost.load_pool(label = train_data$sp_stuff, cat_features = c(ncol(train_data) - 1, ncol(train_data)))
-
-test_pool <- test_data |> 
-  mutate(
-    Throws = as.factor(Throws),
-    position = as.factor(position)
-  ) |> 
-  select(-Season, -PlayerName, -ind_slider) |> 
-  catboost.load_pool(label = test_data$sp_stuff, cat_features = c(ncol(test_data) - 1, ncol(test_data)))
-
-
-
-
-# Train CatBoost model to handle missing values
-
-catboost_params <- list(loss_function = 'RMSE', eval_metric = 'RMSE',
-                        iterations = 1000, depth = 6, learning_rate = .1, 
-                        random_seed = 42)
-catboost_model <- catboost.train(train_pool, params = catboost_params)
-
-
-# Predict on training and test sets
-
-train_preds <- catboost.predict(catboost_model, train_pool)
-test_preds <- catboost.predict(catboost_model, test_pool)
-
-
-
-# Replace missing values with predicted values
-
-train_data_filled <- train_data
-test_data_filled <- test_data
-
-for (col in colnames(train_data_filled)) {
-  
-  if (any(is.na(train_data_filled[[col]]))) {
-    train_data_filled[[col]][is.na(train_data_filled[[col]])] <- 
-      train_preds[is.na(train_data_filled[[col]])]
-  }
-  
-  if (any(is.na(test_data_filled[[col]]))) {
-    test_data_filled[[col]][is.na(test_data_filled[[col]])] <- 
-      test_preds[is.na(test_data_filled[[col]])]
-  }
-}
 
 
 
@@ -1647,15 +1299,15 @@ for (col in colnames(train_data_filled)) {
 # K-Fold Cross-Validation
 
 
-# Combine filled training and test data
 
-data_filled <- rbind(train_data_filled, test_data_filled)
+#data_filled <- rbind(train_data_filled, test_data_filled)
+
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 3
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1727,23 +1379,21 @@ summary(final_gam_model)
 # Function to predict sp_stuff for a given player
 
 predict_sp_stuff <- function(player_name, new_data) {
+  
   new_data_filled <- new_data
   
-  # Replace missing values in new data using catboost model
-  new_data_pool <- catboost.load_pool(data = new_data_filled)
-  new_data_preds <- catboost.predict(catboost_model, new_data_pool)
+  # Handling missing values using mice 
   
-  for (col in colnames(new_data_filled)) {
-    if (any(is.na(new_data_filled[[col]]))) {
-      new_data_filled[[col]][is.na(new_data_filled[[col]])] <- 
-        new_data_preds[is.na(new_data_filled[[col]])]
-    }
+  if (sum(is.na(new_data)) != 0) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 50)
+    new_data_filled <- complete(mice_new_data)
   }
   
   # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled[new_data_filled$PlayerName == player_name, ])
+  predict(final_gam_model, newdata = new_data_filled)
   
 }
+
 
 # Example Use
 
