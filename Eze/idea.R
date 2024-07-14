@@ -1672,7 +1672,7 @@ for (i in 1:k) {
                    + s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_SL_pct, pfx_vSL, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
-                     s(pfx_vSL, sl_avg_spin. by = Throws) + 
+                     s(pfx_vSL, sl_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +
                      s(WHIP_plus, BABIP_plus) + s(K_9_plus, RAR),
                    data = train_set)
