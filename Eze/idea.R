@@ -529,7 +529,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
 
 
 # Perform k-fold cross-validation
@@ -558,14 +558,15 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  #val_preds <- predict(gam_model, newdata = val_set)
+  val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
   Deviance_Explained <- gam_summary$dev.expl
+  val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
   
   
@@ -688,7 +689,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
 
 
 # Perform k-fold cross-validation
@@ -717,14 +718,15 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  # val_preds <- predict(gam_model, newdata = val_set)
+  val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
   Deviance_Explained <- gam_summary$dev.expl
+  val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
@@ -849,7 +851,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
 
 # Perform k-fold cross-validation
 for (i in 1:k) {
@@ -875,14 +877,15 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  #val_preds <- predict(gam_model, newdata = val_set)
+  val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
   Deviance_Explained <- gam_summary$dev.expl
+  val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
@@ -1008,7 +1011,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
 
 
 # Perform k-fold cross-validation
@@ -1035,14 +1038,15 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  #val_preds <- predict(gam_model, newdata = val_set)
+  val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
   Deviance_Explained <- gam_summary$dev.expl
+  val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
@@ -1166,7 +1170,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
 
 
 # Perform k-fold cross-validation
@@ -1193,14 +1197,15 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  #val_preds <- predict(gam_model, newdata = val_set)
+  val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
   Deviance_Explained <- gam_summary$dev.expl
+  val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
@@ -1325,7 +1330,7 @@ folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
 # Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
 
 # Perform k-fold cross-validation
 for (i in 1:k) {
@@ -1351,14 +1356,15 @@ for (i in 1:k) {
   gam_summary <- summary(gam_model)
   
   # Predict on validation set
-  #val_preds <- predict(gam_model, newdata = val_set)
+  val_preds <- predict(gam_model, newdata = val_set)
   
   # Extract metrics
   R2 <- gam_summary$r.sq
   Deviance_Explained <- gam_summary$dev.expl
+  val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
   # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
