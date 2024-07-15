@@ -549,7 +549,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
                      s(pfx_vCH, ch_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                    data = train_set)
   
   
@@ -573,8 +573,8 @@ for (i in 1:k) {
 }
 
 # Average cross-validation results
-avg_results <- colMeans(cv_results[, -1])
-print(avg_results)
+median_results <- apply(cv_results[, 2:4], 2, median)
+print(median_results)
 
 
 
@@ -588,7 +588,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
                          s(pfx_vCH, ch_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -709,7 +709,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
                      s(pfx_vCU, cu_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                    data = train_set)
   
   
@@ -732,8 +732,8 @@ for (i in 1:k) {
 
 
 # Average cross-validation results
-avg_results <- colMeans(cv_results[, -1])
-print(avg_results)
+median_results <- apply(cv_results[, 2:4], 2, median)
+print(median_results)
 
 
 
@@ -746,7 +746,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
                          s(pfx_vCU, cu_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -870,7 +870,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
                      s(pfx_vFC, fc_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                    data = train_set)
   
   # Get model summary
@@ -891,8 +891,8 @@ for (i in 1:k) {
 
 
 # Average cross-validation results
-avg_results <- colMeans(cv_results[, -1])
-print(avg_results)
+median_results <- apply(cv_results[, 2:4], 2, median)
+print(median_results)
 
 
 
@@ -905,7 +905,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
                          s(pfx_vFC, fc_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -1031,7 +1031,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
                      s(pfx_vFA, ff_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                    data = train_set)
   
   # Get model summary
@@ -1052,8 +1052,8 @@ for (i in 1:k) {
 
 
 # Average cross-validation results
-avg_results <- colMeans(cv_results[, -1])
-print(avg_results)
+median_results <- apply(cv_results[, 2:4], 2, median)
+print(median_results)
 
 
 
@@ -1066,7 +1066,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
                          s(pfx_vFA, ff_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -1190,7 +1190,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
                      s(pfx_vSI, si_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                    data = train_set)
   
   # Get model summary
@@ -1211,8 +1211,8 @@ for (i in 1:k) {
 
 
 # Average cross-validation results
-avg_results <- colMeans(cv_results[, -1])
-print(avg_results)
+median_results <- apply(cv_results[, 2:4], 2, median)
+print(median_results)
 
 
 
@@ -1225,7 +1225,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
                          s(pfx_vSI, si_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -1349,7 +1349,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
                      s(pfx_vSL, sl_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                    data = train_set)
   
   # Get model summary
@@ -1370,8 +1370,8 @@ for (i in 1:k) {
 
 
 # Average cross-validation results
-avg_results <- colMeans(cv_results[, -1])
-print(avg_results)
+median_results <- apply(cv_results[, 2:4], 2, median)
+print(median_results)
 
 
 
@@ -1384,7 +1384,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
                          s(pfx_vSL, sl_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
