@@ -1343,6 +1343,7 @@ perform_cv <- function(fold, data) {
   Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
+  
   # Return results as a list
   return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
