@@ -513,46 +513,36 @@ data_filled <- complete(mice_data)
 
 
 
+
 # K-Fold Cross-Validation
 
 
-
-#data_filled <- rbind(train_data_filled, test_data_filled)
 
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-# Define k-fold cross-validation
-k <- 6
+k <- 9
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
-
-# Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
-
-
-# Perform k-fold cross-validation
-for (i in 1:k) {
+perform_cv <- function(fold, data) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-i])
-  val_indices <- unlist(folds[i])
+  train_indices <- unlist(folds[-fold])
+  val_indices <- unlist(folds[fold])
   
-  train_set <- data_filled[train_indices, ]
-  val_set <- data_filled[val_indices, ]
+  train_set <- data[train_indices, ]
+  val_set <- data[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
-                   + s(avg_release_extension, by = Throws) + Throws + 
+  gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position)) +
+                     s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_CH_pct, pfx_vCH, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
                      s(pfx_vCH, ch_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
                      s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
-  
-  
   
   # Get model summary
   gam_summary <- summary(gam_model)
@@ -565,16 +555,23 @@ for (i in 1:k) {
   Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
-  
-  
+  # Return results as a list
+  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
+
+
+# Perform k-fold cross-validation using lapply
+cv_results <- lapply(1:k, perform_cv, data = data_filled)
+
+# Combine results into a single data frame
+cv_results <- bind_rows(cv_results)
 
 # Average cross-validation results
 median_results <- apply(cv_results[, 2:4], 2, median)
 print(median_results)
+
+
 
 
 
@@ -677,42 +674,31 @@ data_filled <- complete(mice_data)
 
 
 
-#data_filled <- rbind(train_data_filled, test_data_filled)
-
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-# Define k-fold cross-validation
-k <- 6
+k <- 9
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
-
-# Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
-
-
-# Perform k-fold cross-validation
-for (i in 1:k) {
+perform_cv <- function(fold, data) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-i])
-  val_indices <- unlist(folds[i])
+  train_indices <- unlist(folds[-fold])
+  val_indices <- unlist(folds[fold])
   
-  train_set <- data_filled[train_indices, ]
-  val_set <- data_filled[val_indices, ]
+  train_set <- data[train_indices, ]
+  val_set <- data[val_indices, ]
   
   # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
-                   + s(avg_release_extension, by = Throws) + Throws + 
+  gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position)) +
+                     s(avg_release_extension, by = Throws) + Throws + 
                      s(pfx_CU_pct, pfx_vCU, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
                      s(pfx_vCU, cu_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
                      s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
-  
-  
   
   # Get model summary
   gam_summary <- summary(gam_model)
@@ -725,11 +711,17 @@ for (i in 1:k) {
   Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  # Return results as a list
+  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
+
+# Perform k-fold cross-validation using lapply
+cv_results <- lapply(1:k, perform_cv, data = data_filled)
+
+# Combine results into a single data frame
+cv_results <- bind_rows(cv_results)
 
 # Average cross-validation results
 median_results <- apply(cv_results[, 2:4], 2, median)
@@ -839,29 +831,22 @@ data_filled <- complete(mice_data)
 
 
 
-#data_filled <- rbind(train_data_filled, test_data_filled)
 
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-# Define k-fold cross-validation
-k <- 6
+k <- 9
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
-
-# Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
-
-# Perform k-fold cross-validation
-for (i in 1:k) {
+perform_cv <- function(fold, data) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-i])
-  val_indices <- unlist(folds[i])
+  train_indices <- unlist(folds[-fold])
+  val_indices <- unlist(folds[fold])
   
-  train_set <- data_filled[train_indices, ]
-  val_set <- data_filled[val_indices, ]
+  train_set <- data[train_indices, ]
+  val_set <- data[val_indices, ]
   
   # Fit GAM model
   gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
@@ -884,11 +869,17 @@ for (i in 1:k) {
   Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  # Return results as a list
+  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
+
+# Perform k-fold cross-validation using lapply
+cv_results <- lapply(1:k, perform_cv, data = data_filled)
+
+# Combine results into a single data frame
+cv_results <- bind_rows(cv_results)
 
 # Average cross-validation results
 median_results <- apply(cv_results[, 2:4], 2, median)
@@ -999,30 +990,22 @@ data_filled <- complete(mice_data)
 
 
 
-#data_filled <- rbind(train_data_filled, test_data_filled)
 
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-# Define k-fold cross-validation
-k <- 6
+k <- 9
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
-
-# Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
-
-
-# Perform k-fold cross-validation
-for (i in 1:k) {
+perform_cv <- function(fold, data) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-i])
-  val_indices <- unlist(folds[i])
+  train_indices <- unlist(folds[-fold])
+  val_indices <- unlist(folds[fold])
   
-  train_set <- data_filled[train_indices, ]
-  val_set <- data_filled[val_indices, ]
+  train_set <- data[train_indices, ]
+  val_set <- data[val_indices, ]
   
   # Fit GAM model
   gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
@@ -1045,11 +1028,17 @@ for (i in 1:k) {
   Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  # Return results as a list
+  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
+
+# Perform k-fold cross-validation using lapply
+cv_results <- lapply(1:k, perform_cv, data = data_filled)
+
+# Combine results into a single data frame
+cv_results <- bind_rows(cv_results)
 
 # Average cross-validation results
 median_results <- apply(cv_results[, 2:4], 2, median)
@@ -1158,30 +1147,22 @@ data_filled <- complete(mice_data)
 
 
 
-#data_filled <- rbind(train_data_filled, test_data_filled)
 
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-# Define k-fold cross-validation
-k <- 6
+k <- 9
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
-
-# Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
-
-
-# Perform k-fold cross-validation
-for (i in 1:k) {
+perform_cv <- function(fold, data) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-i])
-  val_indices <- unlist(folds[i])
+  train_indices <- unlist(folds[-fold])
+  val_indices <- unlist(folds[fold])
   
-  train_set <- data_filled[train_indices, ]
-  val_set <- data_filled[val_indices, ]
+  train_set <- data[train_indices, ]
+  val_set <- data[val_indices, ]
   
   # Fit GAM model
   gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
@@ -1204,11 +1185,17 @@ for (i in 1:k) {
   Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  # Return results as a list
+  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
+
+# Perform k-fold cross-validation using lapply
+cv_results <- lapply(1:k, perform_cv, data = data_filled)
+
+# Combine results into a single data frame
+cv_results <- bind_rows(cv_results)
 
 # Average cross-validation results
 median_results <- apply(cv_results[, 2:4], 2, median)
@@ -1318,29 +1305,22 @@ data_filled <- complete(mice_data)
 
 
 
-#data_filled <- rbind(train_data_filled, test_data_filled)
 
 data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-# Define k-fold cross-validation
-k <- 6
+k <- 9
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
-
-# Initialize results storage
-cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double(), rmse = double())
-
-# Perform k-fold cross-validation
-for (i in 1:k) {
+perform_cv <- function(fold, data) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-i])
-  val_indices <- unlist(folds[i])
+  train_indices <- unlist(folds[-fold])
+  val_indices <- unlist(folds[fold])
   
-  train_set <- data_filled[train_indices, ]
-  val_set <- data_filled[val_indices, ]
+  train_set <- data[train_indices, ]
+  val_set <- data[val_indices, ]
   
   # Fit GAM model
   gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
@@ -1363,11 +1343,17 @@ for (i in 1:k) {
   Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Store results
-  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  # Return results as a list
+  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
   
 }
 
+
+# Perform k-fold cross-validation using lapply
+cv_results <- lapply(1:k, perform_cv, data = data_filled)
+
+# Combine results into a single data frame
+cv_results <- bind_rows(cv_results)
 
 # Average cross-validation results
 median_results <- apply(cv_results[, 2:4], 2, median)
