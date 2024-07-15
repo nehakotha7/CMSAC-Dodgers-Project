@@ -145,19 +145,19 @@ cond_data_2023 <- left_join(cond_data_2023, savant_cond_2023, by = "xMLBAMID")
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
 
 # Adding indicator variables for each pitch
-# Setting the cutoff at 3% usage
+# Setting the cutoff at 5% usage
 cond_data <- cond_data |>
-  mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct < 0.03, "No", "Yes"),
-         ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct < 0.03, "No", "Yes"),
-         ind_cutter = ifelse(is.na(pfx_FC_pct) | pfx_FC_pct < 0.03, "No", "Yes"),
-         ind_curve = ifelse(is.na(pfx_CU_pct) | pfx_CU_pct < 0.03, "No", "Yes"),
-         ind_change = ifelse(is.na(pfx_CH_pct) | pfx_CH_pct < 0.03, "No", "Yes"),
-         ind_split = ifelse(is.na(pfx_FS_pct) | pfx_FS_pct < 0.03, "No", "Yes"),
-         ind_sinker = ifelse(is.na(pfx_SI_pct) | pfx_SI_pct < 0.03, "No", "Yes"),
-         ind_screw = ifelse(is.na(pfx_SC_pct) | pfx_SC_pct < 0.03, "No", "Yes"),
-         ind_fork = ifelse(is.na(pfx_FO_pct) | pfx_FO_pct < 0.03, "No", "Yes"),
-         ind_kc = ifelse(is.na(pfx_KC_pct) | pfx_KC_pct < 0.03, "No", "Yes"),
-         ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct < 0.03, "No", "Yes")
+  mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct <= 0.05, "No", "Yes"),
+         ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct <= 0.05, "No", "Yes"),
+         ind_cutter = ifelse(is.na(pfx_FC_pct) | pfx_FC_pct <= 0.05, "No", "Yes"),
+         ind_curve = ifelse(is.na(pfx_CU_pct) | pfx_CU_pct <= 0.05, "No", "Yes"),
+         ind_change = ifelse(is.na(pfx_CH_pct) | pfx_CH_pct <= 0.05, "No", "Yes"),
+         ind_split = ifelse(is.na(pfx_FS_pct) | pfx_FS_pct <= 0.05, "No", "Yes"),
+         ind_sinker = ifelse(is.na(pfx_SI_pct) | pfx_SI_pct <= 0.05, "No", "Yes"),
+         ind_screw = ifelse(is.na(pfx_SC_pct) | pfx_SC_pct <= 0.05, "No", "Yes"),
+         ind_fork = ifelse(is.na(pfx_FO_pct) | pfx_FO_pct <= 0.05, "No", "Yes"),
+         ind_kc = ifelse(is.na(pfx_KC_pct) | pfx_KC_pct <= 0.05, "No", "Yes"),
+         ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct <= 0.05, "No", "Yes")
   )
 
 # Adjusting the horizontal movement variable
@@ -524,7 +524,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 4
+k <- 5
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -684,7 +684,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 4
+k <- 5
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -846,7 +846,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 4
+k <- 5
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1006,7 +1006,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 4
+k <- 5
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1165,7 +1165,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 4
+k <- 5
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1325,7 +1325,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 4
+k <- 5
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
