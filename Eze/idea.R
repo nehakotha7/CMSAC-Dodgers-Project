@@ -145,7 +145,7 @@ cond_data_2023 <- left_join(cond_data_2023, savant_cond_2023, by = "xMLBAMID")
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
 
 # Adding indicator variables for each pitch
-# Setting the cutoff at 2.5% usage
+# Setting the cutoff at 5% usage
 cond_data <- cond_data |>
   mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct <= 0.05, "No", "Yes"),
          ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct <= 0.05, "No", "Yes"),
@@ -488,7 +488,7 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_change == 'Yes')
 
 
-# Rename location columns in the filtered_data 
+# Rename movement columns in the filtered_data 
 
 names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
@@ -652,7 +652,7 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_curve == 'Yes')
 
 
-# Rename location columns in the filtered_data 
+# Rename movement columns in the filtered_data 
 names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
@@ -812,7 +812,7 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_cutter == 'Yes')
 
 
-# Rename location columns in the filtered_data 
+# Rename movement columns in the filtered_data 
 names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
@@ -971,7 +971,7 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_fastball == 'Yes')
 
 
-# Rename location columns in the filtered_data 
+# Rename movement columns in the filtered_data 
 names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
@@ -1130,7 +1130,7 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_sinker == 'Yes')
 
 
-# Rename location columns in the filtered_data 
+# Rename movement columns in the filtered_data 
 names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
@@ -1289,7 +1289,7 @@ filtered_data <- pitch_arsenal |>
   filter(!is.na(sp_stuff), ind_slider == 'Yes')
 
 
-# Rename location columns in the filtered_data 
+# Rename movement columns in the filtered_data 
 names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
