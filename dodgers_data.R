@@ -9,6 +9,10 @@ library(caret)
 library(tidyverse)
 library(dplyr)
 library(Metrics)
+library(ggridges)
+library(patchwork)
+library(catboost)
+library(mgcv)
 
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021)
@@ -1354,6 +1358,95 @@ rmse_value <- rmse(si_filtered$sp_s_FF, si_filtered$pred_vals)
 print(paste("RMSE:", rmse_value))
 #Adjusted R^2 and RMSE are not better than the other sinker models
 
+#Experiment for going across pitches
+
+#Before, we had created indicator variables but left the data in
+cond_data_exp <- cond_data |>
+  mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct < 0.05, 0, 1),
+         ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct < 0.05, 0, 1),
+         ind_cutter = ifelse(is.na(pfx_FC_pct) | pfx_FC_pct < 0.05, 0, 1),
+         ind_curve = ifelse(is.na(pfx_CU_pct) | pfx_CU_pct < 0.05, 0, 1),
+         ind_change = ifelse(is.na(pfx_CH_pct) | pfx_CH_pct < 0.05, 0, 1),
+         ind_split = ifelse(is.na(pfx_FS_pct) | pfx_FS_pct < 0.05, 0, 1),
+         ind_sinker = ifelse(is.na(pfx_SI_pct) | pfx_SI_pct < 0.05, 0, 1),
+         ind_screw = ifelse(is.na(pfx_SC_pct) | pfx_SC_pct < 0.05, 0, 1),
+         ind_fork = ifelse(is.na(pfx_FO_pct) | pfx_FO_pct < 0.05, 0, 1),
+         ind_kc = ifelse(is.na(pfx_KC_pct) | pfx_KC_pct < 0.05, 0, 1),
+         ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct < 0.05, 0, 1)
+  )
+cond_data_exp <- cond_data_exp |>
+  mutate(pfx_vFA = ifelse(ind_fastball == 0, 0, pfx_vFA), #Fastball
+         `pfx_FA-X` = ifelse(ind_fastball == 0, 0, `pfx_FA-X`),
+         `pfx_FA-Z` = ifelse(ind_fastball == 0, 0, `pfx_FA-Z`),
+         ff_avg_spin = ifelse(ind_fastball == 0, 0, ff_avg_spin),
+         sp_s_FF = ifelse(ind_fastball == 0, 0, sp_s_FF),
+         pfx_vSI = ifelse(ind_sinker == 0, 0, pfx_vSI), #sinker
+         `pfx_SI-X` = ifelse(ind_sinker == 0, 0, `pfx_SI-X`),
+         `pfx_SI-Z` = ifelse(ind_sinker == 0, 0, `pfx_SI-Z`),
+         si_avg_spin = ifelse(ind_sinker == 0, 0, si_avg_spin),
+         sp_s_SI = ifelse(ind_sinker == 0, 0, sp_s_SI),
+         pfx_vFC = ifelse(ind_cutter == 0, 0, pfx_vFC), #cutter
+         `pfx_FC-X` = ifelse(ind_cutter == 0, 0, `pfx_FC-X`),
+         `pfx_FC-Z` = ifelse(ind_cutter == 0, 0, `pfx_FC-Z`),
+         fc_avg_spin = ifelse(ind_cutter == 0, 0, fc_avg_spin),
+         sp_s_FC = ifelse(ind_cutter == 0, 0, sp_s_FC),
+         pfx_vSL = ifelse(ind_slider == 0, 0, pfx_vSL), #slider
+         `pfx_SL-X` = ifelse(ind_slider == 0, 0, `pfx_SL-X`),
+         `pfx_SL-Z` = ifelse(ind_slider == 0, 0, `pfx_SL-Z`),
+         sl_avg_spin = ifelse(ind_slider == 0, 0, sl_avg_spin),
+         sp_s_SL = ifelse(ind_slider == 0, 0, sp_s_SL),
+         pfx_vCH = ifelse(ind_change == 0, 0, pfx_vCH), #changeup
+         `pfx_CH-X` = ifelse(ind_change == 0, 0, `pfx_CH-X`),
+         `pfx_CH-Z` = ifelse(ind_change == 0, 0, `pfx_CH-Z`),
+         ch_avg_spin = ifelse(ind_change == 0, 0, ch_avg_spin),
+         sp_s_CH = ifelse(ind_change == 0, 0, sp_s_CH),
+         pfx_vCU = ifelse(ind_curve == 0, 0, pfx_vCU), #curveball
+         `pfx_CU-X` = ifelse(ind_curve == 0, 0, `pfx_CU-X`),
+         `pfx_CU-Z` = ifelse(ind_curve == 0, 0, `pfx_CU-Z`),
+         cu_avg_spin = ifelse(ind_curve == 0, 0, cu_avg_spin),
+         sp_s_CU = ifelse(ind_curve == 0, 0, sp_s_CU),
+         #no knuckle curve avg spin
+         pfx_vKC = ifelse(ind_kc == 0, 0, pfx_vKC), #knuckle curve
+         `pfx_KC-X` = ifelse(ind_kc == 0, 0, `pfx_KC-X`),
+         `pfx_KC-Z` = ifelse(ind_kc == 0, 0, `pfx_KC-Z`),
+         sp_s_KC = ifelse(ind_kc == 0, 0, sp_s_KC),
+         #no knuckle curve stuff+
+         pfx_vKN = ifelse(ind_knuckle == 0, 0, pfx_vKN), #knuckleball
+         `pfx_KN-X` = ifelse(ind_knuckle == 0, 0, `pfx_KN-X`),
+         `pfx_KN-Z` = ifelse(ind_knuckle == 0, 0, `pfx_KN-Z`),
+         kn_avg_spin = ifelse(ind_knuckle == 0, 0, kn_avg_spin),
+         #no forkball avg spin
+         pfx_vFO = ifelse(ind_fork == 0, 0, pfx_vFO), #forkball
+         `pfx_FO-X` = ifelse(ind_fork == 0, 0, `pfx_FO-X`),
+         `pfx_FO-Z` = ifelse(ind_fork == 0, 0, `pfx_FO-Z`),
+         sp_s_FO = ifelse(ind_fork == 0, 0, sp_s_FO),
+         pfx_vFS = ifelse(ind_split == 0, 0, pfx_vFS), #splitter
+         `pfx_FS-X` = ifelse(ind_split == 0, 0, `pfx_FS-X`),
+         `pfx_FS-Z` = ifelse(ind_split == 0, 0, `pfx_FS-Z`),
+         fs_avg_spin = ifelse(ind_split == 0, 0, fs_avg_spin),
+         sp_s_FS = ifelse(ind_split == 0, 0, sp_s_FS),
+         #no screwball avg spin, stuff+
+         pfx_vSC = ifelse(ind_screw == 0, 0, pfx_vSC), #screwball
+         `pfx_SC-X` = ifelse(ind_screw == 0, 0, `pfx_SC-X`),
+         `pfx_SC-Z` = ifelse(ind_screw == 0, 0, `pfx_SC-Z`),)
+#only avg spin for sweeper
+#only avg spin for slurve
+
+#Attempting Multiple Linear Regression with Sinker Velo and Slider Velo
+cond_data_exp <- cond_data_exp |>
+  filter(ind_fastball == 1) |> 
+  mutate(si_interaction = pfx_vSI * ind_sinker)
+
+exp_lm <- lm(sp_s_FF ~ (pfx_vSI * ind_sinker) + (pfx_vSL * ind_slider), 
+             data=cond_data_exp)
+summary(exp_lm)
+train_preds2 <- predict(multiple_lm2)
+head(train_preds2)
+cond_data_b <- cond_data_b |>
+  mutate(pred_vals = train_preds2)
+
+
+
 #Linear Regression with Cond_Data_Longer - Sinker Velo and Fastball Stuff+
 # Filter for sinker velocity
 sinker_velo <- cond_data_velo |>
@@ -1387,54 +1480,295 @@ summary(all_velo_lm)
 # Ridge and Lasso Regression --------------------------------------------------------
 #Attempting to model Fastball Stuff+ Using Sinker Traits
 #Ridge
-cond_data_d <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_sinker == "Yes") |> 
-  select(pfx_vSI, sp_s_FF, si_avg_spin, `pfx_SI-X`, `pfx_SI-Z`, sp_s_SI, 
-         avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  drop_na()
 # predictors
-# model_x <- model.matrix(lpsa ~ ., prostate)
-model_x <- cond_data_d |> 
-  select(pfx_vSI, si_avg_spin, `pfx_SI-X`, `pfx_SI-Z`, sp_s_SI, 
-         avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  as.matrix()
+model_x <- si_data |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, si_avg_spin, 
+         `pfx_SI-X`, `pfx_SI-Z`, avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  as.matrix() 
+  
 
 # response
-# model_y <- prostate$lpsa
-model_y <- cond_data_d |> 
-  pull(sp_s_FF)
+model_y <- si_data$sp_s_FF
 
-sinker_ridge <- glmnet(model_x, model_y, alpha = 0)
-plot(sinker_ridge, xvar = "lambda")
-
-sinker_ridge_cv <- cv.glmnet(model_x, model_y, alpha = 0)
-plot(sinker_ridge_cv)
-
-# str(prostate_ridge_cv)
-sinker_ridge_coef <- tidy(sinker_ridge_cv$glmnet.fit)
-sinker_ridge_coef |> 
-  ggplot(aes(x = lambda, y = estimate, group = term)) +
-  scale_x_log10() +
-  geom_line(alpha = 0.75) +
-  geom_vline(xintercept = sinker_ridge_cv$lambda.min) +
-  geom_vline(xintercept = sinker_ridge_cv$lambda.1se, 
-             linetype = "dashed", color = "red")
-
-tidy_ridge_cv <- tidy(sinker_ridge_cv)
-tidy_ridge_cv |> 
-  ggplot(aes(x = lambda, y = estimate)) +
-  geom_line() + 
-  scale_x_log10() +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
-              alpha = 0.2) +
-  geom_vline(xintercept = sinker_ridge_cv$lambda.min) +
-  geom_vline(xintercept = sinker_ridge_cv$lambda.1se,
-             linetype = "dashed", color = "red")
-
-sinker_ridge_coef |>
-  filter(lambda == sinker_ridge_cv$lambda.1se) |>
-  mutate(term = fct_reorder(term, estimate)) |>
+#What do the initial regression coefficients look like?
+si_lm |> 
+  tidy() |> 
+  mutate(term = fct_reorder(term, estimate)) |> 
   ggplot(aes(x = estimate, y = term, 
              fill = estimate > 0)) +
   geom_col(color = "white", show.legend = FALSE) +
   scale_fill_manual(values = c("darkred", "darkblue"))
+
+sinker_ridge <- glmnet(model_x, model_y, alpha = 0)
+plot(sinker_ridge, xvar = "lambda")
+sinker_ridge_cv <- cv.glmnet(model_x, model_y, alpha = 0)
+plot(sinker_ridge_cv)
+
+
+
+
+# Changeup Predicting Fastball Stuff+ Calc ------------------------------------
+# From Gabe's Code and Switched Around
+detect_arsenal_change <- function(current, previous) {
+  
+  return(ifelse(is.na(previous), 0, (current - previous) / (previous + 1e-10)))
+  
+}
+
+
+
+# Initialize comprehensive pitch arsenal
+
+pitch_arsenal <- cond_data |> 
+  group_by(PlayerNameRoute) |> 
+  arrange(PlayerNameRoute, Season) |> 
+  mutate(
+    Change_FA = if_else(Season == 2021, 0, detect_arsenal_change(pfx_FA_pct, lag(pfx_FA_pct))),
+    Change_SL = if_else(Season == 2021, 0, detect_arsenal_change(pfx_SL_pct, lag(pfx_SL_pct))),
+    Change_CH = if_else(Season == 2021, 0, detect_arsenal_change(pfx_CH_pct, lag(pfx_CH_pct))),
+    Change_CU = if_else(Season == 2021, 0, detect_arsenal_change(pfx_CU_pct, lag(pfx_CU_pct))),
+    Change_SI = if_else(Season == 2021, 0, detect_arsenal_change(pfx_SI_pct, lag(pfx_SI_pct))),
+    Change_FC = if_else(Season == 2021, 0, detect_arsenal_change(pfx_FC_pct, lag(pfx_FC_pct))),
+    Addition_FA = if_else(Season == 2021, 0, if_else(Change_FA > .02, 1, 0)),
+    Deletion_FA = if_else(Season == 2021, 0, if_else(Change_FA <= -.02, 1, 0)),
+    Addition_SL = if_else(Season == 2021, 0, if_else(Change_SL > .02, 1, 0)),
+    Deletion_SL = if_else(Season == 2021, 0, if_else(Change_SL <= -.02, 1, 0)),
+    Addition_CH = if_else(Season == 2021, 0, if_else(Change_CH > .02, 1, 0)),
+    Deletion_CH = if_else(Season == 2021, 0, if_else(Change_CH <= -.02, 1, 0)),
+    Addition_CU = if_else(Season == 2021, 0, if_else(Change_CH > .02, 1, 0)),
+    Deletion_CU = if_else(Season == 2021, 0, if_else(Change_CU <= -.02, 1, 0)),
+    Addition_SI = if_else(Season == 2021, 0, if_else(Change_SI > .02, 1, 0)),
+    Deletion_SI = if_else(Season == 2021, 0, if_else(Change_SI <= -.02, 1, 0)),
+    Addition_FC = if_else(Season == 2021, 0, if_else(Change_FC > .02, 1, 0)),
+    Deletion_FC = if_else(Season == 2021, 0, if_else(Change_FC <= -.02, 1, 0))
+  ) |> 
+  ungroup()
+
+
+
+
+# Additional adjustments
+
+# Ensure categorical variables are factors
+pitch_arsenal$Throws <- as.factor(pitch_arsenal$Throws)
+pitch_arsenal$position <- as.factor(pitch_arsenal$position)
+
+# Edit problematic column names
+names(pitch_arsenal)[names(pitch_arsenal) == 'K_9+'] <- 'K_9_plus'
+names(pitch_arsenal)[names(pitch_arsenal) == 'ERA-'] <- 'ERA_minus'
+names(pitch_arsenal)[names(pitch_arsenal) == 'WHIP+'] <- 'WHIP_plus'
+names(pitch_arsenal)[names(pitch_arsenal) == 'BABIP+'] <- 'BABIP_plus'
+names(pitch_arsenal)[names(pitch_arsenal) == 'FIP-'] <- 'FIP_minus'
+names(pitch_arsenal)[names(pitch_arsenal) == 'xFIP-'] <- 'xFIP_minus'
+
+
+
+# Select relevant columns
+
+relevant_cols <- c('Season', 'PlayerNameRoute', 'sp_stuff', 'RAR', 'pfx_CH_pct', 
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'sp_s_FF', 'pfx_CH-X',
+                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_CH-Z', 'WAR', 'WPA'
+                   ,'avg_rp_z', 'avg_release_extension', 'ch_avg_spin', 'WPA',
+                   'REW', 'pfx_vCH', 'sp_s_CH', 'xFIP_minus',
+                   'Throws', 'position', 'Addition_CH', 'Deletion_CH')
+
+
+# Ensure target and primary predictor are not missing
+
+filtered_data <- cond_data |> 
+  filter(ind_change == "Yes") |> 
+  select(pfx_CH_pct, pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, ch_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+
+# Rename columns to avoid issues with special characters
+names(filtered_data) <- gsub('-', '_', names(filtered_data))
+
+# Impute missing values using mice
+filtered_data <- filtered_data |> 
+  mutate(across(everything(), as.numeric))
+
+# Handle missing values using mice
+predictorMatrix <- quickpred(filtered_data)
+
+# Impute missing values using mice with custom predictor matrix
+mice_data <- mice(filtered_data, method = 'rf', predictorMatrix = predictorMatrix, m = 10, maxit = 50, seed = 123)
+
+# Complete the dataset with the imputed values
+data_filled <- complete(mice_data)
+# Split data into training and testing sets
+
+
+
+# K-Fold Cross-Validation
+
+
+
+#data_filled <- rbind(train_data_filled, test_data_filled)
+
+data_filled$Throws <- as.factor(data_filled$Throws)
+data_filled$position <- as.factor(data_filled$position)
+
+
+# Define k-fold cross-validation
+k <- 3
+folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
+
+
+# Initialize results storage
+cv_results <- data.frame(fold = integer(), R2 = double(), Deviance_Explained = double())
+
+
+# Perform k-fold cross-validation
+for (i in 1:k) {
+  
+  # Split into training and validation sets
+  train_indices <- unlist(folds[-i])
+  val_indices <- unlist(folds[i])
+  
+  train_set <- data_filled[train_indices, ]
+  val_set <- data_filled[val_indices, ]
+  
+  # Fit GAM model
+  gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                   + s(avg_release_extension, by = Throws) + Throws + 
+                     s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                     s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                     s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                     s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                     s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                   data = train_set)
+  
+  
+  
+  # Get model summary
+  gam_summary <- summary(gam_model)
+  
+  # Predict on validation set
+  #val_preds <- predict(gam_model, newdata = val_set)
+  
+  # Extract metrics
+  R2 <- gam_summary$r.sq
+  Deviance_Explained <- gam_summary$dev.expl
+  
+  # Store results
+  cv_results <- rbind(cv_results, data.frame(fold = i, R2 = R2, Deviance_Explained = Deviance_Explained))
+  
+  
+  
+}
+
+# Average cross-validation results
+avg_results <- colMeans(cv_results[, -1])
+print(avg_results)
+
+
+
+
+
+# Fit final GAM calculator
+
+final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                       + s(avg_release_extension, by = Throws) + Throws + 
+                         s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                         s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                         s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                         s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                         s(RAR, REW) + s(BABIP_plus, WAR) + s(xFIP_minus, WPA),
+                       data = data_filled)
+
+
+summary(final_gam_model)
+
+
+
+# Make Predictions
+
+# Function to predict sp_stuff for a given player
+
+predict_sp_stuff <- function(player_name, new_data) {
+  
+  new_data_filled <- new_data
+  
+  # Handling missing values using mice 
+  
+  if (sum(is.na(new_data)) != 0) {
+    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
+    new_data_filled <- complete(mice_new_data)
+  }
+  
+  # Predict sp_stuff using GAM model
+  predict(final_gam_model, newdata = new_data_filled)
+  
+}
+
+
+# Example Use
+
+new_player_data <- filtered_data[filtered_data$PlayerName == 'Aaron Nola', ]
+predicted_stuff_plus <- predict_sp_stuff('Aaron Nola', new_player_data)
+print(predicted_stuff_plus)
+
+#Could we track change in Stuff+?
+
+
+# Random Forest -----------------------------------------------------------
+#Changeup
+#install.packages("stacks")
+library(tidyverse)
+theme_set(theme_light())
+library(stacks)
+rf_data <- cond_data |> 
+  filter(ind_change == "Yes") |> 
+  filter(!is.na(ch_avg_spin), !is.na(sp_s_FF)) |> 
+  select(Season, PlayerNameRoute, pfx_CH_pct, pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`,
+         ch_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+glimpse(rf_data)
+names(rf_data) <- gsub('-', '_', names(rf_data))
+
+library(ranger) #suarez
+change_rf <- ranger(sp_s_FF ~ pfx_vCH + ch_avg_spin + pfx_CH_X + pfx_CH_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                   num.trees = 500, importance = "impurity", data = rf_data)
+change_rf
+library(vip)
+vip(change_rf)
+
+predictions <- change_rf$predictions
+
+# Create a new data frame with actual and predicted values
+rf_results <- rf_data |> 
+  mutate(pred = predictions)
+
+rf_data |>
+  mutate(pred = predictions) |>
+  ggplot(aes(sp_s_FF, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+#Sinker
+rf_2 <- cond_data |> 
+  filter(ind_sinker == "Yes") |> 
+  filter(!is.na(si_avg_spin), !is.na(sp_s_FF)) |> 
+  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+names(rf_2) <- gsub('-', '_', names(rf_2))
+
+sinker_rf <- ranger(sp_s_FF ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_2, mtry = 3)
+sinker_rf
+
+vip(sinker_rf)
+
+si_predictions <- sinker_rf$predictions
+
+# Create a new data frame with actual and predicted values
+rf_results <- rf_2 |> 
+  mutate(pred = si_predictions)
+
+rf_2 |>
+  mutate(pred = si_predictions) |>
+  ggplot(aes(sp_s_FF, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
