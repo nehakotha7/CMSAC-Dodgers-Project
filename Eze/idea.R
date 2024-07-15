@@ -522,7 +522,7 @@ data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-k <- 7
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 perform_cv <- function(fold, data) {
@@ -678,7 +678,7 @@ data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-k <- 7
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 perform_cv <- function(fold, data) {
@@ -836,7 +836,7 @@ data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-k <- 7
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 perform_cv <- function(fold, data) {
@@ -995,7 +995,7 @@ data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-k <- 7
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 perform_cv <- function(fold, data) {
@@ -1152,7 +1152,7 @@ data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-k <- 7
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 perform_cv <- function(fold, data) {
@@ -1310,7 +1310,7 @@ data_filled$Throws <- as.factor(data_filled$Throws)
 data_filled$position <- as.factor(data_filled$position)
 
 
-k <- 7
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 perform_cv <- function(fold, data) {
