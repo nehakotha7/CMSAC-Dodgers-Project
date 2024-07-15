@@ -97,6 +97,7 @@ cond_data_2023 <- data_2023 |>
 
 # Reading in the data from statcast for extension and release point
 savant <- read.csv("savant.csv")
+
 savant_cond <- savant |> 
   select(pitch_type, game_year, release_pos_x, release_pos_z, player_name, 
          pitcher, release_extension) |> 
@@ -144,19 +145,19 @@ cond_data_2023 <- left_join(cond_data_2023, savant_cond_2023, by = "xMLBAMID")
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
 
 # Adding indicator variables for each pitch
-# Setting the cutoff at 5% usage
+# Setting the cutoff at 2.5% usage
 cond_data <- cond_data |>
-  mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct < 0.05, "No", "Yes"),
-         ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct < 0.05, "No", "Yes"),
-         ind_cutter = ifelse(is.na(pfx_FC_pct) | pfx_FC_pct < 0.05, "No", "Yes"),
-         ind_curve = ifelse(is.na(pfx_CU_pct) | pfx_CU_pct < 0.05, "No", "Yes"),
-         ind_change = ifelse(is.na(pfx_CH_pct) | pfx_CH_pct < 0.05, "No", "Yes"),
-         ind_split = ifelse(is.na(pfx_FS_pct) | pfx_FS_pct < 0.05, "No", "Yes"),
-         ind_sinker = ifelse(is.na(pfx_SI_pct) | pfx_SI_pct < 0.05, "No", "Yes"),
-         ind_screw = ifelse(is.na(pfx_SC_pct) | pfx_SC_pct < 0.05, "No", "Yes"),
-         ind_fork = ifelse(is.na(pfx_FO_pct) | pfx_FO_pct < 0.05, "No", "Yes"),
-         ind_kc = ifelse(is.na(pfx_KC_pct) | pfx_KC_pct < 0.05, "No", "Yes"),
-         ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct < 0.05, "No", "Yes")
+  mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct <= 0.025, "No", "Yes"),
+         ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct <= 0.025, "No", "Yes"),
+         ind_cutter = ifelse(is.na(pfx_FC_pct) | pfx_FC_pct <= 0.025, "No", "Yes"),
+         ind_curve = ifelse(is.na(pfx_CU_pct) | pfx_CU_pct <= 0.025, "No", "Yes"),
+         ind_change = ifelse(is.na(pfx_CH_pct) | pfx_CH_pct <= 0.025, "No", "Yes"),
+         ind_split = ifelse(is.na(pfx_FS_pct) | pfx_FS_pct <= 0.025, "No", "Yes"),
+         ind_sinker = ifelse(is.na(pfx_SI_pct) | pfx_SI_pct <= 0.025, "No", "Yes"),
+         ind_screw = ifelse(is.na(pfx_SC_pct) | pfx_SC_pct <= 0.025, "No", "Yes"),
+         ind_fork = ifelse(is.na(pfx_FO_pct) | pfx_FO_pct <= 0.025, "No", "Yes"),
+         ind_kc = ifelse(is.na(pfx_KC_pct) | pfx_KC_pct <= 0.025, "No", "Yes"),
+         ind_knuckle = ifelse(is.na(pfx_KN_pct) | pfx_KN_pct <= 0.025, "No", "Yes")
   )
 
 # Adjusting the horizontal movement variable
@@ -523,7 +524,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 3
+k <- 4
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -598,7 +599,7 @@ summary(final_gam_model)
 
 # Function to predict sp_stuff for a given player
 
-predict_sp_stuff <- function(player_name, new_data) {
+predict_sp_stuff <- function(new_data) {
   
   new_data_filled <- new_data
   
@@ -618,7 +619,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 # Example Use
 
 new_player_data <- filtered_data[filtered_data$PlayerName == 'Aaron Nola', ]
-predicted_stuff_plus <- predict_sp_stuff('Aaron Nola', new_player_data)
+predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
 
@@ -682,7 +683,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 3
+k <- 4
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -755,7 +756,7 @@ summary(final_gam_model)
 
 # Function to predict sp_stuff for a given player
 
-predict_sp_stuff <- function(player_name, new_data) {
+predict_sp_stuff <- function(new_data) {
   
   new_data_filled <- new_data
   
@@ -775,7 +776,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 # Example Use
 
 new_player_data <- filtered_data[filtered_data$PlayerName == 'Aaron Civale', ]
-predicted_stuff_plus <- predict_sp_stuff('Aaron Civale', new_player_data)
+predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
 
@@ -843,7 +844,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 3
+k <- 4
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -913,7 +914,7 @@ summary(final_gam_model)
 
 # Function to predict sp_stuff for a given player
 
-predict_sp_stuff <- function(player_name, new_data) {
+predict_sp_stuff <- function(new_data) {
   
   new_data_filled <- new_data
   
@@ -933,7 +934,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 # Example Use
 
 new_player_data <- filtered_data[filtered_data$PlayerName == 'Brooks Raley', ]
-predicted_stuff_plus <- predict_sp_stuff('Brooks Raley', new_player_data)
+predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
 
@@ -1002,7 +1003,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 3
+k <- 4
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1073,7 +1074,7 @@ summary(final_gam_model)
 
 # Function to predict sp_stuff for a given player
 
-predict_sp_stuff <- function(player_name, new_data) {
+predict_sp_stuff <- function(new_data) {
   
   new_data_filled <- new_data
   
@@ -1093,7 +1094,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 # Example Use
 
 new_player_data <- filtered_data[filtered_data$PlayerName == 'Anthony Bass', ]
-predicted_stuff_plus <- predict_sp_stuff('Anthony Bass', new_player_data)
+predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
 
@@ -1160,7 +1161,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 3
+k <- 4
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1231,7 +1232,7 @@ summary(final_gam_model)
 
 # Function to predict sp_stuff for a given player
 
-predict_sp_stuff <- function(player_name, new_data) {
+predict_sp_stuff <- function(new_data) {
   
   new_data_filled <- new_data
   
@@ -1251,7 +1252,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 # Example Use
 
 new_player_data <- filtered_data[filtered_data$PlayerName == 'Alek Manoah', ]
-predicted_stuff_plus <- predict_sp_stuff('Alek Manoah', new_player_data)
+predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
 
@@ -1319,7 +1320,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 3
+k <- 4
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1390,7 +1391,7 @@ summary(final_gam_model)
 
 # Function to predict sp_stuff for a given player
 
-predict_sp_stuff <- function(player_name, new_data) {
+predict_sp_stuff <- function(new_data) {
   
   new_data_filled <- new_data
   
@@ -1410,7 +1411,7 @@ predict_sp_stuff <- function(player_name, new_data) {
 # Example Use
 
 new_player_data <- filtered_data[filtered_data$PlayerName == 'Adrian Houser', ]
-predicted_stuff_plus <- predict_sp_stuff('Adrian Houser', new_player_data)
+predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
 
