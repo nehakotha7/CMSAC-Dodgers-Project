@@ -145,7 +145,7 @@ cond_data_2023 <- left_join(cond_data_2023, savant_cond_2023, by = "xMLBAMID")
 cond_data = rbind(cond_data_2021, cond_data_2022, cond_data_2023)
 
 # Adding indicator variables for each pitch
-# Setting the cutoff at 5% usage
+# Setting the cutoff at 2.5% usage
 cond_data <- cond_data |>
   mutate(ind_fastball = ifelse(is.na(pfx_FA_pct) | pfx_FA_pct <= 0.05, "No", "Yes"),
          ind_slider = ifelse(is.na(pfx_SL_pct) | pfx_SL_pct <= 0.05, "No", "Yes"),
@@ -524,7 +524,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -549,7 +549,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
                      s(pfx_vCH, ch_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
   
@@ -588,7 +588,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
                          s(pfx_vCH, ch_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -684,7 +684,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -709,7 +709,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
                      s(pfx_vCU, cu_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
   
@@ -746,7 +746,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
                          s(pfx_vCU, cu_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -846,7 +846,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -870,7 +870,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
                      s(pfx_vFC, fc_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
   # Get model summary
@@ -905,7 +905,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
                          s(pfx_vFC, fc_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -1006,7 +1006,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1031,7 +1031,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
                      s(pfx_vFA, ff_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
   # Get model summary
@@ -1066,7 +1066,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
                          s(pfx_vFA, ff_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -1165,7 +1165,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1190,7 +1190,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
                      s(pfx_vSI, si_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
   # Get model summary
@@ -1225,7 +1225,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
                          s(pfx_vSI, si_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
@@ -1325,7 +1325,7 @@ data_filled$position <- as.factor(data_filled$position)
 
 
 # Define k-fold cross-validation
-k <- 5
+k <- 6
 folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
 
 
@@ -1349,7 +1349,7 @@ for (i in 1:k) {
                      s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
                      s(pfx_vSL, sl_avg_spin, by = Throws) + 
                      s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                     s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                     s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
   # Get model summary
@@ -1384,7 +1384,7 @@ final_gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
                          s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
                          s(pfx_vSL, sl_avg_spin, by = Throws) + 
                          s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(BABIP_plus, REW) + s(xFIP_minus, WPA),
+                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                        data = data_filled)
 
 
