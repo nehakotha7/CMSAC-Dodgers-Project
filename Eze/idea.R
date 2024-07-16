@@ -505,9 +505,20 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 # Handling missing values using mice 
 
+# Initialize data frame to store results
+results <- data.frame(
+  fold = integer(),
+  val_rmse = double(),
+  train_indices = character(),
+  val_indices = character(),
+  stringsAsFactors = FALSE
+)
 
 
 # Perform k-fold cross-validation
+
+k <- 6
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = T)
 
 if (any(is.na(filtered_data))) {
   
@@ -523,6 +534,7 @@ if (any(is.na(filtered_data))) {
     # We're using a different imputed dataset to introduce variability
     imputed_data <- complete(mice_cv, action = i)
     train_imp_set <- imputed_data[train_indices, ]
+    val_set <- imputed_data[val_indices, ]
     
     # Fit the GAM on the imputed training set
     gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
@@ -656,6 +668,7 @@ if (any(is.na(filtered_data))) {
 }
 
 
+summary(final_gam_model)
 
 
 
@@ -731,12 +744,20 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 # Handling missing values using mice 
 
+# Initialize data frame to store results
+results <- data.frame(
+  fold = integer(),
+  val_rmse = double(),
+  train_indices = character(),
+  val_indices = character(),
+  stringsAsFactors = FALSE
+)
 
 
 # Define k fold cross validation
 
 k <- 6
-folds <- createFolds(filtered_data$sp_stuff, k = k, list = TRUE)
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = T)
 
 # Initialize data frame to store results
 
@@ -766,6 +787,7 @@ if (any(is.na(filtered_data))) {
     # We're using a different imputed dataset to introduce variability
     imputed_data <- complete(mice_cv, action = i)
     train_imp_set <- imputed_data[train_indices, ]
+    val_set <- imputed_data[val_indices, ]
     
     # Fit the GAM on the imputed training set
     gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
@@ -900,6 +922,7 @@ if (any(is.na(filtered_data))) {
 
 
 
+summary(final_gam_model)
 
 
 
@@ -970,13 +993,23 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
-
-
 # Handling missing values using mice 
 
 
+# Initialize data frame to store results
+results <- data.frame(
+  fold = integer(),
+  val_rmse = double(),
+  train_indices = character(),
+  val_indices = character(),
+  stringsAsFactors = FALSE
+)
+
 
 # Perform k-fold cross-validation
+
+k <- 6
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = T)
 
 if (any(is.na(filtered_data))) {
   
@@ -992,6 +1025,7 @@ if (any(is.na(filtered_data))) {
     # We're using a different imputed dataset to introduce variability
     imputed_data <- complete(mice_cv, action = i)
     train_imp_set <- imputed_data[train_indices, ]
+    val_set <- imputed_data[val_indices, ]
     
     # Fit the GAM on the imputed training set
     gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
@@ -1124,7 +1158,7 @@ if (any(is.na(filtered_data))) {
                          data = filtered_data)
 }
 
-
+summary(final_gam_model)
 
 
 
@@ -1198,9 +1232,20 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 # Handling missing values using mice 
 
+# Initialize data frame to store results
+results <- data.frame(
+  fold = integer(),
+  val_rmse = double(),
+  train_indices = character(),
+  val_indices = character(),
+  stringsAsFactors = FALSE
+)
 
 
 # Perform k-fold cross-validation
+
+k <- 6
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = T)
 
 if (any(is.na(filtered_data))) {
   
@@ -1216,6 +1261,7 @@ if (any(is.na(filtered_data))) {
     # We're using a different imputed dataset to introduce variability
     imputed_data <- complete(mice_cv, action = i)
     train_imp_set <- imputed_data[train_indices, ]
+    val_set <- imputed_data[val_indices, ]
     
     # Fit the GAM on the imputed training set
     gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
@@ -1350,6 +1396,7 @@ if (any(is.na(filtered_data))) {
 
 
 
+summary(final_gam_model)
 
 
 
@@ -1421,9 +1468,20 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 # Handling missing values using mice 
 
+# Initialize data frame to store results
+results <- data.frame(
+  fold = integer(),
+  val_rmse = double(),
+  train_indices = character(),
+  val_indices = character(),
+  stringsAsFactors = FALSE
+)
 
 
 # Perform k-fold cross-validation
+
+k <- 6
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = T)
 
 if (any(is.na(filtered_data))) {
   
@@ -1439,6 +1497,7 @@ if (any(is.na(filtered_data))) {
     # We're using a different imputed dataset to introduce variability
     imputed_data <- complete(mice_cv, action = i)
     train_imp_set <- imputed_data[train_indices, ]
+    val_set <- imputed_data[val_indices, ]
     
     # Fit the GAM on the imputed training set
     gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
@@ -1573,6 +1632,7 @@ if (any(is.na(filtered_data))) {
 
 
 
+summary(final_gam_model)
 
 
 
@@ -1646,9 +1706,20 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 # Handling missing values using mice 
 
+# Initialize data frame to store results
+results <- data.frame(
+  fold = integer(),
+  val_rmse = double(),
+  train_indices = character(),
+  val_indices = character(),
+  stringsAsFactors = FALSE
+)
 
 
 # Perform k-fold cross-validation
+
+k <- 6
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = T)
 
 if (any(is.na(filtered_data))) {
   
@@ -1664,6 +1735,7 @@ if (any(is.na(filtered_data))) {
     # We're using a different imputed dataset to introduce variability
     imputed_data <- complete(mice_cv, action = i)
     train_imp_set <- imputed_data[train_indices, ]
+    val_set <- imputed_data[val_indices, ]
     
     # Fit the GAM on the imputed training set
     gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
@@ -1798,6 +1870,7 @@ if (any(is.na(filtered_data))) {
 
 
 
+summary(final_gam_model)
 
 
 
