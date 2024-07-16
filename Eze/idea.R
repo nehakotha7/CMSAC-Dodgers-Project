@@ -7,6 +7,9 @@ library(tidyverse)
 library(mgcv)
 library(caret)
 library(mice)
+library(catboost)
+library(missForest)
+library(mgcv)
 set.seed(123)
 theme_set(theme_light())
 
@@ -471,6 +474,7 @@ names(pitch_arsenal)[names(pitch_arsenal) == 'xFIP-'] <- 'xFIP_minus'
 
 
 
+
 # Select relevant columns
 
 relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct', 
@@ -481,16 +485,20 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CH_pct',
                    'Throws', 'position', 'Addition_CH', 'Deletion_CH')
 
 
+
 # Ensure target and primary predictor are not missing
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_change == 'Yes')
+  filter(!is.na(sp_stuff), ind_change == 'Yes') |> 
+  select(-ind_change)
+
 
 
 # Rename movement columns in the filtered_data 
-
 names(filtered_data) <- gsub('-', '_', names(filtered_data))
+
+
 
 
 
@@ -499,44 +507,49 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 # Handling missing values using mice 
 
 
-mice_data <- filtered_data |> 
-  select(-PlayerName) |> 
-  mice(method = 'rf', m = 10, maxit = 100)
 
-data_filled <- complete(mice_data)
-
-
-# # Split data into training and testing sets
-# 
+mice_small <- mice(filtered_data, method = 'rf', m = 6, maxit = 50)
 
 
 
-
-
-
-# K-Fold Cross-Validation
-
-
-
-data_filled$Throws <- as.factor(data_filled$Throws)
-data_filled$position <- as.factor(data_filled$position)
-
+# Define k fold cross validation
 
 k <- 6
-folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = TRUE)
 
-perform_cv <- function(fold, data) {
+# Initialize data frame to store results
+
+results <- data.frame(
+  fold = integer(),
+  rmse = double(),
+  train_ind = character(),
+  val_ind = character(),
+  stringsAsFactors = FALSE
+  
+)
+
+
+# Perform k-fold cross-validation
+
+for (i in 1:k) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-fold])
-  val_indices <- unlist(folds[fold])
+  train_indices <- unlist(folds[-i])
+  val_indices <- unlist(folds[i])
   
-  train_set <- data[train_indices, ]
-  val_set <- data[val_indices, ]
+  train_set <- filtered_data[train_indices, ]
+  val_set <- filtered_data[val_indices, ]
   
-  # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position)) +
-                     s(avg_release_extension, by = Throws) + Throws + 
+  if (any(is.na(train_set))) {
+    
+    # We're using a different imputed dataset to introduce variability 
+    imputed_data <- complete(mice_small, action = i)
+    train_set <- imputed_data[train_indices, ]
+  }
+  
+  # Fit the GAM model on the imputed training set
+  gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                   + s(avg_release_extension) + Throws + 
                      s(pfx_CH_pct, pfx_vCH, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
                      s(pfx_vCH, ch_avg_spin, by = Throws) + 
@@ -544,32 +557,81 @@ perform_cv <- function(fold, data) {
                      s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
+  
   # Get model summary
   gam_summary <- summary(gam_model)
   
+  
+  
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  if (any(is.na(val_set))) {
+    
+    # Impute missing values in the validation set using mice with pmm method
+    val_set_imputed <- mice(val_set, method = 'pmm', m = 10, maxit = 10)
+    
+    # Within each fold, we use the first imputed dataset for simplicity
+    val_set_filled <- complete(val_set_imputed, action = 1)
+    
+    val_preds <- predict(gam_model, newdata = val_set_filled)
+    
+  } else {
+    
+    val_preds <- predict(gam_model, newdata = val_set)
+    
+  }
+  
+
+  
   
   # Extract metrics
-  R2 <- gam_summary$r.sq
-  Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Return results as a list
-  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  
+  # Store results
+  results <- rbind(results, data.frame(
+    fold = i,
+    rmse = val_rmse,
+    train_ind = paste(train_indices, collapse = ','),
+    val_ind = paste(val_indices, collapse = ","),
+    stringsAsFactors = FALSE
+  ))
   
 }
 
 
-# Perform k-fold cross-validation using lapply
-cv_results <- lapply(1:k, perform_cv, data = data_filled)
+cat('Average RMSE: ', median(results$rmse))
 
-# Combine results into a single data frame
-cv_results <- bind_rows(cv_results)
 
-# Average cross-validation results
-median_results <- apply(cv_results[, 2:4], 2, median)
-print(median_results)
+# Find the fold with the minimum RMSE
+best_fold <- results[which.min(results$rmse), ]
+
+
+# Extract the best indices
+best_train_ind <- unlist(strsplit(best_fold$train_ind, ","))
+best_val_ind <- unlist(strsplit(best_fold$val_ind, ","))
+
+
+
+
+# Final Imputation
+
+# Split filtered_data by best indices
+train_data <- filtered_data[best_train_ind, ]
+val_data <- filtered_data[best_val_ind, ]
+
+
+# Impute each split separately using a more thorough mice algorithm
+mice_train <- mice(train_data, method = 'rf', m = 10, maxit = 100)
+mice_val <- mice(val_data, method = 'rf', m = 10, maxit = 100)
+
+
+# Combine imputed splits into one complete dataset
+final_imputed_train <- complete(mice_train)
+final_imputed_val <- complete(mice_val)
+
+
+# Rebind the final complete dataset
+data_filled <- rbind(final_imputed_train, final_imputed_val)
 
 
 
@@ -579,14 +641,26 @@ print(median_results)
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
-                       + s(avg_release_extension, by = Throws) + Throws + 
-                         s(pfx_CH_pct, pfx_vCH, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
-                         s(pfx_vCH, ch_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
-                       data = data_filled)
+if (any(is.na(filtered_data))) {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = data_filled)
+} else {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = filtered_data)
+}
+
 
 
 summary(final_gam_model)
@@ -599,26 +673,26 @@ summary(final_gam_model)
 
 predict_sp_stuff <- function(new_data) {
   
-  new_data_filled <- new_data
-  
-  # Handling missing values using mice 
-
-  if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
+  if (any(is.na(new_data))) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 25)
     new_data_filled <- complete(mice_new_data)
+    predict(final_gam_model, newdata = new_data_filled)
+  } else {
+    predict(final_gam_model, newdata = new_data)
+    
   }
   
-  # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
 
+
 # Example Use
 
-new_player_data <- filtered_data[filtered_data$PlayerName == 'Aaron Nola', ]
+new_player_data <- pitch_arsenal[pitch_arsenal$PlayerName == 'Aaron Nola', ]
 predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
+
 
 
 
@@ -646,7 +720,9 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_CU_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_curve == 'Yes')
+  filter(!is.na(sp_stuff), ind_curve == 'Yes') |> 
+  select(-ind_curve)
+
 
 
 # Rename movement columns in the filtered_data 
@@ -656,43 +732,55 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
+
+
+
 # Handling missing values using mice 
 
 
-mice_data <- filtered_data |> 
-  select(-PlayerName) |> 
-  mice(method = 'rf', m = 10, maxit = 100)
 
-data_filled <- complete(mice_data)
-
-
-# Split data into training and testing sets
+mice_small <- mice(filtered_data, method = 'rf', m = 6, maxit = 50)
 
 
 
-# K-Fold Cross-Validation
-
-
-
-data_filled$Throws <- as.factor(data_filled$Throws)
-data_filled$position <- as.factor(data_filled$position)
-
+# Define k fold cross validation
 
 k <- 6
-folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = TRUE)
 
-perform_cv <- function(fold, data) {
+# Initialize data frame to store results
+
+results <- data.frame(
+  fold = integer(),
+  rmse = double(),
+  train_ind = character(),
+  val_ind = character(),
+  stringsAsFactors = FALSE
+  
+)
+
+
+# Perform k-fold cross-validation
+
+for (i in 1:k) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-fold])
-  val_indices <- unlist(folds[fold])
+  train_indices <- unlist(folds[-i])
+  val_indices <- unlist(folds[i])
   
-  train_set <- data[train_indices, ]
-  val_set <- data[val_indices, ]
+  train_set <- filtered_data[train_indices, ]
+  val_set <- filtered_data[val_indices, ]
   
-  # Fit GAM model
-  gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position)) +
-                     s(avg_release_extension, by = Throws) + Throws + 
+  if (any(is.na(train_set))) {
+    
+    # We're using a different imputed dataset to introduce variability 
+    imputed_data <- complete(mice_small, action = i)
+    train_set <- imputed_data[train_indices, ]
+  }
+  
+  # Fit the GAM model on the imputed training set
+  gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
+                   + s(avg_release_extension) + Throws + 
                      s(pfx_CU_pct, pfx_vCU, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
                      s(pfx_vCU, cu_avg_spin, by = Throws) + 
@@ -700,46 +788,107 @@ perform_cv <- function(fold, data) {
                      s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
+  
   # Get model summary
   gam_summary <- summary(gam_model)
   
+  
+  
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  if (any(is.na(val_set))) {
+    
+    # Impute missing values in the validation set using mice with pmm method
+    val_set_imputed <- mice(val_set, method = 'pmm', m = 10, maxit = 10)
+    
+    # Within each fold, we use the first imputed dataset for simplicity
+    val_set_filled <- complete(val_set_imputed, action = 1)
+    
+    val_preds <- predict(gam_model, newdata = val_set_filled)
+    
+  } else {
+    
+    val_preds <- predict(gam_model, newdata = val_set)
+    
+  }
+  
+  
+  
+  
   
   # Extract metrics
-  R2 <- gam_summary$r.sq
-  Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Return results as a list
-  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  # Store results
+  results <- rbind(results, data.frame(
+    fold = i,
+    rmse = val_rmse,
+    train_ind = paste(train_indices, collapse = ','),
+    val_ind = paste(val_indices, collapse = ","),
+    stringsAsFactors = FALSE
+  ))
   
 }
 
 
-# Perform k-fold cross-validation using lapply
-cv_results <- lapply(1:k, perform_cv, data = data_filled)
+cat('Average RMSE: ', median(results$rmse))
 
-# Combine results into a single data frame
-cv_results <- bind_rows(cv_results)
 
-# Average cross-validation results
-median_results <- apply(cv_results[, 2:4], 2, median)
-print(median_results)
+# Find the fold with the minimum RMSE
+best_fold <- results[which.min(results$rmse), ]
+
+
+# Extract the best indices
+best_train_ind <- unlist(strsplit(best_fold$train_ind, ","))
+best_val_ind <- unlist(strsplit(best_fold$val_ind, ","))
+
+
+
+
+# Final Imputation
+
+# Split filtered_data by best indices
+train_data <- filtered_data[best_train_ind, ]
+val_data <- filtered_data[best_val_ind, ]
+
+
+# Impute each split separately using a more thorough mice algorithm
+mice_train <- mice(train_data, method = 'rf', m = 10, maxit = 100)
+mice_val <- mice(val_data, method = 'rf', m = 10, maxit = 100)
+
+
+# Combine imputed splits into one complete dataset
+final_imputed_train <- complete(mice_train)
+final_imputed_val <- complete(mice_val)
+
+
+# Rebind the final complete dataset
+data_filled <- rbind(final_imputed_train, final_imputed_val)
+
 
 
 
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_CU, by = interaction(Throws, position))
-                       + s(avg_release_extension, by = Throws) + Throws + 
-                         s(pfx_CU_pct, pfx_vCU, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_CU_X, pfx_CU_Z) +
-                         s(pfx_vCU, cu_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
-                       data = data_filled)
+if (any(is.na(filtered_data))) {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = data_filled)
+} else {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = filtered_data)
+}
 
 
 summary(final_gam_model)
@@ -752,24 +901,21 @@ summary(final_gam_model)
 
 predict_sp_stuff <- function(new_data) {
   
-  new_data_filled <- new_data
-  
-  # Handling missing values using mice 
-  
-  if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
+  if (any(is.na(new_data))) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 25)
     new_data_filled <- complete(mice_new_data)
+    predict(final_gam_model, newdata = new_data_filled)
+  } else {
+    predict(final_gam_model, newdata = new_data)
+    
   }
   
-  # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
-
 # Example Use
 
-new_player_data <- filtered_data[filtered_data$PlayerName == 'Aaron Civale', ]
+new_player_data <- pitch_arsenal[pitch_arsenal$PlayerName == 'Aaron Civale', ]
 predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
@@ -801,7 +947,9 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FC_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_cutter == 'Yes')
+  filter(!is.na(sp_stuff), ind_cutter == 'Yes') |> 
+  select(-ind_cutter)
+
 
 
 # Rename movement columns in the filtered_data 
@@ -811,46 +959,55 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
+
+
+
 # Handling missing values using mice 
 
 
-mice_data <- filtered_data |> 
-  select(-PlayerName) |> 
-  mice(method = 'rf', m = 10, maxit = 100)
 
-data_filled <- complete(mice_data)
-
-
-# Split data into training and testing sets
+mice_small <- mice(filtered_data, method = 'rf', m = 6, maxit = 50)
 
 
 
-
-
-# K-Fold Cross-Validation
-
-
-
-
-data_filled$Throws <- as.factor(data_filled$Throws)
-data_filled$position <- as.factor(data_filled$position)
-
+# Define k fold cross validation
 
 k <- 6
-folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = TRUE)
 
-perform_cv <- function(fold, data) {
+# Initialize data frame to store results
+
+results <- data.frame(
+  fold = integer(),
+  rmse = double(),
+  train_ind = character(),
+  val_ind = character(),
+  stringsAsFactors = FALSE
+  
+)
+
+
+# Perform k-fold cross-validation
+
+for (i in 1:k) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-fold])
-  val_indices <- unlist(folds[fold])
+  train_indices <- unlist(folds[-i])
+  val_indices <- unlist(folds[i])
   
-  train_set <- data[train_indices, ]
-  val_set <- data[val_indices, ]
+  train_set <- filtered_data[train_indices, ]
+  val_set <- filtered_data[val_indices, ]
   
-  # Fit GAM model
+  if (any(is.na(train_set))) {
+    
+    # We're using a different imputed dataset to introduce variability 
+    imputed_data <- complete(mice_small, action = i)
+    train_set <- imputed_data[train_indices, ]
+  }
+  
+  # Fit the GAM model on the imputed training set
   gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
-                   + s(avg_release_extension, by = Throws) + Throws + 
+                   + s(avg_release_extension) + Throws + 
                      s(pfx_FC_pct, pfx_vFC, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
                      s(pfx_vFC, fc_avg_spin, by = Throws) + 
@@ -858,46 +1015,106 @@ perform_cv <- function(fold, data) {
                      s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
+  
   # Get model summary
   gam_summary <- summary(gam_model)
   
+  
+  
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  if (any(is.na(val_set))) {
+    
+    # Impute missing values in the validation set using mice with pmm method
+    val_set_imputed <- mice(val_set, method = 'pmm', m = 10, maxit = 10)
+    
+    # Within each fold, we use the first imputed dataset for simplicity
+    val_set_filled <- complete(val_set_imputed, action = 1)
+    
+    val_preds <- predict(gam_model, newdata = val_set_filled)
+    
+  } else {
+    
+    val_preds <- predict(gam_model, newdata = val_set)
+    
+  }
+  
+  
+  
+  
   
   # Extract metrics
-  R2 <- gam_summary$r.sq
-  Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Return results as a list
-  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  # Store results
+  results <- rbind(results, data.frame(
+    fold = i,
+    rmse = val_rmse,
+    train_ind = paste(train_indices, collapse = ','),
+    val_ind = paste(val_indices, collapse = ","),
+    stringsAsFactors = FALSE
+  ))
   
 }
 
 
-# Perform k-fold cross-validation using lapply
-cv_results <- lapply(1:k, perform_cv, data = data_filled)
+cat('Average RMSE: ', median(results$rmse))
 
-# Combine results into a single data frame
-cv_results <- bind_rows(cv_results)
+# Find the fold with the minimum RMSE
+best_fold <- results[which.min(results$rmse), ]
 
-# Average cross-validation results
-median_results <- apply(cv_results[, 2:4], 2, median)
-print(median_results)
+
+# Extract the best indices
+best_train_ind <- unlist(strsplit(best_fold$train_ind, ","))
+best_val_ind <- unlist(strsplit(best_fold$val_ind, ","))
+
+
+
+
+# Final Imputation
+
+# Split filtered_data by best indices
+train_data <- filtered_data[best_train_ind, ]
+val_data <- filtered_data[best_val_ind, ]
+
+
+# Impute each split separately using a more thorough mice algorithm
+mice_train <- mice(train_data, method = 'rf', m = 10, maxit = 100)
+mice_val <- mice(val_data, method = 'rf', m = 10, maxit = 100)
+
+
+# Combine imputed splits into one complete dataset
+final_imputed_train <- complete(mice_train)
+final_imputed_val <- complete(mice_val)
+
+
+# Rebind the final complete dataset
+data_filled <- rbind(final_imputed_train, final_imputed_val)
+
 
 
 
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_FC, by = interaction(Throws, position))
-                       + s(avg_release_extension, by = Throws) + Throws + 
-                         s(pfx_FC_pct, pfx_vFC, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_FC_X, pfx_FC_Z) +
-                         s(pfx_vFC, fc_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
-                       data = data_filled)
+if (any(is.na(filtered_data))) {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = data_filled)
+} else {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = filtered_data)
+}
 
 
 summary(final_gam_model)
@@ -910,24 +1127,21 @@ summary(final_gam_model)
 
 predict_sp_stuff <- function(new_data) {
   
-  new_data_filled <- new_data
-  
-  # Handling missing values using mice 
-  
-  if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
+  if (any(is.na(new_data))) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 25)
     new_data_filled <- complete(mice_new_data)
+    predict(final_gam_model, newdata = new_data_filled)
+  } else {
+    predict(final_gam_model, newdata = new_data)
+    
   }
   
-  # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
-
 # Example Use
 
-new_player_data <- filtered_data[filtered_data$PlayerName == 'Brooks Raley', ]
+new_player_data <- pitch_arsenal[pitch_arsenal$PlayerName == 'Brooks Raley', ]
 predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
@@ -959,7 +1173,9 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_FA_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_fastball == 'Yes')
+  filter(!is.na(sp_stuff), ind_fastball == 'Yes') |> 
+  select(-ind_fastball)
+
 
 
 # Rename movement columns in the filtered_data 
@@ -969,47 +1185,53 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
+
 # Handling missing values using mice 
 
 
-mice_data <- filtered_data |> 
-  select(-PlayerName) |> 
-  mice(method = 'rf', m = 10, maxit = 100)
 
-data_filled <- complete(mice_data)
-
-# Split data into training and testing sets
+mice_small <- mice(filtered_data, method = 'rf', m = 6, maxit = 50)
 
 
 
-
-
-
-
-# K-Fold Cross-Validation
-
-
-
-
-data_filled$Throws <- as.factor(data_filled$Throws)
-data_filled$position <- as.factor(data_filled$position)
-
+# Define k fold cross validation
 
 k <- 6
-folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = TRUE)
 
-perform_cv <- function(fold, data) {
+# Initialize data frame to store results
+
+results <- data.frame(
+  fold = integer(),
+  rmse = double(),
+  train_ind = character(),
+  val_ind = character(),
+  stringsAsFactors = FALSE
+  
+)
+
+
+# Perform k-fold cross-validation
+
+for (i in 1:k) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-fold])
-  val_indices <- unlist(folds[fold])
+  train_indices <- unlist(folds[-i])
+  val_indices <- unlist(folds[i])
   
-  train_set <- data[train_indices, ]
-  val_set <- data[val_indices, ]
+  train_set <- filtered_data[train_indices, ]
+  val_set <- filtered_data[val_indices, ]
   
-  # Fit GAM model
+  if (any(is.na(train_set))) {
+    
+    # We're using a different imputed dataset to introduce variability 
+    imputed_data <- complete(mice_small, action = i)
+    train_set <- imputed_data[train_indices, ]
+  }
+  
+  # Fit the GAM model on the imputed training set
   gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
-                   + s(avg_release_extension, by = Throws) + Throws + 
+                   + s(avg_release_extension) + Throws + 
                      s(pfx_FA_pct, pfx_vFA, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
                      s(pfx_vFA, ff_avg_spin, by = Throws) + 
@@ -1017,46 +1239,108 @@ perform_cv <- function(fold, data) {
                      s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
+  
   # Get model summary
   gam_summary <- summary(gam_model)
   
+  
+  
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  if (any(is.na(val_set))) {
+    
+    # Impute missing values in the validation set using mice with pmm method
+    val_set_imputed <- mice(val_set, method = 'pmm', m = 10, maxit = 10)
+    
+    # Within each fold, we use the first imputed dataset for simplicity
+    val_set_filled <- complete(val_set_imputed, action = 1)
+    
+    val_preds <- predict(gam_model, newdata = val_set_filled)
+    
+  } else {
+    
+    val_preds <- predict(gam_model, newdata = val_set)
+    
+  }
+  
+  
+  
+  
   
   # Extract metrics
-  R2 <- gam_summary$r.sq
-  Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Return results as a list
-  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  # Store results
+  results <- rbind(results, data.frame(
+    fold = i,
+    rmse = val_rmse,
+    train_ind = paste(train_indices, collapse = ','),
+    val_ind = paste(val_indices, collapse = ","),
+    stringsAsFactors = FALSE
+  ))
   
 }
 
 
-# Perform k-fold cross-validation using lapply
-cv_results <- lapply(1:k, perform_cv, data = data_filled)
+cat('Average RMSE: ', median(results$rmse))
 
-# Combine results into a single data frame
-cv_results <- bind_rows(cv_results)
 
-# Average cross-validation results
-median_results <- apply(cv_results[, 2:4], 2, median)
-print(median_results)
+# Find the fold with the minimum RMSE
+best_fold <- results[which.min(results$rmse), ]
+
+
+# Extract the best indices
+best_train_ind <- unlist(strsplit(best_fold$train_ind, ","))
+best_val_ind <- unlist(strsplit(best_fold$val_ind, ","))
+
+
+
+
+# Final Imputation
+
+# Split filtered_data by best indices
+train_data <- filtered_data[best_train_ind, ]
+val_data <- filtered_data[best_val_ind, ]
+
+
+# Impute each split separately using a more thorough mice algorithm
+mice_train <- mice(train_data, method = 'rf', m = 10, maxit = 100)
+mice_val <- mice(val_data, method = 'rf', m = 10, maxit = 100)
+
+
+# Combine imputed splits into one complete dataset
+final_imputed_train <- complete(mice_train)
+final_imputed_val <- complete(mice_val)
+
+
+# Rebind the final complete dataset
+data_filled <- rbind(final_imputed_train, final_imputed_val)
+
+
 
 
 
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_FF, by = interaction(Throws, position))
-                       + s(avg_release_extension, by = Throws) + Throws + 
-                         s(pfx_FA_pct, pfx_vFA, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_FA_X, pfx_FA_Z) +
-                         s(pfx_vFA, ff_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
-                       data = data_filled)
+if (any(is.na(filtered_data))) {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = data_filled)
+} else {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = filtered_data)
+}
 
 
 summary(final_gam_model)
@@ -1069,24 +1353,22 @@ summary(final_gam_model)
 
 predict_sp_stuff <- function(new_data) {
   
-  new_data_filled <- new_data
-  
-  # Handling missing values using mice 
-  
-  if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
+  if (any(is.na(new_data))) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 25)
     new_data_filled <- complete(mice_new_data)
+    predict(final_gam_model, newdata = new_data_filled)
+  } else {
+    predict(final_gam_model, newdata = new_data)
+    
   }
   
-  # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
 
 # Example Use
 
-new_player_data <- filtered_data[filtered_data$PlayerName == 'Anthony Bass', ]
+new_player_data <- pitch_arsenal[pitch_arsenal$PlayerName == 'Anthony Bass', ]
 predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
@@ -1116,7 +1398,9 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SI_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_sinker == 'Yes')
+  filter(!is.na(sp_stuff), ind_sinker == 'Yes') |> 
+  select(-ind_sinker)
+
 
 
 # Rename movement columns in the filtered_data 
@@ -1126,47 +1410,53 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
+
 # Handling missing values using mice 
 
 
-mice_data <- filtered_data |> 
-  select(-PlayerName) |> 
-  mice(method = 'rf', m = 10, maxit = 100)
 
-data_filled <- complete(mice_data)
-
-# Split data into training and testing sets
+mice_small <- mice(filtered_data, method = 'rf', m = 6, maxit = 50)
 
 
 
-
-
-
-
-# K-Fold Cross-Validation
-
-
-
-
-data_filled$Throws <- as.factor(data_filled$Throws)
-data_filled$position <- as.factor(data_filled$position)
-
+# Define k fold cross validation
 
 k <- 6
-folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = TRUE)
 
-perform_cv <- function(fold, data) {
+# Initialize data frame to store results
+
+results <- data.frame(
+  fold = integer(),
+  rmse = double(),
+  train_ind = character(),
+  val_ind = character(),
+  stringsAsFactors = FALSE
+  
+)
+
+
+# Perform k-fold cross-validation
+
+for (i in 1:k) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-fold])
-  val_indices <- unlist(folds[fold])
+  train_indices <- unlist(folds[-i])
+  val_indices <- unlist(folds[i])
   
-  train_set <- data[train_indices, ]
-  val_set <- data[val_indices, ]
+  train_set <- filtered_data[train_indices, ]
+  val_set <- filtered_data[val_indices, ]
   
-  # Fit GAM model
+  if (any(is.na(train_set))) {
+    
+    # We're using a different imputed dataset to introduce variability 
+    imputed_data <- complete(mice_small, action = i)
+    train_set <- imputed_data[train_indices, ]
+  }
+  
+  # Fit the GAM model on the imputed training set
   gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
-                   + s(avg_release_extension, by = Throws) + Throws + 
+                   + s(avg_release_extension) + Throws + 
                      s(pfx_SI_pct, pfx_vSI, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
                      s(pfx_vSI, si_avg_spin, by = Throws) + 
@@ -1174,46 +1464,107 @@ perform_cv <- function(fold, data) {
                      s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
+  
   # Get model summary
   gam_summary <- summary(gam_model)
   
+  
+  
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  if (any(is.na(val_set))) {
+    
+    # Impute missing values in the validation set using mice with pmm method
+    val_set_imputed <- mice(val_set, method = 'pmm', m = 10, maxit = 10)
+    
+    # Within each fold, we use the first imputed dataset for simplicity
+    val_set_filled <- complete(val_set_imputed, action = 1)
+    
+    val_preds <- predict(gam_model, newdata = val_set_filled)
+    
+  } else {
+    
+    val_preds <- predict(gam_model, newdata = val_set)
+    
+  }
+  
+  
+  
+  
   
   # Extract metrics
-  R2 <- gam_summary$r.sq
-  Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  # Return results as a list
-  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
+  # Store results
+  results <- rbind(results, data.frame(
+    fold = i,
+    rmse = val_rmse,
+    train_ind = paste(train_indices, collapse = ','),
+    val_ind = paste(val_indices, collapse = ","),
+    stringsAsFactors = FALSE
+  ))
   
 }
 
 
-# Perform k-fold cross-validation using lapply
-cv_results <- lapply(1:k, perform_cv, data = data_filled)
+cat('Average RMSE: ', median(results$rmse))
 
-# Combine results into a single data frame
-cv_results <- bind_rows(cv_results)
 
-# Average cross-validation results
-median_results <- apply(cv_results[, 2:4], 2, median)
-print(median_results)
+# Find the fold with the minimum RMSE
+best_fold <- results[which.min(results$rmse), ]
+
+
+# Extract the best indices
+best_train_ind <- unlist(strsplit(best_fold$train_ind, ","))
+best_val_ind <- unlist(strsplit(best_fold$val_ind, ","))
+
+
+
+
+# Final Imputation
+
+# Split filtered_data by best indices
+train_data <- filtered_data[best_train_ind, ]
+val_data <- filtered_data[best_val_ind, ]
+
+
+# Impute each split separately using a more thorough mice algorithm
+mice_train <- mice(train_data, method = 'rf', m = 10, maxit = 100)
+mice_val <- mice(val_data, method = 'rf', m = 10, maxit = 100)
+
+
+# Combine imputed splits into one complete dataset
+final_imputed_train <- complete(mice_train)
+final_imputed_val <- complete(mice_val)
+
+
+# Rebind the final complete dataset
+data_filled <- rbind(final_imputed_train, final_imputed_val)
+
 
 
 
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_SI, by = interaction(Throws, position))
-                       + s(avg_release_extension, by = Throws) + Throws + 
-                         s(pfx_SI_pct, pfx_vSI, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_SI_X, pfx_SI_Z) +
-                         s(pfx_vSI, si_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
-                       data = data_filled)
+if (any(is.na(filtered_data))) {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = data_filled)
+} else {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = filtered_data)
+}
 
 
 summary(final_gam_model)
@@ -1226,24 +1577,21 @@ summary(final_gam_model)
 
 predict_sp_stuff <- function(new_data) {
   
-  new_data_filled <- new_data
-  
-  # Handling missing values using mice 
-  
-  if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
+  if (any(is.na(new_data))) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 25)
     new_data_filled <- complete(mice_new_data)
+    predict(final_gam_model, newdata = new_data_filled)
+  } else {
+    predict(final_gam_model, newdata = new_data)
+    
   }
-  
-  # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
 
 # Example Use
 
-new_player_data <- filtered_data[filtered_data$PlayerName == 'Alek Manoah', ]
+new_player_data <- pitch_arsenal[pitch_arsenal$PlayerName == 'Alek Manoah', ]
 predicted_stuff_plus <- predict_sp_stuff(new_player_data)
 print(predicted_stuff_plus)
 
@@ -1273,7 +1621,9 @@ relevant_cols <- c('Season', 'PlayerName', 'sp_stuff', 'RAR', 'pfx_SL_pct',
 
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
-  filter(!is.na(sp_stuff), ind_slider == 'Yes')
+  filter(!is.na(sp_stuff), ind_slider == 'Yes') |> 
+  select(-ind_slider)
+
 
 
 # Rename movement columns in the filtered_data 
@@ -1283,48 +1633,55 @@ names(filtered_data) <- gsub('-', '_', names(filtered_data))
 
 
 
+
+
+
 # Handling missing values using mice 
 
 
-mice_data <- filtered_data |> 
-  select(-PlayerName) |> 
-  mice(method = 'rf', m = 10, maxit = 100)
 
-data_filled <- complete(mice_data)
-
-
-# Split data into training and testing sets
+mice_small <- mice(filtered_data, method = 'rf', m = 6, maxit = 50)
 
 
 
-
-
-
-
-# K-Fold Cross-Validation
-
-
-
-
-data_filled$Throws <- as.factor(data_filled$Throws)
-data_filled$position <- as.factor(data_filled$position)
-
+# Define k fold cross validation
 
 k <- 6
-folds <- createFolds(data_filled$sp_stuff, k = k, list = T)
+folds <- createFolds(filtered_data$sp_stuff, k = k, list = TRUE)
 
-perform_cv <- function(fold, data) {
+
+
+# Initialize data frame to store results
+results <- data.frame(
+  fold = integer(),
+  rmse = double(),
+  train_ind = character(),
+  val_ind = character(),
+  stringsAsFactors = FALSE
+)
+
+
+# Perform k-fold cross-validation
+
+for (i in 1:k) {
   
   # Split into training and validation sets
-  train_indices <- unlist(folds[-fold])
-  val_indices <- unlist(folds[fold])
+  train_indices <- unlist(folds[-i])
+  val_indices <- unlist(folds[i])
   
-  train_set <- data[train_indices, ]
-  val_set <- data[val_indices, ]
+  train_set <- filtered_data[train_indices, ]
+  val_set <- filtered_data[val_indices, ]
   
-  # Fit GAM model
+  if (any(is.na(train_set))) {
+    
+    # We're using a different imputed dataset to introduce variability 
+    imputed_data <- complete(mice_small, action = i)
+    train_set <- imputed_data[train_indices, ]
+  }
+  
+  # Fit the GAM model on the imputed training set
   gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
-                   + s(avg_release_extension, by = Throws) + Throws + 
+                   + s(avg_release_extension) + Throws + 
                      s(pfx_SL_pct, pfx_vSL, by = position) + position +
                      s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
                      s(pfx_vSL, sl_avg_spin, by = Throws) + 
@@ -1332,47 +1689,105 @@ perform_cv <- function(fold, data) {
                      s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
                    data = train_set)
   
+  
   # Get model summary
   gam_summary <- summary(gam_model)
   
+  
+  
   # Predict on validation set
-  val_preds <- predict(gam_model, newdata = val_set)
+  if (any(is.na(val_set))) {
+    
+    # Impute missing values in the validation set using mice with pmm method
+    val_set_imputed <- mice(val_set, method = 'pmm', m = 10, maxit = 10)
+    
+    # Within each fold, we use the first imputed dataset for simplicity
+    val_set_filled <- complete(val_set_imputed, action = 1)
+    
+    val_preds <- predict(gam_model, newdata = val_set_filled)
+    
+  } else {
+    
+    val_preds <- predict(gam_model, newdata = val_set)
+    
+  }
+  
+  
+
   
   # Extract metrics
-  R2 <- gam_summary$r.sq
-  Deviance_Explained <- gam_summary$dev.expl
   val_rmse <- sqrt(mean((val_set$sp_stuff - val_preds)^2))
   
-  
-  # Return results as a list
-  return(data.frame(fold = fold, R2 = R2, Deviance_Explained = Deviance_Explained, rmse = val_rmse))
-  
+  # Store results for the current fold
+  results <- rbind(results, data.frame(
+    fold = i,
+    rmse = val_rmse,
+    train_ind = paste(train_indices, collapse = ","),
+    val_ind = paste(val_indices, collapse = ","),
+    stringsAsFactors = FALSE
+  ))
 }
 
 
-# Perform k-fold cross-validation using lapply
-cv_results <- lapply(1:k, perform_cv, data = data_filled)
+cat('Average RMSE: ', median(results$rmse))
 
-# Combine results into a single data frame
-cv_results <- bind_rows(cv_results)
 
-# Average cross-validation results
-median_results <- apply(cv_results[, 2:4], 2, median)
-print(median_results)
+# Find the fold with the minimum RMSE
+best_fold <- results[which.min(results$rmse), ]
+
+
+# Extract the best indices
+best_train_ind <- unlist(strsplit(best_fold$train_ind, ","))
+best_val_ind <- unlist(strsplit(best_fold$val_ind, ","))
+
+
+
+
+# Final Imputation
+
+# Split filtered_data by best indices
+train_data <- filtered_data[best_train_ind, ]
+val_data <- filtered_data[best_val_ind, ]
+
+
+# Impute each split separately using a more thorough mice algorithm
+mice_train <- mice(train_data, method = 'rf', m = 10, maxit = 100)
+mice_val <- mice(val_data, method = 'rf', m = 10, maxit = 100)
+
+
+# Combine imputed splits into one complete dataset
+final_imputed_train <- complete(mice_train)
+final_imputed_val <- complete(mice_val)
+
+
+# Rebind the final complete dataset
+data_filled <- rbind(final_imputed_train, final_imputed_val)
+
 
 
 
 
 # Fit final GAM calculator
 
-final_gam_model <- gam(sp_stuff ~ s(sp_s_SL, by = interaction(Throws, position))
-                       + s(avg_release_extension, by = Throws) + Throws + 
-                         s(pfx_SL_pct, pfx_vSL, by = position) + position +
-                         s(avg_rp_x, avg_rp_z) + s(pfx_SL_X, pfx_SL_Z) +
-                         s(pfx_vSL, sl_avg_spin, by = Throws) + 
-                         s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
-                         s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
-                       data = data_filled)
+if (any(is.na(filtered_data))) {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = data_filled)
+} else {
+  final_gam_model <- gam(sp_stuff ~ s(sp_s_CH, by = interaction(Throws, position))
+                         + s(avg_release_extension) + Throws + 
+                           s(pfx_CH_pct, pfx_vCH, by = position) + position +
+                           s(avg_rp_x, avg_rp_z) + s(pfx_CH_X, pfx_CH_Z) +
+                           s(pfx_vCH, ch_avg_spin, by = Throws) + 
+                           s(ERA_minus, FIP_minus) +  s(K_9_plus, WHIP_plus) + 
+                           s(RAR, WAR) + s(REW, BABIP_plus) + s(xFIP_minus, WPA),
+                         data = filtered_data)
+}
 
 
 
@@ -1386,17 +1801,15 @@ summary(final_gam_model)
 
 predict_sp_stuff <- function(new_data) {
   
-  new_data_filled <- new_data
-  
-  # Handling missing values using mice 
-  
-  if (sum(is.na(new_data)) != 0) {
-    mice_new_data <- mice(new_data, method = 'rf', m = 5, maxit = 50)
+  if (any(is.na(new_data))) {
+    mice_new_data <- mice(new_data, method = 'pmm', m = 5, maxit = 25)
     new_data_filled <- complete(mice_new_data)
+    predict(final_gam_model, newdata = new_data_filled)
+  } else {
+    predict(final_gam_model, newdata = new_data)
+    
   }
   
-  # Predict sp_stuff using GAM model
-  predict(final_gam_model, newdata = new_data_filled)
   
 }
 
