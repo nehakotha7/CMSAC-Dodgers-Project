@@ -415,6 +415,15 @@ cond_data |>
   #facet_wrap(~ Throws)
 
 
+# EDA ---------------------------------------------------------------------
+
+cond_data |> 
+  ggplot(aes(x=sp_stuff, y=`K_9+`, color = `xFIP-`))+
+  geom_point(alpha = 0.7)+
+  scale_color_viridis_c()+
+  theme_light()+
+  xlab("Overall Stuff+")+
+  ylab("K/9+")
 
 # Pitchers Who Added or Subtracted a Fastball -----------------------------
 
@@ -1728,7 +1737,7 @@ names(rf_data) <- gsub('-', '_', names(rf_data))
 library(ranger) #suarez
 change_rf <- ranger(sp_s_FF ~ pfx_vCH + ch_avg_spin + pfx_CH_X + pfx_CH_Z
                     + avg_release_extension + avg_rp_x + avg_rp_z, 
-                   num.trees = 500, importance = "impurity", data = rf_data)
+                   num.trees = 500, importance = "impurity", data = rf_data, mtry=2)
 change_rf
 library(vip)
 vip(change_rf)
@@ -1772,3 +1781,212 @@ rf_2 |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+#Cutter
+rf_3 <- cond_data |> 
+  filter(ind_cutter == "Yes") |> 
+  filter(!is.na(fc_avg_spin), !is.na(sp_s_FF)) |> 
+  select(Season, PlayerNameRoute, pfx_FC_pct, pfx_vFC, `pfx_FC-X`, `pfx_FC-Z`,
+         fc_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+names(rf_3) <- gsub('-', '_', names(rf_3))
+
+cutter_rf <- ranger(sp_s_FF ~ pfx_vFC + fc_avg_spin + pfx_FC_X + pfx_FC_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_3, mtry = 2)
+cutter_rf
+
+vip(cutter_rf)
+
+fc_predictions <- cutter_rf$predictions
+
+# Create a new data frame with actual and predicted values
+rf_results <- rf_3 |> 
+  mutate(pred = fc_predictions)
+
+rf_3 |>
+  mutate(pred = fc_predictions) |>
+  ggplot(aes(sp_s_FF, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+#Slider
+rf_4 <- cond_data |> 
+  filter(ind_slider == "Yes") |> 
+  filter(!is.na(sl_avg_spin), !is.na(sp_s_FF)) |> 
+  select(Season, PlayerNameRoute, pfx_SL_pct, pfx_vSL, `pfx_SL-X`, `pfx_SL-Z`,
+         sl_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+names(rf_4) <- gsub('-', '_', names(rf_4))
+
+slider_rf <- ranger(sp_s_FF ~ pfx_vSL + sl_avg_spin + pfx_SL_X + pfx_SL_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_4, mtry = 2)
+slider_rf
+
+vip_plot <- vip(slider_rf)
+
+# Extract the data frame from the vip plot object
+vip_data <- vip_plot$data
+
+# Rename the variables (example of changing names)
+vip_data$Variable <- recode(vip_data$Variable, 
+                            `pfx_vSL` = "Velocity",
+                            `sl_avg_spin` = "Spin Rate",
+                            `avg_release_extension` = "Avg Release Extension",
+                            `avg_rp_x` = "Avg Release Position X",
+                            `avg_rp_z` = "Avg Release Position Z", 
+                            `pfx_SL_X` = "Horizontal Movement",
+                            `pfx_SL_Z` = 'Vertical Movement',
+                            )
+
+# Create a new vip plot using the modified data frame
+vip_plot_modified <- ggplot(vip_data, aes(x = Importance, y = reorder(Variable, Importance))) +
+  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
+  labs(
+    x = "Variable Importance", 
+    y = "Predictor Variables",
+    title = "Variable Importance Plot",
+    subtitle = "Random Forest Model"
+  )
+
+vip_plot_modified
+
+sl_predictions <- slider_rf$predictions
+
+# Create a new data frame with actual and predicted values
+rf_results <- rf_4 |> 
+  mutate(pred = sl_predictions)
+
+rf_4 |>
+  mutate(pred = sl_predictions) |>
+  ggplot(aes(sp_s_FF, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+#Curveball
+rf_5 <- cond_data |> 
+  filter(ind_curve == "Yes") |> 
+  filter(!is.na(cu_avg_spin), !is.na(sp_s_FF)) |> 
+  select(Season, PlayerNameRoute, pfx_CU_pct, pfx_vCU, `pfx_CU-X`, `pfx_CU-Z`,
+         cu_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+names(rf_5) <- gsub('-', '_', names(rf_5))
+
+curve_rf <- ranger(sp_s_FF ~ pfx_vCU + cu_avg_spin + pfx_CU_X + pfx_CU_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_5, mtry = 2)
+curve_rf
+
+vip(curve_rf)
+
+cu_predictions <- curve_rf$predictions
+
+# Create a new data frame with actual and predicted values
+rf_results <- rf_5 |> 
+  mutate(pred = cu_predictions)
+
+rf_5 |>
+  mutate(pred = cu_predictions) |>
+  ggplot(aes(sp_s_FF, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+#Splitter
+rf_6 <- cond_data |> 
+  filter(ind_split == "Yes") |> 
+  filter(!is.na(fs_avg_spin), !is.na(sp_s_FF)) |> 
+  select(Season, PlayerNameRoute, pfx_FS_pct, pfx_vFS, `pfx_FS-X`, `pfx_FS-Z`,
+         fs_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+names(rf_6) <- gsub('-', '_', names(rf_6))
+
+split_rf <- ranger(sp_s_FF ~ pfx_vFS + fs_avg_spin + pfx_FS_X + pfx_FS_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_6, mtry = 2)
+split_rf
+
+vip(split_rf)
+
+fs_predictions <- split_rf$predictions
+
+# Create a new data frame with actual and predicted values
+rf_results <- rf_6 |> 
+  mutate(pred = fs_predictions)
+
+rf_6 |>
+  mutate(pred = fs_predictions) |>
+  ggplot(aes(sp_s_FF, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+#Knuckle Curve: no spin
+rf_7 <- cond_data |> 
+  filter(ind_kc == "Yes") |> 
+  filter(!is.na(sp_s_FF)) |> 
+  select(Season, PlayerNameRoute, pfx_KC_pct, pfx_vKC, `pfx_KC-X`, `pfx_KC-Z`,
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+names(rf_7) <- gsub('-', '_', names(rf_7))
+
+kc_rf <- ranger(sp_s_FF ~ pfx_vKC + pfx_KC_X + pfx_KC_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_7, mtry = 2)
+kc_rf
+
+vip(kc_rf)
+
+kc_predictions <- kc_rf$predictions
+
+# Create a new data frame with actual and predicted values
+rf_results <- rf_7 |> 
+  mutate(pred = kc_predictions)
+
+rf_7 |>
+  mutate(pred = kc_predictions) |>
+  ggplot(aes(sp_s_FF, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+
+#Dodged Bar Plot for RMSE
+rmse_data = data.frame(Linear_Regression = c(14.19, 15.7, 17.76, 17.2, 16.39, 
+                                             15.79, 17.28),
+                       Random_Forest = c(13.14, 15.52, 16.69, 16.27, 15.51, 
+                                         15.09, 15.84),
+                       row.names = c("Sinker", "Cutter", "Slider", "Curveball",
+                                     "Changeup", "Splitter", "Knuckle Curve"))
+# Sample Data
+rmse_data <- data.frame(
+  Pitch_Type = rep(c("Sinker", "Cutter", "Slider", "Curveball", "Changeup",
+                     "Splitter", "Knuckle Curve"), times = 2),
+  RMSE = c(14.19, 15.7, 17.76, 17.2, 16.39, 15.79, 17.28, 13.14, 15.52, 16.69, 
+           16.27, 15.51, 15.09, 15.84),
+  Method = rep(c("Linear Regression", "Random Forest"), each = 7)
+)
+
+# Customize the order of the factors
+rmse_data <- rmse_data |>
+  mutate(Pitch_Type = factor(Pitch_Type, levels = c("Sinker", "Splitter", "Changeup",
+                                                    "Cutter", "Knuckle Curve", 
+                                                    "Curveball", "Slider")))
+
+ggplot(rmse_data, aes(x=Pitch_Type, y=RMSE, fill = Method)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.7), alpha = 0.7) +
+  labs(title = "RMSE by Pitch Type and Modeling Method",
+       x = "Pitch Type",
+       y = "RMSE") +
+  theme_bw() +
+  scale_fill_manual(values = c("Random Forest" = "blue", "Linear Regression" = "red")) # Customize colors
+
+# Messing with MICE -------------------------------------------------------
+
+#Why can't we just impute everything with a random forest? 
+#What if we did?
+cond_mice <- cond_data
+names(cond_mice) <- gsub('-', '_', names(cond_mice))
+cond_mice <- cond_mice |> 
+  select(Season, position, Throws, PlayerNameRoute,
+         pfx_vCH, pfx_vCU, pfx_vFA, pfx_vFC, 
+         pfx_vSI, pfx_vSL, pfx_CH_X, pfx_CU_X, pfx_FA_X, pfx_FC_X, 
+         pfx_SI_X, pfx_SL_X, pfx_CH_Z, pfx_CU_Z, pfx_FA_Z, pfx_FC_Z, 
+         pfx_SI_Z, pfx_SL_Z, pfx_vFS, pfx_FS_X, pfx_FS_Z, 
+         pfx_vKC, pfx_KC_X, pfx_KC_Z, pfx_wKC_C, ff_avg_spin, si_avg_spin,
+         fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin) 
+cond_mice$Season = as.factor(cond_mice$Season)
+mice(cond_mice, method = "rf", m = 5, maxit = 100)
+completed_mice <- complete(cond_mice)
