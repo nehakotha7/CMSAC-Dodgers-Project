@@ -449,7 +449,7 @@ has_changed_fastball <- function(data) {
 changed_fastball_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_fastball(.)) |>
-  select(1:12, 97)
+  select(1:12, ind_fastball)
 
 changed_fastball_pitchers <- changed_fastball_pitchers |> 
   mutate(change_type = case_when(
@@ -508,7 +508,7 @@ has_changed_sinker <- function(data) {
 changed_sinker_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_sinker(.)) |>
-  select(1:12, 103)
+  select(1:12, ind_sinker)
 
 changed_sinker_pitchers <- changed_sinker_pitchers |> 
   mutate(change_type = case_when(
@@ -540,7 +540,7 @@ has_changed_slider <- function(data) {
 changed_slider_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_slider(.)) |>
-  select(1:12, 98)
+  select(1:12, ind_slider)
 
 changed_slider_pitchers <- changed_slider_pitchers |> 
   mutate(change_type = case_when(
@@ -572,7 +572,7 @@ has_changed_cutter <- function(data) {
 changed_cutter_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_cutter(.)) |>
-  select(1:12, 99)
+  select(1:12, ind_cutter)
 
 changed_cutter_pitchers <- changed_cutter_pitchers |> 
   mutate(change_type = case_when(
@@ -604,7 +604,7 @@ has_changed_curve <- function(data) {
 changed_curve_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_curve(.)) |>
-  select(1:12, 100)
+  select(1:12, ind_curve)
 
 changed_curve_pitchers <- changed_curve_pitchers |> 
   mutate(change_type = case_when(
@@ -637,7 +637,7 @@ has_changed_change <- function(data) {
 changed_change_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_change(.)) |>
-  select(1:12, 101)
+  select(1:12, ind_change)
 
 changed_change_pitchers <- changed_change_pitchers |> 
   mutate(change_type = case_when(
@@ -670,7 +670,7 @@ has_changed_split <- function(data) {
 changed_split_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_split(.)) |>
-  select(1:12, 102)
+  select(1:12, ind_split)
 
 changed_split_pitchers <- changed_split_pitchers |> 
   mutate(change_type = case_when(
@@ -702,7 +702,7 @@ has_changed_kc <- function(data) {
 changed_kc_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_kc(.)) |>
-  select(1:12, 106)
+  select(1:12, ind_kc)
 
 changed_kc_pitchers <- changed_kc_pitchers |> 
   mutate(change_type = case_when(
@@ -734,7 +734,7 @@ has_changed_screw <- function(data) {
 changed_screw_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_screw(.)) |>
-  select(1:12, 104)
+  select(1:12, ind_screw)
 
 changed_screw_pitchers <- changed_screw_pitchers |> 
   mutate(change_type = case_when(
@@ -766,7 +766,7 @@ has_changed_fork <- function(data) {
 changed_fork_pitchers <- cond_data |>
   group_by(xMLBAMID) |>
   do(has_changed_fork(.)) |>
-  select(1:12, 105)
+  select(1:12, ind_fork)
 
 changed_fork_pitchers <- changed_fork_pitchers |> 
   mutate(change_type = case_when(
@@ -1486,35 +1486,60 @@ all_velo_lm <- lm(Fastball_Stuff_Plus ~ Velocity, data = all_velo)
 summary(all_velo_lm)
 
 
-# Ridge and Lasso Regression --------------------------------------------------------
-#Attempting to model Fastball Stuff+ Using Sinker Traits
-#Ridge
+# Lasso Modeling ----------------------------------------------------------
+#Modeling Fastball Stuff+ from Sinker Characteristics
+si_to_ff <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_sinker == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`, 
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_SI, sp_s_FF) |> 
+  drop_na()
+
 # predictors
-model_x <- si_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, si_avg_spin, 
-         `pfx_SI-X`, `pfx_SI-Z`, avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  as.matrix() 
-  
+model_x <- si_to_ff |> 
+  select(pfx_vSI:avg_rp_z) |> 
+  as.matrix()
 
 # response
-model_y <- si_data$sp_s_FF
+model_y <- si_to_ff |> 
+  pull(sp_s_FF)
+#Lasso Model
+si_to_ff_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(si_to_ff_lasso_cv)
+tidy_lasso_coef <- tidy(si_to_ff_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = si_to_ff_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_ff_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
 
-#What do the initial regression coefficients look like?
-si_lm |> 
-  tidy() |> 
-  mutate(term = fct_reorder(term, estimate)) |> 
-  ggplot(aes(x = estimate, y = term, 
-             fill = estimate > 0)) +
+tidy_lasso_cv <- tidy(si_to_ff_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = si_to_ff_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_ff_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefficient estimates
+# tidy_lasso_coef |>
+#   filter(lambda == prostate_lasso_cv$lambda.1se)
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = si_to_ff_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
   geom_col(color = "white", show.legend = FALSE) +
-  scale_fill_manual(values = c("darkred", "darkblue"))
-
-sinker_ridge <- glmnet(model_x, model_y, alpha = 0)
-plot(sinker_ridge, xvar = "lambda")
-sinker_ridge_cv <- cv.glmnet(model_x, model_y, alpha = 0)
-plot(sinker_ridge_cv)
-
-
-
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
 
 # Changeup Predicting Fastball Stuff+ Calc ------------------------------------
 # From Gabe's Code and Switched Around
@@ -1973,20 +1998,19 @@ ggplot(rmse_data, aes(x=Pitch_Type, y=RMSE, fill = Method)) +
   theme_bw() +
   scale_fill_manual(values = c("Random Forest" = "blue", "Linear Regression" = "red")) # Customize colors
 
-# Messing with MICE -------------------------------------------------------
 
-#Why can't we just impute everything with a random forest? 
-#What if we did?
-cond_mice <- cond_data
-names(cond_mice) <- gsub('-', '_', names(cond_mice))
-cond_mice <- cond_mice |> 
-  select(Season, position, Throws, PlayerNameRoute,
-         pfx_vCH, pfx_vCU, pfx_vFA, pfx_vFC, 
+
+# HistGradientBoostingRegressor -------------------------------------------
+
+
+hgbc <- cond_data
+names(hgbc) <- gsub('-', '_', names(hgbc))  
+hgbc <- hgbc |> 
+  filter(ind_fastball == "Yes", !is.na(sp_s_FF)) |> 
+  select(xMLBAMID, pfx_vCH, pfx_vCU, pfx_vFA, pfx_vFC, 
          pfx_vSI, pfx_vSL, pfx_CH_X, pfx_CU_X, pfx_FA_X, pfx_FC_X, 
          pfx_SI_X, pfx_SL_X, pfx_CH_Z, pfx_CU_Z, pfx_FA_Z, pfx_FC_Z, 
          pfx_SI_Z, pfx_SL_Z, pfx_vFS, pfx_FS_X, pfx_FS_Z, 
-         pfx_vKC, pfx_KC_X, pfx_KC_Z, pfx_wKC_C, ff_avg_spin, si_avg_spin,
-         fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin) 
-cond_mice$Season = as.factor(cond_mice$Season)
-mice(cond_mice, method = "rf", m = 5, maxit = 100)
-completed_mice <- complete(cond_mice)
+         pfx_vKC, pfx_KC_X, pfx_KC_Z, ff_avg_spin, si_avg_spin,
+         fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, sp_s_FF)
+write.csv(hgbc, "hgbc")
