@@ -1487,18 +1487,16 @@ summary(all_velo_lm)
 
 
 # Lasso Modeling ----------------------------------------------------------
-#Modeling Fastball Stuff+ from Sinker Characteristics
+# Sinker ---> Fastball Stuff+
 si_to_ff <- cond_data |> 
   filter(ind_fastball == "Yes" & ind_sinker == "Yes") |> 
   select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`, 
          si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_SI, sp_s_FF) |> 
   drop_na()
-
 # predictors
 model_x <- si_to_ff |> 
   select(pfx_vSI:avg_rp_z) |> 
   as.matrix()
-
 # response
 model_y <- si_to_ff |> 
   pull(sp_s_FF)
@@ -1525,8 +1523,6 @@ tidy_lasso_cv |>
   scale_x_log10()
 
 # this will only print out non-zero coefficient estimates
-# tidy_lasso_coef |>
-#   filter(lambda == prostate_lasso_cv$lambda.1se)
 lasso_final <- glmnet(
   model_x, model_y, 
   alpha = 1,
@@ -1540,6 +1536,108 @@ lasso_final |>
   geom_col(color = "white", show.legend = FALSE) +
   scale_fill_manual(values = c("darkred", "darkblue")) +
   labs(x = "estimate", y = NULL)
+
+# Cutter ---> Fastball Stuff+
+fc_to_ff <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_cutter == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFC, `pfx_FC-X`, `pfx_FC-Z`, 
+         fc_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FC, sp_s_FF) |> 
+  drop_na()
+# predictors
+model_x <- fc_to_ff |> 
+  select(pfx_vFC:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- fc_to_ff |> 
+  pull(sp_s_FF)
+#Lasso Model
+fc_to_ff_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(fc_to_ff_lasso_cv)
+tidy_lasso_coef <- tidy(fc_to_ff_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = fc_to_ff_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_ff_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(fc_to_ff_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = fc_to_ff_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_ff_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefficient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = fc_to_ff_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Slider ---> Fastball Stuff+
+sl_to_ff <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_slider == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSL, `pfx_SL-X`, `pfx_SL-Z`, 
+         sl_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_SL, sp_s_FF) |> 
+  drop_na()
+# predictors
+model_x <- sl_to_ff |> 
+  select(pfx_vSL:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- sl_to_ff |> 
+  pull(sp_s_FF)
+#Lasso Model
+sl_to_ff_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(sl_to_ff_lasso_cv)
+tidy_lasso_coef <- tidy(sl_to_ff_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = sl_to_ff_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_ff_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(sl_to_ff_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = sl_to_ff_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_ff_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefficient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = sl_to_ff_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+
 
 # Changeup Predicting Fastball Stuff+ Calc ------------------------------------
 # From Gabe's Code and Switched Around
@@ -2014,3 +2112,6 @@ hgbc <- hgbc |>
          pfx_vKC, pfx_KC_X, pfx_KC_Z, ff_avg_spin, si_avg_spin,
          fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, sp_s_FF)
 write.csv(hgbc, "hgbc")
+
+ggplot(cond_data, aes(x=sp_s_CU, y=sp_s_FF))+
+  geom_point()
