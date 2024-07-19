@@ -177,7 +177,7 @@ cond_data <- cond_data |>
          `pfx_FO-X` = ifelse(Throws == "R", `pfx_FO-X` * -1, `pfx_FO-X`),
          `pfx_KC-X` = ifelse(Throws == "L", `pfx_KC-X` * -1, `pfx_KC-X`),
          `pfx_KN-X` = abs(`pfx_KN-X`)
-         )
+  )
 
 
 # Fully excluding the pitches that were thrown <5% of the time ------------
@@ -404,7 +404,7 @@ cond_data |>
 ggplot(cond_data, aes(x=`xFIP-`, colour = ind_curve))+
   geom_density()+
   facet_wrap(vars(ind_curve), nrow=2)
-  
+
 cond_data |>
   filter(ind_slider == "Yes") |>
   ggplot(aes(x = `pfx_SL-X`, y = sp_s_SL)) +
@@ -412,7 +412,7 @@ cond_data |>
   geom_smooth(method = "lm") +
   labs(x = "pfx_SL-X", y = "sp_s_SL") +
   ggtitle("Scatterplot of pfx_SL-X vs sp_s_SL (Slider Indicator = Yes)")
-  #facet_wrap(~ Throws)
+#facet_wrap(~ Throws)
 
 
 # EDA ---------------------------------------------------------------------
@@ -456,7 +456,7 @@ changed_fastball_pitchers <- changed_fastball_pitchers |>
     ind_fastball == "Yes" & lag(ind_fastball) == "No" ~ "Added",
     ind_fastball == "No" & lag(ind_fastball) == "Yes" ~ "Subtracted"
   ))
-  
+
 
 # Calculate the difference in 'FIP-' between consecutive years for each pitcher
 fip_diff <- changed_fastball_pitchers |>
@@ -962,7 +962,7 @@ train <- cond_data |>
   select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
   drop_na() |> 
   slice_sample(prop = 0.5) 
-  
+
 test <- cond_data |> 
   filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
   select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
@@ -1046,7 +1046,7 @@ si_data <- cond_data |>
   select(season, PlayerNameRoute, pfx_vSI, sp_s_FF, si_avg_spin, `pfx_SI-X`, 
          `pfx_SI-Z`, sp_s_SI, avg_release_extension, avg_rp_x, avg_rp_z) |> 
   drop_na()
-  
+
 plot_si <- si_data |>
   ggplot(aes(x = pfx_vSI, y = sp_s_FF)) +
   geom_point(size = 3, alpha = 0.5)
@@ -1087,7 +1087,7 @@ si_data <- cond_data |>
          `pfx_SI-X`, `pfx_SI-Z`, sp_s_SI, avg_release_extension, avg_rp_x, avg_rp_z)
 
 si_lm <- lm(sp_s_FF ~ pfx_vSI + si_avg_spin + `pfx_SI-X` + `pfx_SI-Z` + 
-                       avg_release_extension + avg_rp_x + avg_rp_z, data = si_data)
+              avg_release_extension + avg_rp_x + avg_rp_z, data = si_data)
 summary(si_lm)
 
 si_data <- si_data |> 
@@ -1194,7 +1194,7 @@ sl_data <- cond_data |>
          avg_release_extension, avg_rp_x, avg_rp_z)
 
 sl_lm <- lm(sp_s_FF ~ pfx_vSL + sl_avg_spin + `pfx_SL-X` + `pfx_SL-Z` + 
-                    avg_release_extension + avg_rp_x + avg_rp_z, data = sl_data)
+              avg_release_extension + avg_rp_x + avg_rp_z, data = sl_data)
 summary(sl_lm)
 
 sl_data <- sl_data |> 
@@ -1228,7 +1228,7 @@ cu_data <- cond_data |>
   select(pfx_vCU, sp_s_FF, cu_avg_spin, `pfx_CU-X`, `pfx_CU-Z`, sp_s_CU, 
          avg_release_extension, avg_rp_x, avg_rp_z)
 cu_lm <- lm(sp_s_FF ~ pfx_vCU + cu_avg_spin + `pfx_CU-X` + `pfx_CU-Z` + 
-                       avg_release_extension + avg_rp_x + avg_rp_z, data = cu_data)
+              avg_release_extension + avg_rp_x + avg_rp_z, data = cu_data)
 summary(cu_lm)
 
 cu_data <- cu_data |> 
@@ -1528,6 +1528,27 @@ lasso_final <- glmnet(
   alpha = 1,
   lambda = si_to_ff_lasso_cv$lambda.1se,
 )
+
+# Predict on the training data
+predictions <- predict(lasso_final, newx = model_x)
+
+# Calculate RMSE
+rmse <- sqrt(mean((model_y - predictions)^2))
+rmse
+
+observed_vs_predicted <- tibble(
+  Observed = model_y,
+  Predicted = as.vector(predictions)
+)
+
+observed_vs_predicted |>
+  ggplot(aes(x = Predicted, y = Observed)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", linewidth = 2) +
+  labs(title = "Predicted vs. Observed Values",
+       x = "Predicted Values",
+       y = "Observed Values")
+
 lasso_final |> 
   vi() |> 
   mutate(Variable = fct_reorder(Variable, Importance)) |>
@@ -1578,6 +1599,25 @@ lasso_final <- glmnet(
   alpha = 1,
   lambda = fc_to_ff_lasso_cv$lambda.1se,
 )
+# Predict on the training data
+predictions <- predict(lasso_final, newx = model_x)
+
+# Calculate RMSE
+rmse <- sqrt(mean((model_y - predictions)^2))
+rmse
+
+observed_vs_predicted <- tibble(
+  Observed = model_y,
+  Predicted = as.vector(predictions)
+)
+
+observed_vs_predicted |>
+  ggplot(aes(x = Predicted, y = Observed)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", linewidth = 2) +
+  labs(title = "Predicted vs. Observed Values",
+       x = "Predicted Values",
+       y = "Observed Values")
 lasso_final |> 
   vi() |> 
   mutate(Variable = fct_reorder(Variable, Importance)) |>
@@ -1628,6 +1668,26 @@ lasso_final <- glmnet(
   alpha = 1,
   lambda = sl_to_ff_lasso_cv$lambda.1se,
 )
+# Predict on the training data
+predictions <- predict(lasso_final, newx = model_x)
+
+# Calculate RMSE
+rmse <- sqrt(mean((model_y - predictions)^2))
+rmse
+
+observed_vs_predicted <- tibble(
+  Observed = model_y,
+  Predicted = as.vector(predictions)
+)
+
+observed_vs_predicted |>
+  ggplot(aes(x = Predicted, y = Observed)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", linewidth = 2) +
+  labs(title = "Predicted vs. Observed Values",
+       x = "Predicted Values",
+       y = "Observed Values")
+
 lasso_final |> 
   vi() |> 
   mutate(Variable = fct_reorder(Variable, Importance)) |>
@@ -1678,6 +1738,25 @@ lasso_final <- glmnet(
   alpha = 1,
   lambda = cu_to_ff_lasso_cv$lambda.1se,
 )
+# Predict on the training data
+predictions <- predict(lasso_final, newx = model_x)
+
+# Calculate RMSE
+rmse <- sqrt(mean((model_y - predictions)^2))
+rmse
+
+observed_vs_predicted <- tibble(
+  Observed = model_y,
+  Predicted = as.vector(predictions)
+)
+
+observed_vs_predicted |>
+  ggplot(aes(x = Predicted, y = Observed)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", linewidth = 2) +
+  labs(title = "Predicted vs. Observed Values",
+       x = "Predicted Values",
+       y = "Observed Values")
 lasso_final |> 
   vi() |> 
   mutate(Variable = fct_reorder(Variable, Importance)) |>
@@ -1728,6 +1807,25 @@ lasso_final <- glmnet(
   alpha = 1,
   lambda = ch_to_ff_lasso_cv$lambda.1se,
 )
+# Predict on the training data
+predictions <- predict(lasso_final, newx = model_x)
+
+# Calculate RMSE
+rmse <- sqrt(mean((model_y - predictions)^2))
+rmse
+
+observed_vs_predicted <- tibble(
+  Observed = model_y,
+  Predicted = as.vector(predictions)
+)
+
+observed_vs_predicted |>
+  ggplot(aes(x = Predicted, y = Observed)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", linewidth = 2) +
+  labs(title = "Predicted vs. Observed Values",
+       x = "Predicted Values",
+       y = "Observed Values")
 lasso_final |> 
   vi() |> 
   mutate(Variable = fct_reorder(Variable, Importance)) |>
@@ -1749,7 +1847,7 @@ model_x <- fs_to_ff |>
   as.matrix()
 # response
 model_y <- fs_to_ff |> 
-  pull(sp_s_FS)
+  pull(sp_s_FF)
 #Lasso Model
 fs_to_ff_lasso_cv <- cv.glmnet(model_x, model_y, 
                                alpha = 1)
@@ -1778,6 +1876,25 @@ lasso_final <- glmnet(
   alpha = 1,
   lambda = fs_to_ff_lasso_cv$lambda.1se,
 )
+# Predict on the training data
+predictions <- predict(lasso_final, newx = model_x)
+
+# Calculate RMSE
+rmse <- sqrt(mean((model_y - predictions)^2))
+rmse
+
+observed_vs_predicted <- tibble(
+  Observed = model_y,
+  Predicted = as.vector(predictions)
+)
+
+observed_vs_predicted |>
+  ggplot(aes(x = Predicted, y = Observed)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", linewidth = 2) +
+  labs(title = "Predicted vs. Observed Values",
+       x = "Predicted Values",
+       y = "Observed Values")
 lasso_final |> 
   vi() |> 
   mutate(Variable = fct_reorder(Variable, Importance)) |>
@@ -1828,6 +1945,25 @@ lasso_final <- glmnet(
   alpha = 1,
   lambda = kc_to_ff_lasso_cv$lambda.1se,
 )
+# Predict on the training data
+predictions <- predict(lasso_final, newx = model_x)
+
+# Calculate RMSE
+rmse <- sqrt(mean((model_y - predictions)^2))
+rmse
+
+observed_vs_predicted <- tibble(
+  Observed = model_y,
+  Predicted = as.vector(predictions)
+)
+
+observed_vs_predicted |>
+  ggplot(aes(x = Predicted, y = Observed)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", linewidth = 2) +
+  labs(title = "Predicted vs. Observed Values",
+       x = "Predicted Values",
+       y = "Observed Values")
 lasso_final |> 
   vi() |> 
   mutate(Variable = fct_reorder(Variable, Importance)) |>
@@ -1880,6 +2016,26 @@ lasso_final <- glmnet(
   alpha = 1,
   lambda = ff_to_si_lasso_cv$lambda.1se,
 )
+# Predict on the training data
+predictions <- predict(lasso_final, newx = model_x)
+
+# Calculate RMSE
+rmse <- sqrt(mean((model_y - predictions)^2))
+rmse
+
+observed_vs_predicted <- tibble(
+  Observed = model_y,
+  Predicted = as.vector(predictions)
+)
+
+observed_vs_predicted |>
+  ggplot(aes(x = Predicted, y = Observed)) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", linewidth = 2) +
+  labs(title = "Predicted vs. Observed Values",
+       x = "Predicted Values",
+       y = "Observed Values")
+
 lasso_final |> 
   vi() |> 
   mutate(Variable = fct_reorder(Variable, Importance)) |>
@@ -1888,6 +2044,10 @@ lasso_final |>
   geom_col(color = "white", show.legend = FALSE) +
   scale_fill_manual(values = c("darkred", "darkblue")) +
   labs(x = "estimate", y = NULL)
+
+ff_to_si |> 
+  mutate(preds = predictions) |> 
+  view()
 
 # Cutter ---> Sinker Stuff+
 fc_to_si <- cond_data |> 
@@ -2024,7 +2184,7 @@ tidy_lasso_cv |>
              linetype = "dashed", color = "red") +
   scale_x_log10()
 
-# this will only print out non-zero coecuicient estimates
+# this will only print out non-zero coefficient estimates
 lasso_final <- glmnet(
   model_x, model_y, 
   alpha = 1,
@@ -2451,7 +2611,6 @@ tidy_lasso_cv |>
              linetype = "dashed", color = "red") +
   scale_x_log10()
 
-
 # Lasso Modeling: Slider Stuff+ ----------------------------------------------------------
 # Fastball ---> Slider Stuff+
 ff_to_sl <- cond_data |> 
@@ -2803,6 +2962,1410 @@ lasso_final |>
   scale_fill_manual(values = c("darkred", "darkblue")) +
   labs(x = "estimate", y = NULL)
 
+# Lasso Modeling: Curveball Stuff+ ----------------------------------------------------------
+# Sinker ---> Curveball Stuff+
+si_to_cu <- cond_data |> 
+  filter(ind_sinker == "Yes" & ind_curve == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`, 
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU) |> 
+  drop_na()
+# predictors
+model_x <- si_to_cu |> 
+  select(pfx_vSI:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- si_to_cu |> 
+  pull(sp_s_CU)
+#Lasso Model
+si_to_cu_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(si_to_cu_lasso_cv)
+tidy_lasso_coef <- tidy(si_to_cu_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = si_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(si_to_cu_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = si_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coesiicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = si_to_cu_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Fastball ---> Curveball Stuff+
+ff_to_cu <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_curve == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, `pfx_FA-X`, `pfx_FA-Z`, 
+         ff_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU) |> 
+  drop_na()
+# predictors
+model_x <- ff_to_cu |> 
+  select(pfx_vFA:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- ff_to_cu |> 
+  pull(sp_s_CU)
+#Lasso Model
+ff_to_cu_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(ff_to_cu_lasso_cv)
+tidy_lasso_coef <- tidy(ff_to_cu_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = ff_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ff_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(ff_to_cu_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = ff_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ff_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefficient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = ff_to_cu_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Cutter ---> Curveball Stuff+
+fc_to_cu <- cond_data |> 
+  filter(ind_cutter == "Yes" & ind_curve == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFC, `pfx_FC-X`, `pfx_FC-Z`, 
+         fc_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU) |> 
+  drop_na()
+# predictors
+model_x <- fc_to_cu |> 
+  select(pfx_vFC:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- fc_to_cu |> 
+  pull(sp_s_CU)
+#Lasso Model
+fc_to_cu_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(fc_to_cu_lasso_cv)
+tidy_lasso_coef <- tidy(fc_to_cu_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = fc_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(fc_to_cu_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = fc_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefcicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = fc_to_cu_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Slider ---> Curveball Stuff+
+sl_to_cu <- cond_data |> 
+  filter(ind_slider == "Yes" & ind_curve == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSL, `pfx_SL-X`, `pfx_SL-Z`, 
+         sl_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU) |> 
+  drop_na()
+# predictors
+model_x <- sl_to_cu |> 
+  select(pfx_vSL:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- sl_to_cu |> 
+  pull(sp_s_CU)
+#Lasso Model
+sl_to_cu_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(sl_to_cu_lasso_cv)
+tidy_lasso_coef <- tidy(sl_to_cu_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = sl_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(sl_to_cu_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = sl_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coeslicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = sl_to_cu_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Changeup ---> Curveball Stuff+
+ch_to_cu <- cond_data |> 
+  filter(ind_change == "Yes" & ind_curve == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, 
+         ch_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU) |> 
+  drop_na()
+# predictors
+model_x <- ch_to_cu |> 
+  select(pfx_vCH:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- ch_to_cu |> 
+  pull(sp_s_CU)
+#Lasso Model
+ch_to_cu_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(ch_to_cu_lasso_cv)
+tidy_lasso_coef <- tidy(ch_to_cu_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = ch_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ch_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(ch_to_cu_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = ch_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ch_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coechicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = ch_to_cu_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Splitter ---> Curveball Stuff+
+fs_to_cu <- cond_data |> 
+  filter(ind_split == "Yes" & ind_curve == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFS, `pfx_FS-X`, `pfx_FS-Z`, 
+         fs_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU) |> 
+  drop_na()
+# predictors
+model_x <- fs_to_cu |> 
+  select(pfx_vFS:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- fs_to_cu |> 
+  pull(sp_s_CU)
+#Lasso Model
+fs_to_cu_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(fs_to_cu_lasso_cv)
+tidy_lasso_coef <- tidy(fs_to_cu_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = fs_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fs_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(fs_to_cu_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = fs_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fs_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefsicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = fs_to_cu_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Knuckle Curve ---> Curveball Stuff+
+kc_to_cu <- cond_data |> 
+  filter(ind_kc == "Yes" & ind_curve == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vKC, `pfx_KC-X`, `pfx_KC-Z`, 
+         kc_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU) |> 
+  drop_na()
+# predictors
+model_x <- kc_to_cu |> 
+  select(pfx_vKC:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- kc_to_cu |> 
+  pull(sp_s_CU)
+#Lasso Model
+kc_to_cu_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(kc_to_cu_lasso_cv)
+tidy_lasso_coef <- tidy(kc_to_cu_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = kc_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = kc_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(kc_to_cu_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = kc_to_cu_lasso_cv$lambda.min) +
+  geom_vline(xintercept = kc_to_cu_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coekcicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = kc_to_cu_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Lasso Modeling: Changeup Stuff+ ----------------------------------------------------------
+# Sinker ---> Changeup Stuff+
+si_to_ch <- cond_data |> 
+  filter(ind_sinker == "Yes" & ind_change == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`, 
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
+  drop_na()
+# predictors
+model_x <- si_to_ch |> 
+  select(pfx_vSI:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- si_to_ch |> 
+  pull(sp_s_CH)
+#Lasso Model
+si_to_ch_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(si_to_ch_lasso_cv)
+tidy_lasso_coef <- tidy(si_to_ch_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = si_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(si_to_ch_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = si_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coesiicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = si_to_ch_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Fastball ---> Changeup Stuff+
+ff_to_ch <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, `pfx_FA-X`, `pfx_FA-Z`, 
+         ff_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
+  drop_na()
+# predictors
+model_x <- ff_to_ch |> 
+  select(pfx_vFA:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- ff_to_ch |> 
+  pull(sp_s_CH)
+#Lasso Model
+ff_to_ch_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(ff_to_ch_lasso_cv)
+tidy_lasso_coef <- tidy(ff_to_ch_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = ff_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ff_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(ff_to_ch_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = ff_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ff_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefficient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = ff_to_ch_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Cutter ---> Change Stuff+
+fc_to_ch <- cond_data |> 
+  filter(ind_cutter == "Yes" & ind_change == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFC, `pfx_FC-X`, `pfx_FC-Z`, 
+         fc_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
+  drop_na()
+# predictors
+model_x <- fc_to_ch |> 
+  select(pfx_vFC:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- fc_to_ch |> 
+  pull(sp_s_CH)
+#Lasso Model
+fc_to_ch_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(fc_to_ch_lasso_cv)
+tidy_lasso_coef <- tidy(fc_to_ch_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = fc_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(fc_to_ch_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = fc_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefcicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = fc_to_ch_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Slider ---> Changeup Stuff+
+sl_to_ch <- cond_data |> 
+  filter(ind_slider == "Yes" & ind_change == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSL, `pfx_SL-X`, `pfx_SL-Z`, 
+         sl_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
+  drop_na()
+# predictors
+model_x <- sl_to_ch |> 
+  select(pfx_vSL:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- sl_to_ch |> 
+  pull(sp_s_CH)
+#Lasso Model
+sl_to_ch_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(sl_to_ch_lasso_cv)
+tidy_lasso_coef <- tidy(sl_to_ch_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = sl_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(sl_to_ch_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = sl_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coeslicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = sl_to_ch_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Curveball ---> Changeup Stuff+
+cu_to_ch <- cond_data |> 
+  filter(ind_change == "Yes" & ind_curve == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vCU, `pfx_CU-X`, `pfx_CU-Z`, 
+         cu_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
+  drop_na()
+# predictors
+model_x <- cu_to_ch |> 
+  select(pfx_vCU:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- cu_to_ch |> 
+  pull(sp_s_CH)
+#Lasso Model
+cu_to_ch_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(cu_to_ch_lasso_cv)
+tidy_lasso_coef <- tidy(cu_to_ch_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = cu_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = cu_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(cu_to_ch_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = cu_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = cu_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coechicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = cu_to_ch_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Splitter ---> Changeup Stuff+
+fs_to_ch <- cond_data |> 
+  filter(ind_splitter == "Yes" & ind_change == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFS, `pfx_FS-X`, `pfx_FS-Z`, 
+         fs_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
+  drop_na()
+# predictors
+model_x <- fs_to_ch |> 
+  select(pfx_vFS:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- fs_to_ch |> 
+  pull(sp_s_CH)
+#Lasso Model
+fs_to_ch_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(fs_to_ch_lasso_cv)
+tidy_lasso_coef <- tidy(fs_to_ch_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = fs_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fs_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(fs_to_ch_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = fs_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fs_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefsicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = fs_to_ch_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Knuckle Curve ---> Changeup Stuff+
+kc_to_ch <- cond_data |> 
+  filter(ind_kc == "Yes" & ind_change == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vKC, `pfx_KC-X`, `pfx_KC-Z`, 
+         vg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
+  drop_na()
+# predictors
+model_x <- kc_to_ch |> 
+  select(pfx_vKC:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- si_to_ch |> 
+  pull(sp_s_CH)
+#Lasso Model
+kc_to_ch_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(kc_to_ch_lasso_cv)
+tidy_lasso_coef <- tidy(kc_to_ch_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = kc_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = kc_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(kc_to_ch_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = kc_to_ch_lasso_cv$lambda.min) +
+  geom_vline(xintercept = kc_to_ch_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coekcicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = kc_to_ch_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Lasso Modeling: Splitter Stuff+ ----------------------------------------------------------
+# Fastball ---> Splitter Stuff+
+ff_to_fs <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_split == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, `pfx_FA-X`, `pfx_FA-Z`, 
+         ff_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FS) |> 
+  drop_na()
+# predictors
+model_x <- ff_to_fs |> 
+  select(pfx_vFA:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- ff_to_fs |> 
+  pull(sp_s_FS)
+#Lasso Model
+ff_to_fs_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(ff_to_fs_lasso_cv)
+tidy_lasso_coef <- tidy(ff_to_fs_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = ff_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ff_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(ff_to_fs_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = ff_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ff_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefficient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = ff_to_fs_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Sinker ---> Splitter Stuff+
+si_to_fs <- cond_data |> 
+  filter(ind_sinker == "Yes" & ind_split == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`, 
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FS) |> 
+  drop_na()
+# predictors
+model_x <- si_to_fs |> 
+  select(pfx_vSI:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- si_to_fs |> 
+  pull(sp_s_FS)
+#Lasso Model
+si_to_fs_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(si_to_fs_lasso_cv)
+tidy_lasso_coef <- tidy(si_to_fs_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = si_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(si_to_fs_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = si_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coesiicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = si_to_fs_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Cutter ---> Splitter Stuff+
+fc_to_fs <- cond_data |> 
+  filter(ind_cutter == "Yes" & ind_split == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFC, `pfx_FC-X`, `pfx_FC-Z`, 
+         fc_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FS) |> 
+  drop_na()
+# predictors
+model_x <- fc_to_fs |> 
+  select(pfx_vFC:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- fc_to_fs |> 
+  pull(sp_s_FS)
+#Lasso Model
+fc_to_fs_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(fc_to_fs_lasso_cv)
+tidy_lasso_coef <- tidy(fc_to_fs_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = fc_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(fc_to_fs_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = fc_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefcicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = fc_to_fs_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Slider ---> Splitter Stuff+
+sl_to_fs <- cond_data |> 
+  filter(ind_slider == "Yes" & ind_split == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSL, `pfx_SL-X`, `pfx_SL-Z`, 
+         sl_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FS) |> 
+  drop_na()
+# predictors
+model_x <- sl_to_fs |> 
+  select(pfx_vSL:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- sl_to_fs |> 
+  pull(sp_s_FS)
+#Lasso Model
+sl_to_fs_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(sl_to_fs_lasso_cv)
+tidy_lasso_coef <- tidy(sl_to_fs_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = sl_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(sl_to_fs_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = sl_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coeslicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = sl_to_fs_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Curveball ---> Splitter Stuff+
+cu_to_fs <- cond_data |> 
+  filter(ind_curve == "Yes" & ind_split == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vCU, `pfx_CU-X`, `pfx_CU-Z`, 
+         cu_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FS) |> 
+  drop_na()
+# predictors
+model_x <- cu_to_fs |> 
+  select(pfx_vCU:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- cu_to_fs |> 
+  pull(sp_s_FS)
+#Lasso Model
+cu_to_fs_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(cu_to_fs_lasso_cv)
+tidy_lasso_coef <- tidy(cu_to_fs_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = cu_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = cu_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(cu_to_fs_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = cu_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = cu_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coecuicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = cu_to_fs_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Changeup ---> Splitter Stuff+
+ch_to_fs <- cond_data |> 
+  filter(ind_change == "Yes" & ind_split == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, 
+         ch_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FS) |> 
+  drop_na()
+# predictors
+model_x <- ch_to_fs |> 
+  select(pfx_vCH:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- ch_to_fs |> 
+  pull(sp_s_FS)
+#Lasso Model
+ch_to_fs_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(ch_to_fs_lasso_cv)
+tidy_lasso_coef <- tidy(ch_to_fs_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = ch_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ch_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(ch_to_fs_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = ch_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ch_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coechicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = ch_to_fs_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Knuckle Curve ---> Splitter Stuff+
+kc_to_fs <- cond_data |> 
+  filter(ind_kc == "Yes" & ind_split == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vKC, `pfx_KC-X`, `pfx_KC-Z`, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FS) |> 
+  drop_na()
+# predictors
+model_x <- kc_to_fs |> 
+  select(pfx_vKC:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- kc_to_fs |> 
+  pull(sp_s_FS)
+#Lasso Model
+kc_to_fs_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(kc_to_fs_lasso_cv)
+tidy_lasso_coef <- tidy(kc_to_fs_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = kc_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = kc_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(kc_to_fs_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = kc_to_fs_lasso_cv$lambda.min) +
+  geom_vline(xintercept = kc_to_fs_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coekcicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = kc_to_fs_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Lasso Modeling: Knuckle Curve Stuff+ ----------------------------------------------------------
+# Fastball ---> Knuckle Curve Stuff+
+ff_to_kc <- cond_data |> 
+  filter(ind_fastball == "Yes" & ind_kc == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, `pfx_FA-X`, `pfx_FA-Z`, 
+         ff_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_KC) |> 
+  drop_na()
+# predictors
+model_x <- ff_to_kc |> 
+  select(pfx_vFA:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- ff_to_kc |> 
+  pull(sp_s_KC)
+#Lasso Model
+ff_to_kc_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(ff_to_kc_lasso_cv)
+tidy_lasso_coef <- tidy(ff_to_kc_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = ff_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ff_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(ff_to_kc_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = ff_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ff_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefficient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = ff_to_kc_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Sinker ---> Knuckle Curve Stuff+
+si_to_kc <- cond_data |> 
+  filter(ind_sinker == "Yes" & ind_kc == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`, 
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_KC) |> 
+  drop_na()
+# predictors
+model_x <- si_to_kc |> 
+  select(pfx_vSI:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- si_to_kc |> 
+  pull(sp_s_KC)
+#Lasso Model
+si_to_kc_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(si_to_kc_lasso_cv)
+tidy_lasso_coef <- tidy(si_to_kc_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = si_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(si_to_kc_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = si_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = si_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coesiicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = si_to_kc_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Cutter ---> Knuckle Curve Stuff+
+fc_to_kc <- cond_data |> 
+  filter(ind_cutter == "Yes" & ind_kc == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFC, `pfx_FC-X`, `pfx_FC-Z`, 
+         fc_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_KC) |> 
+  drop_na()
+# predictors
+model_x <- fc_to_kc |> 
+  select(pfx_vFC:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- fc_to_kc |> 
+  pull(sp_s_KC)
+#Lasso Model
+fc_to_kc_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(fc_to_kc_lasso_cv)
+tidy_lasso_coef <- tidy(fc_to_kc_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = fc_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(fc_to_kc_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = fc_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fc_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefcicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = fc_to_kc_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Slider ---> Knuckle Curve Stuff+
+sl_to_kc <- cond_data |> 
+  filter(ind_slider == "Yes" & ind_kc == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vSL, `pfx_SL-X`, `pfx_SL-Z`, 
+         sl_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_KC) |> 
+  drop_na()
+# predictors
+model_x <- sl_to_kc |> 
+  select(pfx_vSL:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- sl_to_kc |> 
+  pull(sp_s_KC)
+#Lasso Model
+sl_to_kc_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(sl_to_kc_lasso_cv)
+tidy_lasso_coef <- tidy(sl_to_kc_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = sl_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(sl_to_kc_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = sl_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = sl_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coeslicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = sl_to_kc_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Curveball ---> Knuckle Curve Stuff+
+cu_to_kc <- cond_data |> 
+  filter(ind_curve == "Yes" & ind_kc == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vCU, `pfx_CU-X`, `pfx_CU-Z`, 
+         cu_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_KC) |> 
+  drop_na()
+# predictors
+model_x <- cu_to_kc |> 
+  select(pfx_vCU:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- cu_to_kc |> 
+  pull(sp_s_KC)
+#Lasso Model
+cu_to_kc_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(cu_to_kc_lasso_cv)
+tidy_lasso_coef <- tidy(cu_to_kc_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = cu_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = cu_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(cu_to_kc_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = cu_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = cu_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coecuicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = cu_to_kc_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Changeup ---> Knuckle Curve Stuff+
+ch_to_kc <- cond_data |> 
+  filter(ind_change == "Yes" & ind_kc == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, 
+         ch_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_KC) |> 
+  drop_na()
+# predictors
+model_x <- ch_to_kc |> 
+  select(pfx_vCH:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- ch_to_kc |> 
+  pull(sp_s_KC)
+#Lasso Model
+ch_to_kc_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(ch_to_kc_lasso_cv)
+tidy_lasso_coef <- tidy(ch_to_kc_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = ch_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ch_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(ch_to_kc_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = ch_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = ch_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coechicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = ch_to_kc_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
+# Splitter ---> Knuckle Curve Stuff+
+fs_to_kc <- cond_data |> 
+  filter(ind_split == "Yes" & ind_kc == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFS, `pfx_FS-X`, `pfx_FS-Z`, 
+         fs_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_KC) |> 
+  drop_na()
+# predictors
+model_x <- fs_to_kc |> 
+  select(pfx_vFS:avg_rp_z) |> 
+  as.matrix()
+# response
+model_y <- fs_to_kc |> 
+  pull(sp_s_KC)
+#Lasso Model
+fs_to_kc_lasso_cv <- cv.glmnet(model_x, model_y, 
+                               alpha = 1)
+plot(fs_to_kc_lasso_cv)
+tidy_lasso_coef <- tidy(fs_to_kc_lasso_cv$glmnet.fit)
+tidy_lasso_coef |> 
+  ggplot(aes(x = lambda, y = estimate, group = term)) +
+  scale_x_log10() +
+  geom_line(alpha = 0.75) +
+  geom_vline(xintercept = fs_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fs_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red")
+
+tidy_lasso_cv <- tidy(fs_to_kc_lasso_cv)
+tidy_lasso_cv |>
+  ggplot(aes(x = lambda, y = nzero)) +
+  geom_line() +
+  geom_vline(xintercept = fs_to_kc_lasso_cv$lambda.min) +
+  geom_vline(xintercept = fs_to_kc_lasso_cv$lambda.1se, 
+             linetype = "dashed", color = "red") +
+  scale_x_log10()
+
+# this will only print out non-zero coefsicient estimates
+lasso_final <- glmnet(
+  model_x, model_y, 
+  alpha = 1,
+  lambda = fs_to_kc_lasso_cv$lambda.1se,
+)
+lasso_final |> 
+  vi() |> 
+  mutate(Variable = fct_reorder(Variable, Importance)) |>
+  ggplot(aes(x = Importance, y = Variable, 
+             fill = Importance > 0)) +
+  geom_col(color = "white", show.legend = FALSE) +
+  scale_fill_manual(values = c("darkred", "darkblue")) +
+  labs(x = "estimate", y = NULL)
+
 
 
 # Changeup Predicting Fastball Stuff+ Calc ------------------------------------
@@ -3026,7 +4589,7 @@ names(rf_data) <- gsub('-', '_', names(rf_data))
 library(ranger) #suarez
 change_rf <- ranger(sp_s_FF ~ pfx_vCH + ch_avg_spin + pfx_CH_X + pfx_CH_Z
                     + avg_release_extension + avg_rp_x + avg_rp_z, 
-                   num.trees = 500, importance = "impurity", data = rf_data, mtry=2)
+                    num.trees = 500, importance = "impurity", data = rf_data, mtry=2)
 change_rf
 library(vip)
 vip(change_rf)
@@ -3124,7 +4687,7 @@ vip_data$Variable <- recode(vip_data$Variable,
                             `avg_rp_z` = "Avg Release Position Z", 
                             `pfx_SL_X` = "Horizontal Movement",
                             `pfx_SL_Z` = 'Vertical Movement',
-                            )
+)
 
 # Create a new vip plot using the modified data frame
 vip_plot_modified <- ggplot(vip_data, aes(x = Importance, y = reorder(Variable, Importance))) +
@@ -3159,8 +4722,8 @@ rf_5 <- cond_data |>
 names(rf_5) <- gsub('-', '_', names(rf_5))
 
 curve_rf <- ranger(sp_s_FF ~ pfx_vCU + cu_avg_spin + pfx_CU_X + pfx_CU_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_5, mtry = 2)
+                   + avg_release_extension + avg_rp_x + avg_rp_z, 
+                   num.trees = 500, importance = "impurity", data = rf_5, mtry = 2)
 curve_rf
 
 vip(curve_rf)
@@ -3186,8 +4749,8 @@ rf_6 <- cond_data |>
 names(rf_6) <- gsub('-', '_', names(rf_6))
 
 split_rf <- ranger(sp_s_FF ~ pfx_vFS + fs_avg_spin + pfx_FS_X + pfx_FS_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_6, mtry = 2)
+                   + avg_release_extension + avg_rp_x + avg_rp_z, 
+                   num.trees = 500, importance = "impurity", data = rf_6, mtry = 2)
 split_rf
 
 vip(split_rf)
@@ -3213,8 +4776,8 @@ rf_7 <- cond_data |>
 names(rf_7) <- gsub('-', '_', names(rf_7))
 
 kc_rf <- ranger(sp_s_FF ~ pfx_vKC + pfx_KC_X + pfx_KC_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_7, mtry = 2)
+                + avg_release_extension + avg_rp_x + avg_rp_z, 
+                num.trees = 500, importance = "impurity", data = rf_7, mtry = 2)
 kc_rf
 
 vip(kc_rf)
@@ -3263,6 +4826,53 @@ ggplot(rmse_data, aes(x=Pitch_Type, y=RMSE, fill = Method)) +
   scale_fill_manual(values = c("Random Forest" = "blue", "Linear Regression" = "red")) # Customize colors
 
 
+
+
+
+# Attempt at a GAM --------------------------------------------------------
+
+# Sinker Calc ----------------------------------------------------------
+# Select relevant columns
+
+relevant_cols <- c('Season', 'PlayerNameRoute', 'sp_s_FF', 'RAR', 'pfx_SI_pct', 
+                   'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_SI-X',
+                   'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_SI-Z', 'WAR', 'WPA'
+                   ,'avg_rp_z', 'avg_release_extension', 'si_avg_spin', 'WPA',
+                   'REW', 'pfx_vSI', 'sp_s_SI', 'xFIP_minus', "ind_sinker",
+                   'Throws', 'position', 'Addition_SI', 'Deletion_SI')
+
+# Ensure target and primary predictor are not missing
+
+filtered_data <- pitch_arsenal |> 
+  select(all_of(relevant_cols)) |> 
+  filter(!is.na(sp_s_FF), ind_sinker == 'Yes') 
+
+
+
+# Rename movement columns in the filtered_data 
+names(filtered_data) <- gsub('-', '_', names(filtered_data))
+
+
+# Perform k-fold cross-validation
+set.seed(4)
+train <- filtered_data |> 
+  slice_sample(prop = 0.7) |> 
+  drop_na()
+test <- filtered_data |> 
+  anti_join(train) |> 
+  drop_na()
+
+library(mgcv)
+ch_gam <- gam(sp_s_FF ~ s(pfx_vSI, si_avg_spin) + s(pfx_SI_X, pfx_SI_Z) + s(si_avg_spin) + 
+                s(avg_rp_x, avg_rp_z, avg_release_extension),
+              method = "REML", # more stable solution than default
+              data = train)
+tidy(ch_gam)
+gam.check(ch_gam)
+ch_gam |> 
+  augment(type.predict = "response") |> 
+  mutate(newdata = train, pred_class = round(.fitted)) |> 
+  summarize(RMSE = sqrt(mean((sp_s_FF - pred_class)^2)))
 
 # HistGradientBoostingRegressor -------------------------------------------
 
