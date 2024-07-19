@@ -250,150 +250,6 @@ cond_data <- cond_data |>
         #only avg spin for sweeper
         #only avg spin for slurve
 
-#Pivot Tables
-cond_data_freq <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, pfx_FA_pct, pfx_SI_pct, pfx_FC_pct, 
-         pfx_SL_pct, pfx_CH_pct, pfx_CU_pct, pfx_FS_pct, pfx_KC_pct, pfx_KN_pct, 
-         pfx_SC_pct, pfx_FO_pct) |> 
-  pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
-                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-                 contains("KC") | contains("KN") | contains("SC") | contains("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Percentage") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FA") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-    str_detect(Pitch_Type, "SC") ~ "Screwball",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
-
-cond_data_velo <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, pfx_vSI, pfx_vFC, pfx_vSL, 
-         pfx_vCH, pfx_vCU, pfx_vFS, pfx_vKC, pfx_vKN, pfx_vSC, pfx_vFO) |> 
-  pivot_longer(cols = ends_with("FA") | ends_with("SI") | ends_with("FC") | 
-                 ends_with("SL") | ends_with("CH") | ends_with("CU") | ends_with("FS") |
-                 ends_with("KC") | ends_with("KN") | ends_with("SC") | ends_with("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Velocity") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FA") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-    str_detect(Pitch_Type, "SC") ~ "Screwball",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
-
-cond_data_horizontal <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-X`, `pfx_SI-X`, `pfx_FC-X`, 
-         `pfx_SL-X`, `pfx_CH-X`, `pfx_CU-X`, `pfx_FS-X`, `pfx_KC-X`, `pfx_KN-X`, 
-         `pfx_SC-X`, `pfx_FO-X`) |> 
-  pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
-                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-                 contains("KC") | contains("KN") | contains("SC") | contains("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Horizontal_Movement") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FA") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-    str_detect(Pitch_Type, "SC") ~ "Screwball",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
-
-cond_data_vertical <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-Z`, `pfx_SI-Z`, `pfx_FC-Z`, 
-         `pfx_SL-Z`, `pfx_CH-Z`, `pfx_CU-Z`, `pfx_FS-Z`, `pfx_KC-Z`, `pfx_KN-Z`, 
-         `pfx_SC-Z`, `pfx_FO-Z`) |> 
-  pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
-                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-                 contains("KC") | contains("KN") | contains("SC") | contains("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Vertical_Movement") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FA") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-    str_detect(Pitch_Type, "SC") ~ "Screwball",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
-
-#Spin Data Problem
-cond_data_spin <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, ff_avg_spin, si_avg_spin, fc_avg_spin, 
-         sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, kn_avg_spin) |> 
-  pivot_longer(cols = contains("ff") | contains("si") | contains("fc") | 
-                 contains("sl") | contains("ch") | contains("cu") | contains("fs") |
-                 contains("kn"),
-               names_to = "Pitch_Type",
-               values_to = "Spin") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "ff") ~ "Fastball",
-    str_detect(Pitch_Type, "si") ~ "Sinker",
-    str_detect(Pitch_Type, "fc") ~ "Cutter",
-    str_detect(Pitch_Type, "sl") ~ "Slider",
-    str_detect(Pitch_Type, "ch") ~ "Changeup",
-    str_detect(Pitch_Type, "cu") ~ "Curveball",
-    str_detect(Pitch_Type, "fs") ~ "Splitter",
-    str_detect(Pitch_Type, "kn") ~ "Knuckleball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
-
-cond_data_stuff_plus <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL, 
-         sp_s_CH, sp_s_CU, sp_s_FS, sp_s_KC, sp_s_FO) |> 
-  pivot_longer(cols = contains("FF") | contains("SI") | contains("FC") | 
-                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-                 contains("KC") | contains("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Stuff_Plus") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FF") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
-
 #Why certain NAs here?
 cond_data_longer <- list(cond_data_freq, cond_data_velo, cond_data_horizontal, 
                          cond_data_vertical, cond_data_spin, cond_data_stuff_plus) |> 
@@ -422,91 +278,6 @@ cond_data |>
   labs(x = "pfx_SL-X", y = "sp_s_SL") +
   ggtitle("Scatterplot of pfx_SL-X vs sp_s_SL (Slider Indicator = Yes)")
 #facet_wrap(~ Throws)
-
-
-
-
-
-
-# Decision Tree -----------------------------------------------------------
-
-set.seed(123)
-train <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
-  select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
-  drop_na() |> 
-  slice_sample(prop = 0.5) 
-
-test <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
-  select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
-  anti_join(train, by = c("pfx_vCH", "pfx_CH-X", "pfx_CH-Z", "sp_s_CH", "sp_s_FF")) |> 
-  drop_na()
-
-if(anyNA(train) | anyNA(test)) {
-  stop("There are missing values in the training or testing data.")
-}
-
-
-hr_tree <- train(sp_s_FF ~ ., 
-                 data = train, 
-                 method = "rpart", 
-                 tuneLength = 20,
-                 trControl = trainControl(method = "cv", number = 10))
-str(train)
-str(test)
-
-# Load required packages
-library(dplyr)
-library(caret)
-
-# Set seed for reproducibility
-set.seed(123)
-
-# Prepare the data
-train <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
-  select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
-  slice_sample(prop = 0.5) |> 
-  drop_na()
-
-# Ensure no duplicate columns or issues with anti_join by creating a unique identifier
-train <- train |> 
-  mutate(id = row_number())
-
-# Prepare testing data
-test <- cond_data |> 
-  filter(ind_fastball == "Yes" & ind_change == "Yes") |>
-  select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
-  drop_na() |> 
-  mutate(id = row_number())
-
-# Exclude training data from testing data
-test <- test |> 
-  anti_join(train, by = "id") |> 
-  select(-id)
-
-# Check dimensions to ensure there is no mismatch
-print(dim(train))
-print(dim(test))
-
-# Ensure no missing values in training and testing data
-if(anyNA(train) | anyNA(test)) {
-  stop("There are missing values in the training or testing data.")
-}
-
-# Train decision tree model
-set.seed(1)
-hr_tree <- train(sp_s_FF ~ ., 
-                 data = train, 
-                 method = "rpart", 
-                 tuneLength = 20,
-                 trControl = trainControl(method = "cv", number = 10))
-
-# Print model summary
-print(hr_tree)
-
-
 
 
 # Simple Linear Regression ------------------------------------------------
@@ -598,37 +369,6 @@ si_filtered <- si_data |>
 
 rmse_value <- rmse(si_filtered$sp_s_FF, si_filtered$pred_vals)
 print(paste("RMSE:", rmse_value))
-
-# #Attempting Multiple Linear Regression with Sinker Velo and Slider Velo
-# cond_data_b <- cond_data |> 
-#   filter(ind_fastball == "Yes") |> 
-#   filter(ind_sinker == "Yes" | ind_slider == "Yes") |> 
-#   select(pfx_vSI, sp_s_FF, pfx_vSL)
-# 
-# multiple_lm2 <- lm(sp_s_FF ~ pfx_vSI + pfx_vSL, data=cond_data_b)
-# summary(multiple_lm2)
-# train_preds2 <- predict(multiple_lm2)
-# head(train_preds2)
-# cond_data_b <- cond_data_b |>
-#   mutate(pred_vals = train_preds2)
-# 
-# #Multiple Linear Regression with the speed of every pitch: NOT WORKING
-# cond_data_c <- cond_data |> 
-#   filter(ind_fastball == "Yes") |> 
-#   filter(ind_sinker == "Yes" | ind_slider == "Yes" | ind_change == "Yes" | 
-#            ind_curve == "Yes" | ind_cutter == "Yes" | ind_split == "Yes" |
-#            ind_screw == "Yes" | ind_kc == "Yes" | ind_knuckle =="Yes" | 
-#            ind_fork == "Yes") |> 
-#   select(sp_s_FF, pfx_vSL, pfx_vSI, pfx_vCH, pfx_vCU, pfx_vFC, pfx_vFS, pfx_vSC, 
-#          pfx_vKC, pfx_vKN, pfx_vFO)
-# multiple_lm3 <- lm(sp_s_FF ~ pfx_vSL + pfx_vSI + pfx_vCH + pfx_vCU + pfx_vFC + 
-#                    pfx_vFS + pfx_vKC,
-#                    data = cond_data_c)
-# #Error comes from: screwball, knuckleball, forkball
-# summary(multiple_lm3)
-
-#Since combining pitches isn't working, temporarily pivoting to looking at every
-#trait for each pitch (Sinker is above)
 
 #Multiple Linear Regression with Cutter Characteristics (plus release data)
 fc_data <- cond_data |> 
@@ -944,7 +684,6 @@ cond_data_b <- cond_data_b |>
   mutate(pred_vals = train_preds2)
 
 
-
 #Linear Regression with Cond_Data_Longer - Sinker Velo and Fastball Stuff+
 # Filter for sinker velocity
 sinker_velo <- cond_data_velo |>
@@ -982,6 +721,7 @@ library(vip)
 library(ranger)
 theme_set(theme_light())
 library(stacks)
+library(Metrics)
 
 #PREDICTING FASTBALL STUFF+ --------------------
 
@@ -1032,6 +772,10 @@ rf_changeup |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate RMSE
+rmse_value_changeup <- rmse(rf_results_changeup$sp_s_FF, rf_results_changeup$pred)
+print(paste("RMSE for Changeup:", rmse_value_changeup))
+
 # Sinker
 rf_sinker <- cond_data |> 
   filter(ind_sinker == "Yes") |> 
@@ -1078,6 +822,11 @@ rf_sinker |>
   ggplot(aes(sp_s_FF, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate RMSE
+rmse_value_sinker <- rmse(rf_results_sinker$sp_s_FF, rf_results_sinker$pred)
+print(paste("RMSE for Sinker:", rmse_value_sinker))
+
 
 # Cutter
 rf_cutter <- cond_data |> 
@@ -1126,6 +875,11 @@ rf_cutter |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate RMSE
+rmse_value_cutter <- rmse(rf_results_cutter$sp_s_FF, rf_results_cutter$pred)
+print(paste("RMSE for Cutter:", rmse_value_cutter))
+
+
 # Slider
 rf_slider <- cond_data |> 
   filter(ind_slider == "Yes") |> 
@@ -1172,6 +926,11 @@ rf_slider |>
   ggplot(aes(sp_s_FF, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate RMSE
+rmse_value_slider <- rmse(rf_results_slider$sp_s_FF, rf_results_slider$pred)
+print(paste("RMSE for Slider:", rmse_value_slider))
+
 
 # Curveball
 rf_curveball <- cond_data |> 
@@ -1220,6 +979,11 @@ rf_curveball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate RMSE
+rmse_value_curveball <- rmse(rf_results_curveball$sp_s_FF, rf_results_curveball$pred)
+print(paste("RMSE for Curveball:", rmse_value_curveball))
+
+
 # Splitter
 rf_splitter <- cond_data |> 
   filter(ind_split == "Yes") |> 
@@ -1264,7 +1028,7 @@ vip_plot_modified
 fs_predictions <- split_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_splitter |> 
+rf_results_splitter <- rf_splitter |> 
   mutate(pred = fs_predictions)
 
 rf_splitter |>
@@ -1272,6 +1036,11 @@ rf_splitter |>
   ggplot(aes(sp_s_FF, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate RMSE
+rmse_value_splitter <- rmse(rf_results_splitter$sp_s_FF, rf_results_splitter$pred)
+print(paste("RMSE for Splitter:", rmse_value_splitter))
+
 
 #Knuckle Curve: no spin
 rf_knucklecurve <- cond_data |> 
@@ -1316,14 +1085,21 @@ vip_plot_modified
 kc_predictions <- kc_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_knucklecurve |> 
+rf_results_knucklecurve <- rf_knucklecurve |> 
   mutate(pred = kc_predictions)
+
 
 rf_knucklecurve |>
   mutate(pred = kc_predictions) |>
   ggplot(aes(sp_s_FF, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate RMSE
+rmse_value_knucklecurve <- rmse(rf_results_knucklecurve$sp_s_FF, rf_results_knucklecurve$pred)
+print(paste("RMSE for Knuckle Curve:", rmse_value_knucklecurve))
+
+
 
 
 #PREDICTING SINKER STUFF+ --------------------
@@ -1375,6 +1151,10 @@ rf_changeup |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Changeup RMSE
+rmse_value_changeup <- rmse(rf_results_changeup$sp_s_SI, rf_results_changeup$pred)
+print(paste("RMSE for Changeup:", rmse_value_changeup))
+
 
 # Fastball
 rf_fastball <- cond_data |> 
@@ -1423,6 +1203,11 @@ rf_fastball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Fastball RMSE
+rmse_value_fastball <- rmse(rf_results_fastball$sp_s_SI, rf_results_fastball$pred)
+print(paste("RMSE for Fastball:", rmse_value_fastball))
+
+
 # Cutter
 rf_cutter <- cond_data |> 
   filter(ind_cutter == "Yes") |> 
@@ -1469,6 +1254,11 @@ rf_cutter |>
   ggplot(aes(sp_s_SI, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Cutter RMSE
+rmse_value_cutter <- rmse(rf_results_cutter$sp_s_SI, rf_results_cutter$pred)
+print(paste("RMSE for Cutter:", rmse_value_cutter))
+
 
 # Slider
 rf_slider <- cond_data |> 
@@ -1564,6 +1354,11 @@ rf_curveball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Curveball RMSE
+rmse_value_curveball <- rmse(rf_results_curveball$sp_s_SI, rf_results_curveball$pred)
+print(paste("RMSE for Curveball:", rmse_value_curveball))
+
+
 # Splitter
 rf_splitter <- cond_data |> 
   filter(ind_split == "Yes") |> 
@@ -1608,7 +1403,7 @@ vip_plot_modified
 fs_predictions <- split_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_splitter |> 
+rf_results_splitter <- rf_splitter |> 
   mutate(pred = fs_predictions)
 
 rf_splitter |>
@@ -1616,6 +1411,11 @@ rf_splitter |>
   ggplot(aes(sp_s_SI, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Splitter RMSE
+rmse_value_splitter <- rmse(rf_results_splitter$sp_s_SI, rf_results_splitter$pred)
+print(paste("RMSE for Splitter:", rmse_value_splitter))
+
 
 #Knuckle Curve: no spin
 rf_knucklecurve <- cond_data |> 
@@ -1660,7 +1460,7 @@ vip_plot_modified
 kc_predictions <- kc_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_knucklecurve |> 
+rf_results_knucklecurve <- rf_knucklecurve |> 
   mutate(pred = kc_predictions)
 
 rf_knucklecurve |>
@@ -1669,55 +1469,12 @@ rf_knucklecurve |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Knuckle Curve RMSE
+rmse_value_knucklecurve <- rmse(rf_results_knucklecurve$sp_s_SI, rf_results_knucklecurve$pred)
+print(paste("RMSE for Knuckle Curve:", rmse_value_knucklecurve))
+
 
 #PREDICTING CHANGEUP STUFF+ -----------------
-
-#Sinker
-rf_sinker <- cond_data |> 
-  filter(ind_sinker == "Yes") |> 
-  filter(!is.na(si_avg_spin), !is.na(sp_s_CH)) |> 
-  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
-         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH)
-names(rf_sinker) <- gsub('-', '_', names(rf_sinker))
-
-sinker_rf <- ranger(sp_s_CH ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_sinker, mtry = 2)
-sinker_rf
-vip_plot_sinker <- vip(sinker_rf)
-
-vip_data_sinker <- vip_plot_sinker$data
-
-vip_data_sinker$Variable <- recode(vip_data_sinker$Variable, 
-                                     `pfx_vSI` = "Velocity",
-                                     `si_avg_spin` = "Spin Rate",
-                                     `avg_release_extension` = "Avg Release Extension",
-                                     `avg_rp_x` = "Avg Release Position X",
-                                     `avg_rp_z` = "Avg Release Position Z", 
-                                     `pfx_SI_X` = "Horizontal Movement",
-                                     `pfx_SI_Z` = "Vertical Movement")
-
-vip_plot_modified_sinker <- ggplot(vip_data_sinker, aes(x = Importance, y = reorder(Variable, Importance))) +
-  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
-  labs(
-    x = "Variable Importance", 
-    y = "Predictor Variables",
-    title = "Variable Importance Plot: Sinker",
-    subtitle = "Random Forest Model"
-  )
-
-vip_plot_modified_sinker
-
-si_predictions <- sinker_rf$predictions
-
-rf_results_sinker <- rf_sinker |> 
-  mutate(pred = si_predictions)
-
-rf_sinker |>
-  mutate(pred = si_predictions) |>
-  ggplot(aes(sp_s_CH, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
 # Fastball
 rf_fastball <- cond_data |> 
@@ -1766,6 +1523,63 @@ rf_fastball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Fastball RMSE
+rmse_value_fastball <- rmse(rf_results_fastball$sp_s_CH, rf_results_fastball$pred)
+print(paste("RMSE for Fastball:", rmse_value_fastball))
+
+
+#Sinker
+rf_sinker <- cond_data |> 
+  filter(ind_sinker == "Yes") |> 
+  filter(!is.na(si_avg_spin), !is.na(sp_s_CH)) |> 
+  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH)
+names(rf_sinker) <- gsub('-', '_', names(rf_sinker))
+
+sinker_rf <- ranger(sp_s_CH ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_sinker, mtry = 2)
+sinker_rf
+vip_plot_sinker <- vip(sinker_rf)
+
+vip_data_sinker <- vip_plot_sinker$data
+
+vip_data_sinker$Variable <- recode(vip_data_sinker$Variable, 
+                                     `pfx_vSI` = "Velocity",
+                                     `si_avg_spin` = "Spin Rate",
+                                     `avg_release_extension` = "Avg Release Extension",
+                                     `avg_rp_x` = "Avg Release Position X",
+                                     `avg_rp_z` = "Avg Release Position Z", 
+                                     `pfx_SI_X` = "Horizontal Movement",
+                                     `pfx_SI_Z` = "Vertical Movement")
+
+vip_plot_modified_sinker <- ggplot(vip_data_sinker, aes(x = Importance, y = reorder(Variable, Importance))) +
+  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
+  labs(
+    x = "Variable Importance", 
+    y = "Predictor Variables",
+    title = "Variable Importance Plot: Sinker",
+    subtitle = "Random Forest Model"
+  )
+
+vip_plot_modified_sinker
+
+si_predictions <- sinker_rf$predictions
+
+rf_results_sinker <- rf_sinker |> 
+  mutate(pred = si_predictions)
+
+rf_sinker |>
+  mutate(pred = si_predictions) |>
+  ggplot(aes(sp_s_CH, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Sinker RMSE
+rmse_value_sinker <- rmse(rf_results_sinker$sp_s_CH, rf_results_sinker$pred)
+print(paste("RMSE for Sinker:", rmse_value_sinker))
+
+
 # Cutter
 rf_cutter <- cond_data |> 
   filter(ind_cutter == "Yes") |> 
@@ -1812,6 +1626,11 @@ rf_cutter |>
   ggplot(aes(sp_s_CH, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Cutter RMSE
+rmse_value_cutter <- rmse(rf_results_cutter$sp_s_CH, rf_results_cutter$pred)
+print(paste("RMSE for Cutter:", rmse_value_cutter))
+
 
 # Slider
 rf_slider <- cond_data |> 
@@ -1860,6 +1679,11 @@ rf_slider |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Slider RMSE
+rmse_value_slider <- rmse(rf_results_slider$sp_s_CH, rf_results_slider$pred)
+print(paste("RMSE for Slider:", rmse_value_slider))
+
+
 # Curveball
 rf_curveball <- cond_data |> 
   filter(ind_curve == "Yes") |> 
@@ -1907,6 +1731,11 @@ rf_curveball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Curveball RMSE
+rmse_value_curveball <- rmse(rf_results_curveball$sp_s_CH, rf_results_curveball$pred)
+print(paste("RMSE for Curveball:", rmse_value_curveball))
+
+
 # Splitter
 rf_splitter <- cond_data |> 
   filter(ind_split == "Yes") |> 
@@ -1951,7 +1780,7 @@ vip_plot_modified
 fs_predictions <- split_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_splitter |> 
+rf_results_splitter <- rf_splitter |> 
   mutate(pred = fs_predictions)
 
 rf_splitter |>
@@ -1959,6 +1788,11 @@ rf_splitter |>
   ggplot(aes(sp_s_CH, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Splitter RMSE
+rmse_value_splitter <- rmse(rf_results_splitter$sp_s_CH, rf_results_splitter$pred)
+print(paste("RMSE for Splitter:", rmse_value_splitter))
+
 
 #Knuckle Curve: no spin
 rf_knucklecurve <- cond_data |> 
@@ -2003,7 +1837,7 @@ vip_plot_modified
 kc_predictions <- kc_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_knucklecurve |> 
+rf_results_knucklecurve <- rf_knucklecurve |> 
   mutate(pred = kc_predictions)
 
 rf_knucklecurve |>
@@ -2011,6 +1845,10 @@ rf_knucklecurve |>
   ggplot(aes(sp_s_CH, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Knuckle Curve RMSE
+rmse_value_knucklecurve <- rmse(rf_results_knucklecurve$sp_s_CH, rf_results_knucklecurve$pred)
+print(paste("RMSE for Knuckle Curve:", rmse_value_knucklecurve))
 
 
 #PREDICTING CUTTER STUFF+ --------------------
@@ -2062,53 +1900,10 @@ rf_changeup |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Changeup RMSE
+rmse_value_changeup <- rmse(rf_results_changeup$sp_s_FC, rf_results_changeup$pred)
+print(paste("RMSE for Changeup:", rmse_value_changeup))
 
-#Sinker
-rf_sinker <- cond_data |> 
-  filter(ind_sinker == "Yes") |> 
-  filter(!is.na(si_avg_spin), !is.na(sp_s_FC)) |> 
-  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
-         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FC)
-names(rf_sinker) <- gsub('-', '_', names(rf_sinker))
-
-sinker_rf <- ranger(sp_s_FC ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_sinker, mtry = 2)
-sinker_rf
-vip_plot_sinker <- vip(sinker_rf)
-
-vip_data_sinker <- vip_plot_sinker$data
-
-vip_data_sinker$Variable <- recode(vip_data_sinker$Variable, 
-                                   `pfx_vSI` = "Velocity",
-                                   `si_avg_spin` = "Spin Rate",
-                                   `avg_release_extension` = "Avg Release Extension",
-                                   `avg_rp_x` = "Avg Release Position X",
-                                   `avg_rp_z` = "Avg Release Position Z", 
-                                   `pfx_SI_X` = "Horizontal Movement",
-                                   `pfx_SI_Z` = "Vertical Movement")
-
-vip_plot_modified_sinker <- ggplot(vip_data_sinker, aes(x = Importance, y = reorder(Variable, Importance))) +
-  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
-  labs(
-    x = "Variable Importance", 
-    y = "Predictor Variables",
-    title = "Variable Importance Plot: Sinker",
-    subtitle = "Random Forest Model"
-  )
-
-vip_plot_modified_sinker
-
-si_predictions <- sinker_rf$predictions
-
-rf_results_sinker <- rf_sinker |> 
-  mutate(pred = si_predictions)
-
-rf_sinker |>
-  mutate(pred = si_predictions) |>
-  ggplot(aes(sp_s_FC, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
 # Fastball
 rf_fastball <- cond_data |> 
@@ -2157,6 +1952,63 @@ rf_fastball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Fastball RMSE
+rmse_value_fastball <- rmse(rf_results_fastball$sp_s_FC, rf_results_fastball$pred)
+print(paste("RMSE for Fastball:", rmse_value_fastball))
+
+
+#Sinker
+rf_sinker <- cond_data |> 
+  filter(ind_sinker == "Yes") |> 
+  filter(!is.na(si_avg_spin), !is.na(sp_s_FC)) |> 
+  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FC)
+names(rf_sinker) <- gsub('-', '_', names(rf_sinker))
+
+sinker_rf <- ranger(sp_s_FC ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_sinker, mtry = 2)
+sinker_rf
+vip_plot_sinker <- vip(sinker_rf)
+
+vip_data_sinker <- vip_plot_sinker$data
+
+vip_data_sinker$Variable <- recode(vip_data_sinker$Variable, 
+                                   `pfx_vSI` = "Velocity",
+                                   `si_avg_spin` = "Spin Rate",
+                                   `avg_release_extension` = "Avg Release Extension",
+                                   `avg_rp_x` = "Avg Release Position X",
+                                   `avg_rp_z` = "Avg Release Position Z", 
+                                   `pfx_SI_X` = "Horizontal Movement",
+                                   `pfx_SI_Z` = "Vertical Movement")
+
+vip_plot_modified_sinker <- ggplot(vip_data_sinker, aes(x = Importance, y = reorder(Variable, Importance))) +
+  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
+  labs(
+    x = "Variable Importance", 
+    y = "Predictor Variables",
+    title = "Variable Importance Plot: Sinker",
+    subtitle = "Random Forest Model"
+  )
+
+vip_plot_modified_sinker
+
+si_predictions <- sinker_rf$predictions
+
+rf_results_sinker <- rf_sinker |> 
+  mutate(pred = si_predictions)
+
+rf_sinker |>
+  mutate(pred = si_predictions) |>
+  ggplot(aes(sp_s_FC, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Sinker RMSE
+rmse_value_sinker <- rmse(rf_results_sinker$sp_s_FC, rf_results_sinker$pred)
+print(paste("RMSE for Sinker:", rmse_value_sinker))
+
+
 # Slider
 rf_slider <- cond_data |> 
   filter(ind_slider == "Yes") |> 
@@ -2203,6 +2055,11 @@ rf_slider |>
   ggplot(aes(sp_s_FC, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Slider RMSE
+rmse_value_slider <- rmse(rf_results_slider$sp_s_FC, rf_results_slider$pred)
+print(paste("RMSE for Slider:", rmse_value_slider))
+
 
 # Curveball
 rf_curveball <- cond_data |> 
@@ -2251,6 +2108,11 @@ rf_curveball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Curveball RMSE
+rmse_value_curveball <- rmse(rf_results_curveball$sp_s_FC, rf_results_curveball$pred)
+print(paste("RMSE for Curveball:", rmse_value_curveball))
+
+
 # Splitter
 rf_splitter <- cond_data |> 
   filter(ind_split == "Yes") |> 
@@ -2295,7 +2157,7 @@ vip_plot_modified
 fs_predictions <- split_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_splitter |> 
+rf_results_splitter <- rf_splitter |> 
   mutate(pred = fs_predictions)
 
 rf_splitter |>
@@ -2303,6 +2165,11 @@ rf_splitter |>
   ggplot(aes(sp_s_FC, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Splitter RMSE
+rmse_value_splitter <- rmse(rf_results_splitter$sp_s_FC, rf_results_splitter$pred)
+print(paste("RMSE for Splitter:", rmse_value_splitter))
+
 
 #Knuckle Curve: no spin
 rf_knucklecurve <- cond_data |> 
@@ -2347,7 +2214,7 @@ vip_plot_modified
 kc_predictions <- kc_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_knucklecurve |> 
+rf_results_knucklecurve <- rf_knucklecurve |> 
   mutate(pred = kc_predictions)
 
 rf_knucklecurve |>
@@ -2355,6 +2222,11 @@ rf_knucklecurve |>
   ggplot(aes(sp_s_FC, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Knuckle Curve RMSE
+rmse_value_knucklecurve <- rmse(rf_results_knucklecurve$sp_s_FC, rf_results_knucklecurve$pred)
+print(paste("RMSE for Knuckle Curve:", rmse_value_knucklecurve))
+
 
 
 #PREDICTING SLIDER STUFF+ --------------------
@@ -2406,53 +2278,10 @@ rf_changeup |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Changeup RMSE
+rmse_value_changeup <- rmse(rf_results_changeup$sp_s_SL, rf_results_changeup$pred)
+print(paste("RMSE for Changeup:", rmse_value_changeup))
 
-#Sinker
-rf_sinker <- cond_data |> 
-  filter(ind_sinker == "Yes") |> 
-  filter(!is.na(si_avg_spin), !is.na(sp_s_SL)) |> 
-  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
-         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_SL)
-names(rf_sinker) <- gsub('-', '_', names(rf_sinker))
-
-sinker_rf <- ranger(sp_s_SL ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_sinker, mtry = 2)
-sinker_rf
-vip_plot_sinker <- vip(sinker_rf)
-
-vip_data_sinker <- vip_plot_sinker$data
-
-vip_data_sinker$Variable <- recode(vip_data_sinker$Variable, 
-                                   `pfx_vSI` = "Velocity",
-                                   `si_avg_spin` = "Spin Rate",
-                                   `avg_release_extension` = "Avg Release Extension",
-                                   `avg_rp_x` = "Avg Release Position X",
-                                   `avg_rp_z` = "Avg Release Position Z", 
-                                   `pfx_SI_X` = "Horizontal Movement",
-                                   `pfx_SI_Z` = "Vertical Movement")
-
-vip_plot_modified_sinker <- ggplot(vip_data_sinker, aes(x = Importance, y = reorder(Variable, Importance))) +
-  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
-  labs(
-    x = "Variable Importance", 
-    y = "Predictor Variables",
-    title = "Variable Importance Plot: Sinker",
-    subtitle = "Random Forest Model"
-  )
-
-vip_plot_modified_sinker
-
-si_predictions <- sinker_rf$predictions
-
-rf_results_sinker <- rf_sinker |> 
-  mutate(pred = si_predictions)
-
-rf_sinker |>
-  mutate(pred = si_predictions) |>
-  ggplot(aes(sp_s_SL, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
 # Fastball
 rf_fastball <- cond_data |> 
@@ -2501,6 +2330,63 @@ rf_fastball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Fastball RMSE
+rmse_value_fastball <- rmse(rf_results_fastball$sp_s_SL, rf_results_fastball$pred)
+print(paste("RMSE for Fastball:", rmse_value_fastball))
+
+
+#Sinker
+rf_sinker <- cond_data |> 
+  filter(ind_sinker == "Yes") |> 
+  filter(!is.na(si_avg_spin), !is.na(sp_s_SL)) |> 
+  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_SL)
+names(rf_sinker) <- gsub('-', '_', names(rf_sinker))
+
+sinker_rf <- ranger(sp_s_SL ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_sinker, mtry = 2)
+sinker_rf
+vip_plot_sinker <- vip(sinker_rf)
+
+vip_data_sinker <- vip_plot_sinker$data
+
+vip_data_sinker$Variable <- recode(vip_data_sinker$Variable, 
+                                   `pfx_vSI` = "Velocity",
+                                   `si_avg_spin` = "Spin Rate",
+                                   `avg_release_extension` = "Avg Release Extension",
+                                   `avg_rp_x` = "Avg Release Position X",
+                                   `avg_rp_z` = "Avg Release Position Z", 
+                                   `pfx_SI_X` = "Horizontal Movement",
+                                   `pfx_SI_Z` = "Vertical Movement")
+
+vip_plot_modified_sinker <- ggplot(vip_data_sinker, aes(x = Importance, y = reorder(Variable, Importance))) +
+  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
+  labs(
+    x = "Variable Importance", 
+    y = "Predictor Variables",
+    title = "Variable Importance Plot: Sinker",
+    subtitle = "Random Forest Model"
+  )
+
+vip_plot_modified_sinker
+
+si_predictions <- sinker_rf$predictions
+
+rf_results_sinker <- rf_sinker |> 
+  mutate(pred = si_predictions)
+
+rf_sinker |>
+  mutate(pred = si_predictions) |>
+  ggplot(aes(sp_s_SL, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Sinker RMSE
+rmse_value_sinker <- rmse(rf_results_sinker$sp_s_SL, rf_results_sinker$pred)
+print(paste("RMSE for Sinker:", rmse_value_sinker))
+
+
 # Cutter
 rf_cutter <- cond_data |> 
   filter(ind_cutter == "Yes") |> 
@@ -2547,6 +2433,11 @@ rf_cutter |>
   ggplot(aes(sp_s_SL, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Cutter RMSE
+rmse_value_cutter <- rmse(rf_results_cutter$sp_s_SL, rf_results_cutter$pred)
+print(paste("RMSE for Cutter:", rmse_value_cutter))
+
 
 # Curveball
 rf_curveball <- cond_data |> 
@@ -2595,6 +2486,11 @@ rf_curveball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Curveball RMSE
+rmse_value_curveball <- rmse(rf_results_curveball$sp_s_SL, rf_results_curveball$pred)
+print(paste("RMSE for Curveball:", rmse_value_curveball))
+
+
 # Splitter
 rf_splitter <- cond_data |> 
   filter(ind_split == "Yes") |> 
@@ -2639,7 +2535,7 @@ vip_plot_modified
 fs_predictions <- split_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_splitter |> 
+rf_results_splitter <- rf_splitter |> 
   mutate(pred = fs_predictions)
 
 rf_splitter |>
@@ -2647,6 +2543,11 @@ rf_splitter |>
   ggplot(aes(sp_s_SL, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Splitter RMSE
+rmse_value_splitter <- rmse(rf_results_splitter$sp_s_SL, rf_results_splitter$pred)
+print(paste("RMSE for Splitter:", rmse_value_splitter))
+
 
 #Knuckle Curve: no spin
 rf_knucklecurve <- cond_data |> 
@@ -2691,7 +2592,7 @@ vip_plot_modified
 kc_predictions <- kc_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_knucklecurve |> 
+rf_results_knucklecurve <- rf_knucklecurve |> 
   mutate(pred = kc_predictions)
 
 rf_knucklecurve |>
@@ -2699,6 +2600,11 @@ rf_knucklecurve |>
   ggplot(aes(sp_s_SL, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Knuckle Curve RMSE
+rmse_value_knucklecurve <- rmse(rf_results_knucklecurve$sp_s_SL, rf_results_knucklecurve$pred)
+print(paste("RMSE for Knuckle Curve:", rmse_value_knucklecurve))
+
 
 
 #PREDICTING CURVEBALL STUFF+ --------------------
@@ -2750,53 +2656,10 @@ rf_changeup |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Changeup RMSE
+rmse_value_changeup <- rmse(rf_results_changeup$sp_s_CU, rf_results_changeup$pred)
+print(paste("RMSE for Changeup:", rmse_value_changeup))
 
-#Sinker
-rf_sinker <- cond_data |> 
-  filter(ind_sinker == "Yes") |> 
-  filter(!is.na(si_avg_spin), !is.na(sp_s_CU)) |> 
-  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
-         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU)
-names(rf_sinker) <- gsub('-', '_', names(rf_sinker))
-
-sinker_rf <- ranger(sp_s_CU ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_sinker, mtry = 2)
-sinker_rf
-vip_plot_sinker <- vip(sinker_rf)
-
-vip_data_sinker <- vip_plot_sinker$data
-
-vip_data_sinker$Variable <- recode(vip_data_sinker$Variable, 
-                                   `pfx_vSI` = "Velocity",
-                                   `si_avg_spin` = "Spin Rate",
-                                   `avg_release_extension` = "Avg Release Extension",
-                                   `avg_rp_x` = "Avg Release Position X",
-                                   `avg_rp_z` = "Avg Release Position Z", 
-                                   `pfx_SI_X` = "Horizontal Movement",
-                                   `pfx_SI_Z` = "Vertical Movement")
-
-vip_plot_modified_sinker <- ggplot(vip_data_sinker, aes(x = Importance, y = reorder(Variable, Importance))) +
-  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
-  labs(
-    x = "Variable Importance", 
-    y = "Predictor Variables",
-    title = "Variable Importance Plot: Sinker",
-    subtitle = "Random Forest Model"
-  )
-
-vip_plot_modified_sinker
-
-si_predictions <- sinker_rf$predictions
-
-rf_results_sinker <- rf_sinker |> 
-  mutate(pred = si_predictions)
-
-rf_sinker |>
-  mutate(pred = si_predictions) |>
-  ggplot(aes(sp_s_CU, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
 # Fastball
 rf_fastball <- cond_data |> 
@@ -2845,6 +2708,63 @@ rf_fastball |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Fastball RMSE
+rmse_value_fastball <- rmse(rf_results_fastball$sp_s_CU, rf_results_fastball$pred)
+print(paste("RMSE for Fastball:", rmse_value_fastball))
+
+
+#Sinker
+rf_sinker <- cond_data |> 
+  filter(ind_sinker == "Yes") |> 
+  filter(!is.na(si_avg_spin), !is.na(sp_s_CU)) |> 
+  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU)
+names(rf_sinker) <- gsub('-', '_', names(rf_sinker))
+
+sinker_rf <- ranger(sp_s_CU ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
+                    + avg_release_extension + avg_rp_x + avg_rp_z, 
+                    num.trees = 500, importance = "impurity", data = rf_sinker, mtry = 2)
+sinker_rf
+vip_plot_sinker <- vip(sinker_rf)
+
+vip_data_sinker <- vip_plot_sinker$data
+
+vip_data_sinker$Variable <- recode(vip_data_sinker$Variable, 
+                                   `pfx_vSI` = "Velocity",
+                                   `si_avg_spin` = "Spin Rate",
+                                   `avg_release_extension` = "Avg Release Extension",
+                                   `avg_rp_x` = "Avg Release Position X",
+                                   `avg_rp_z` = "Avg Release Position Z", 
+                                   `pfx_SI_X` = "Horizontal Movement",
+                                   `pfx_SI_Z` = "Vertical Movement")
+
+vip_plot_modified_sinker <- ggplot(vip_data_sinker, aes(x = Importance, y = reorder(Variable, Importance))) +
+  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
+  labs(
+    x = "Variable Importance", 
+    y = "Predictor Variables",
+    title = "Variable Importance Plot: Sinker",
+    subtitle = "Random Forest Model"
+  )
+
+vip_plot_modified_sinker
+
+si_predictions <- sinker_rf$predictions
+
+rf_results_sinker <- rf_sinker |> 
+  mutate(pred = si_predictions)
+
+rf_sinker |>
+  mutate(pred = si_predictions) |>
+  ggplot(aes(sp_s_CU, pred)) +
+  geom_point(alpha = 0.5) +
+  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Sinker RMSE
+rmse_value_sinker <- rmse(rf_results_sinker$sp_s_CU, rf_results_sinker$pred)
+print(paste("RMSE for Sinker:", rmse_value_sinker))
+
+
 # Cutter
 rf_cutter <- cond_data |> 
   filter(ind_cutter == "Yes") |> 
@@ -2891,6 +2811,11 @@ rf_cutter |>
   ggplot(aes(sp_s_CU, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Cutter RMSE
+rmse_value_cutter <- rmse(rf_results_cutter$sp_s_CU, rf_results_cutter$pred)
+print(paste("RMSE for Cutter:", rmse_value_cutter))
+
 
 # Slider
 rf_slider <- cond_data |> 
@@ -2939,6 +2864,11 @@ rf_slider |>
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
 
+# Calculate Slider RMSE
+rmse_value_slider <- rmse(rf_results_slider$sp_s_CU, rf_results_slider$pred)
+print(paste("RMSE for Slider:", rmse_value_slider))
+
+
 # Splitter
 rf_splitter <- cond_data |> 
   filter(ind_split == "Yes") |> 
@@ -2983,7 +2913,7 @@ vip_plot_modified
 fs_predictions <- split_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_splitter |> 
+rf_results_splitter <- rf_splitter |> 
   mutate(pred = fs_predictions)
 
 rf_splitter |>
@@ -2991,6 +2921,11 @@ rf_splitter |>
   ggplot(aes(sp_s_CU, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Splitter RMSE
+rmse_value_splitter <- rmse(rf_results_splitter$sp_s_CU, rf_results_splitter$pred)
+print(paste("RMSE for Splitter:", rmse_value_splitter))
+
 
 #Knuckle Curve: no spin
 rf_knucklecurve <- cond_data |> 
@@ -3035,7 +2970,7 @@ vip_plot_modified
 kc_predictions <- kc_rf$predictions
 
 # Create a new data frame with actual and predicted values
-rf_results <- rf_knucklecurve |> 
+rf_results_knucklecurve <- rf_knucklecurve |> 
   mutate(pred = kc_predictions)
 
 rf_knucklecurve |>
@@ -3043,6 +2978,10 @@ rf_knucklecurve |>
   ggplot(aes(sp_s_CU, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
+# Calculate Knuckle Curve RMSE
+rmse_value_knucklecurve <- rmse(rf_results_knucklecurve$sp_s_CU, rf_results_knucklecurve$pred)
+print(paste("RMSE for Knuckle Curve:", rmse_value_knucklecurve))
 
 
 #PREDICTING SPLITTER STUFF+ --------------------
@@ -3720,6 +3659,7 @@ rf_splitter |>
   ggplot(aes(sp_s_KC, pred)) +
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+
 
 
 
