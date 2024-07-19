@@ -2049,6 +2049,22 @@ ff_to_si |>
   mutate(preds = predictions) |> 
   view()
 
+# Filter the data for pitchers with fastballs but no sinkers
+ff_only <- cond_data |> 
+  filter(ind_fastball == "Yes") |> 
+  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, `pfx_FA-X`, `pfx_FA-Z`, 
+         ff_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z) |> 
+  drop_na()
+
+# Prepare the predictors for the new dataset
+ff_only_x <- ff_only |> select(pfx_vFA:avg_rp_z) |> as.matrix()
+
+# Predict sinker stuff+ for pitchers with only fastballs
+predictions_ff_only <- predict(lasso_final, newx = ff_only_x)
+
+# Add predictions to the new dataset
+ff_only <- ff_only |> mutate(pred_si_from_ff = as.vector(predictions_ff_only))
+
 # Cutter ---> Sinker Stuff+
 fc_to_si <- cond_data |> 
   filter(ind_cutter == "Yes" & ind_sinker == "Yes") |> 
@@ -4830,10 +4846,8 @@ ggplot(rmse_data, aes(x=Pitch_Type, y=RMSE, fill = Method)) +
 
 
 # Attempt at a GAM --------------------------------------------------------
-
-# Sinker Calc ----------------------------------------------------------
+# Sinker Calc
 # Select relevant columns
-
 relevant_cols <- c('Season', 'PlayerNameRoute', 'sp_s_FF', 'RAR', 'pfx_SI_pct', 
                    'ERA_minus', 'WHIP_plus', 'BABIP_plus', 'pfx_SI-X',
                    'FIP_minus', 'K_9_plus', 'avg_rp_x', 'pfx_SI-Z', 'WAR', 'WPA'
@@ -4842,7 +4856,6 @@ relevant_cols <- c('Season', 'PlayerNameRoute', 'sp_s_FF', 'RAR', 'pfx_SI_pct',
                    'Throws', 'position', 'Addition_SI', 'Deletion_SI')
 
 # Ensure target and primary predictor are not missing
-
 filtered_data <- pitch_arsenal |> 
   select(all_of(relevant_cols)) |> 
   filter(!is.na(sp_s_FF), ind_sinker == 'Yes') 
