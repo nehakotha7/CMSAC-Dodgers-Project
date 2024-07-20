@@ -13,6 +13,7 @@ library(ggridges)
 library(patchwork)
 library(catboost)
 library(mgcv)
+library(rsample)
 
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021)
@@ -4661,260 +4662,471 @@ print(predicted_stuff_plus)
 
 
 # Random Forest -----------------------------------------------------------
-#Changeup
-#install.packages("stacks")
-library(tidyverse)
-theme_set(theme_light())
-library(stacks)
-rf_data <- cond_data |> 
-  filter(ind_change == "Yes") |> 
-  filter(!is.na(ch_avg_spin), !is.na(sp_s_FF)) |> 
-  select(Season, PlayerNameRoute, pfx_CH_pct, pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`,
-         ch_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
-glimpse(rf_data)
-names(rf_data) <- gsub('-', '_', names(rf_data))
+# Function to perform cross-validation with Random Forest: FASTBALL
+rf_cv_ff <- function(predictor_pitch, data, rf_RMSE) {
+  # Prepare the predictors and response
+  data_reduced = data |> 
+    select(4:11) |> 
+    rename_with(~ make.names(.))
+  model_x <- data_reduced |> 
+    select(1:7) |> 
+    as.matrix()
+  model_y <- data_reduced |> 
+    pull(8)
+  
+  # Create folds for cross-validation
+  set.seed(4)
+  k_folds = 5
+  folds <- createFolds(model_y, k = k_folds)
+  
+  rmse_list <- vector("numeric", length = k_folds)
+  
+  for (i in seq_along(folds)) {
+    # Split the data into training and test sets
+    train_indices <- folds[[i]]
+    test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+    
+    x_train <- data_reduced[train_indices, ]
+    y_train <- model_y[train_indices]
+    x_test <- data_reduced[test_indices, ]
+    y_test <- model_y[test_indices]
+    
+    # Train Random Forest model
+    rf_model <- ranger(sp_s_FF ~ .,
+                       data = x_train, 
+                       num.trees = 500, 
+                       importance = "impurity",
+                       mtry = 2)
+    
+    # Predict on the test data
+    predictions <- predict(rf_model, data = x_test)$predictions
+    
+    # Calculate RMSE for the test data
+    rmse <- sqrt(mean((y_test - predictions)^2))
+    rmse_list[i] <- rmse
+  }
+  
+  # Calculate the average RMSE
+  avg_rmse <- mean(rmse_list)
+  
+  # Append the result to the rf_RMSE
+  rf_RMSE <- rf_RMSE |> 
+    add_row(
+      `Predictor Pitch` = predictor_pitch,
+      `Response Pitch` = "Fastball",
+      `Average RMSE` = avg_rmse
+    )
+  
+  return(rf_RMSE)
+}
 
-library(ranger) #suarez
-change_rf <- ranger(sp_s_FF ~ pfx_vCH + ch_avg_spin + pfx_CH_X + pfx_CH_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_data, mtry=2)
-change_rf
-library(vip)
-vip(change_rf)
-
-predictions <- change_rf$predictions
-
-# Create a new data frame with actual and predicted values
-rf_results <- rf_data |> 
-  mutate(pred = predictions)
-
-rf_data |>
-  mutate(pred = predictions) |>
-  ggplot(aes(sp_s_FF, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
-
-#Sinker
-rf_2 <- cond_data |> 
-  filter(ind_sinker == "Yes") |> 
-  filter(!is.na(si_avg_spin), !is.na(sp_s_FF)) |> 
-  select(Season, PlayerNameRoute, pfx_SI_pct, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`,
-         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
-names(rf_2) <- gsub('-', '_', names(rf_2))
-
-sinker_rf <- ranger(sp_s_FF ~ pfx_vSI + si_avg_spin + pfx_SI_X + pfx_SI_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_2, mtry = 3)
-sinker_rf
-
-vip(sinker_rf)
-
-si_predictions <- sinker_rf$predictions
-
-# Create a new data frame with actual and predicted values
-rf_results <- rf_2 |> 
-  mutate(pred = si_predictions)
-
-rf_2 |>
-  mutate(pred = si_predictions) |>
-  ggplot(aes(sp_s_FF, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
-
-#Cutter
-rf_3 <- cond_data |> 
-  filter(ind_cutter == "Yes") |> 
-  filter(!is.na(fc_avg_spin), !is.na(sp_s_FF)) |> 
-  select(Season, PlayerNameRoute, pfx_FC_pct, pfx_vFC, `pfx_FC-X`, `pfx_FC-Z`,
-         fc_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
-names(rf_3) <- gsub('-', '_', names(rf_3))
-
-cutter_rf <- ranger(sp_s_FF ~ pfx_vFC + fc_avg_spin + pfx_FC_X + pfx_FC_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_3, mtry = 2)
-cutter_rf
-
-vip(cutter_rf)
-
-fc_predictions <- cutter_rf$predictions
-
-# Create a new data frame with actual and predicted values
-rf_results <- rf_3 |> 
-  mutate(pred = fc_predictions)
-
-rf_3 |>
-  mutate(pred = fc_predictions) |>
-  ggplot(aes(sp_s_FF, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
-
-#Slider
-rf_4 <- cond_data |> 
-  filter(ind_slider == "Yes") |> 
-  filter(!is.na(sl_avg_spin), !is.na(sp_s_FF)) |> 
-  select(Season, PlayerNameRoute, pfx_SL_pct, pfx_vSL, `pfx_SL-X`, `pfx_SL-Z`,
-         sl_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
-names(rf_4) <- gsub('-', '_', names(rf_4))
-
-slider_rf <- ranger(sp_s_FF ~ pfx_vSL + sl_avg_spin + pfx_SL_X + pfx_SL_Z
-                    + avg_release_extension + avg_rp_x + avg_rp_z, 
-                    num.trees = 500, importance = "impurity", data = rf_4, mtry = 2)
-slider_rf
-
-vip_plot <- vip(slider_rf)
-
-# Extract the data frame from the vip plot object
-vip_data <- vip_plot$data
-
-# Rename the variables (example of changing names)
-vip_data$Variable <- recode(vip_data$Variable, 
-                            `pfx_vSL` = "Velocity",
-                            `sl_avg_spin` = "Spin Rate",
-                            `avg_release_extension` = "Avg Release Extension",
-                            `avg_rp_x` = "Avg Release Position X",
-                            `avg_rp_z` = "Avg Release Position Z", 
-                            `pfx_SL_X` = "Horizontal Movement",
-                            `pfx_SL_Z` = 'Vertical Movement',
+# Initialize an empty results data frame
+rf_RMSE <- tibble(
+  `Predictor Pitch` = character(),
+  `Response Pitch` = character(),
+  `Average RMSE` = numeric()
 )
 
-# Create a new vip plot using the modified data frame
-vip_plot_modified <- ggplot(vip_data, aes(x = Importance, y = reorder(Variable, Importance))) +
-  geom_col(aes(fill = Importance), color = "white", show.legend = FALSE) +
-  labs(
-    x = "Variable Importance", 
-    y = "Predictor Variables",
-    title = "Variable Importance Plot",
-    subtitle = "Random Forest Model"
-  )
+rf_RMSE <- rf_cv_ff("Sinker", si_to_ff, rf_RMSE)
+rf_RMSE <- rf_cv_ff("Cutter", fc_to_ff, rf_RMSE)
+rf_RMSE <- rf_cv_ff("Slider", sl_to_ff, rf_RMSE)
+rf_RMSE <- rf_cv_ff("Curveball", cu_to_ff, rf_RMSE)
+rf_RMSE <- rf_cv_ff("Changeup", ch_to_ff, rf_RMSE)
+rf_RMSE <- rf_cv_ff("Splitter", fs_to_ff, rf_RMSE)
 
-vip_plot_modified
+# Function to perform cross-validation with Random Forest: SINKER
+rf_cv_si <- function(predictor_pitch, data, rf_RMSE) {
+  # Prepare the predictors and response
+  data_reduced = data |> 
+    select(4:11) |> 
+    rename_with(~ make.names(.))
+  model_x <- data_reduced |> 
+    select(1:7) |> 
+    as.matrix()
+  model_y <- data_reduced |> 
+    pull(8)
+  
+  # Create folds for cross-validation
+  set.seed(4)
+  k_folds = 5
+  folds <- createFolds(model_y, k = k_folds)
+  
+  rmse_list <- vector("numeric", length = k_folds)
+  
+  for (i in seq_along(folds)) {
+    # Split the data into training and test sets
+    train_indices <- folds[[i]]
+    test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+    
+    x_train <- data_reduced[train_indices, ]
+    y_train <- model_y[train_indices]
+    x_test <- data_reduced[test_indices, ]
+    y_test <- model_y[test_indices]
+    
+    # Train Random Forest model
+    rf_model <- ranger(sp_s_SI ~ .,
+                       data = x_train, 
+                       num.trees = 500, 
+                       importance = "impurity",
+                       mtry = 2)
+    
+    # Predict on the test data
+    predictions <- predict(rf_model, data = x_test)$predictions
+    
+    # Calculate RMSE for the test data
+    rmse <- sqrt(mean((y_test - predictions)^2))
+    rmse_list[i] <- rmse
+  }
+  
+  # Calculate the average RMSE
+  avg_rmse <- mean(rmse_list)
+  
+  # Append the result to the rf_RMSE
+  rf_RMSE <- rf_RMSE |> 
+    add_row(
+      `Predictor Pitch` = predictor_pitch,
+      `Response Pitch` = "Sinker",
+      `Average RMSE` = avg_rmse
+    )
+  
+  return(rf_RMSE)
+}
 
-sl_predictions <- slider_rf$predictions
+rf_RMSE <- rf_cv_si("Fastball", ff_to_si, rf_RMSE)
+rf_RMSE <- rf_cv_si("Cutter", fc_to_si, rf_RMSE)
+rf_RMSE <- rf_cv_si("Slider", sl_to_si, rf_RMSE)
+rf_RMSE <- rf_cv_si("Curveball", cu_to_si, rf_RMSE)
+rf_RMSE <- rf_cv_si("Changeup", ch_to_si, rf_RMSE)
+rf_RMSE <- rf_cv_si("Splitter", fs_to_si, rf_RMSE)
 
-# Create a new data frame with actual and predicted values
-rf_results <- rf_4 |> 
-  mutate(pred = sl_predictions)
+# Function to perform cross-validation with Random Forest: CUTTER
+rf_cv_fc <- function(predictor_pitch, data, rf_RMSE) {
+  # Prepare the predictors and response
+  data_reduced = data |> 
+    select(4:11) |> 
+    rename_with(~ make.names(.))
+  model_x <- data_reduced |> 
+    select(1:7) |> 
+    as.matrix()
+  model_y <- data_reduced |> 
+    pull(8)
+  
+  # Create folds for cross-validation
+  set.seed(4)
+  k_folds = 5
+  folds <- createFolds(model_y, k = k_folds)
+  
+  rmse_list <- vector("numeric", length = k_folds)
+  
+  for (i in seq_along(folds)) {
+    # Split the data into training and test sets
+    train_indices <- folds[[i]]
+    test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+    
+    x_train <- data_reduced[train_indices, ]
+    y_train <- model_y[train_indices]
+    x_test <- data_reduced[test_indices, ]
+    y_test <- model_y[test_indices]
+    
+    # Train Random Forest model
+    rf_model <- ranger(sp_s_FC ~ .,
+                       data = x_train, 
+                       num.trees = 500, 
+                       importance = "impurity",
+                       mtry = 2)
+    
+    # Predict on the test data
+    predictions <- predict(rf_model, data = x_test)$predictions
+    
+    # Calculate RMSE for the test data
+    rmse <- sqrt(mean((y_test - predictions)^2))
+    rmse_list[i] <- rmse
+  }
+  
+  # Calculate the average RMSE
+  avg_rmse <- mean(rmse_list)
+  
+  # Append the result to the rf_RMSE
+  rf_RMSE <- rf_RMSE |> 
+    add_row(
+      `Predictor Pitch` = predictor_pitch,
+      `Response Pitch` = "Cutter",
+      `Average RMSE` = avg_rmse
+    )
+  
+  return(rf_RMSE)
+}
 
-rf_4 |>
-  mutate(pred = sl_predictions) |>
-  ggplot(aes(sp_s_FF, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+rf_RMSE <- rf_cv_fc("Fastball", ff_to_fc, rf_RMSE)
+rf_RMSE <- rf_cv_fc("Sinker", si_to_fc, rf_RMSE)
+rf_RMSE <- rf_cv_fc("Slider", sl_to_fc, rf_RMSE)
+rf_RMSE <- rf_cv_fc("Curveball", cu_to_fc, rf_RMSE)
+rf_RMSE <- rf_cv_fc("Changeup", ch_to_fc, rf_RMSE)
+rf_RMSE <- rf_cv_fc("Splitter", fs_to_fc, rf_RMSE)
 
-#Curveball
-rf_5 <- cond_data |> 
-  filter(ind_curve == "Yes") |> 
-  filter(!is.na(cu_avg_spin), !is.na(sp_s_FF)) |> 
-  select(Season, PlayerNameRoute, pfx_CU_pct, pfx_vCU, `pfx_CU-X`, `pfx_CU-Z`,
-         cu_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
-names(rf_5) <- gsub('-', '_', names(rf_5))
+# Function to perform cross-validation with Random Forest: SLIDER
+rf_cv_sl <- function(predictor_pitch, data, rf_RMSE) {
+  # Prepare the predictors and response
+  data_reduced = data |> 
+    select(4:11) |> 
+    rename_with(~ make.names(.))
+  model_x <- data_reduced |> 
+    select(1:7) |> 
+    as.matrix()
+  model_y <- data_reduced |> 
+    pull(8)
+  
+  # Create folds for cross-validation
+  set.seed(4)
+  k_folds = 5
+  folds <- createFolds(model_y, k = k_folds)
+  
+  rmse_list <- vector("numeric", length = k_folds)
+  
+  for (i in seq_along(folds)) {
+    # Split the data into training and test sets
+    train_indices <- folds[[i]]
+    test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+    
+    x_train <- data_reduced[train_indices, ]
+    y_train <- model_y[train_indices]
+    x_test <- data_reduced[test_indices, ]
+    y_test <- model_y[test_indices]
+    
+    # Train Random Forest model
+    rf_model <- ranger(sp_s_SL ~ .,
+                       data = x_train, 
+                       num.trees = 500, 
+                       importance = "impurity",
+                       mtry = 2)
+    
+    # Predict on the test data
+    predictions <- predict(rf_model, data = x_test)$predictions
+    
+    # Calculate RMSE for the test data
+    rmse <- sqrt(mean((y_test - predictions)^2))
+    rmse_list[i] <- rmse
+  }
+  
+  # Calculate the average RMSE
+  avg_rmse <- mean(rmse_list)
+  
+  # Append the result to the rf_RMSE
+  rf_RMSE <- rf_RMSE |> 
+    add_row(
+      `Predictor Pitch` = predictor_pitch,
+      `Response Pitch` = "Slider",
+      `Average RMSE` = avg_rmse
+    )
+  
+  return(rf_RMSE)
+}
 
-curve_rf <- ranger(sp_s_FF ~ pfx_vCU + cu_avg_spin + pfx_CU_X + pfx_CU_Z
-                   + avg_release_extension + avg_rp_x + avg_rp_z, 
-                   num.trees = 500, importance = "impurity", data = rf_5, mtry = 2)
-curve_rf
+rf_RMSE <- rf_cv_sl("Fastball", ff_to_sl, rf_RMSE)
+rf_RMSE <- rf_cv_sl("Sinker", si_to_sl, rf_RMSE)
+rf_RMSE <- rf_cv_sl("Cutter", fc_to_sl, rf_RMSE)
+rf_RMSE <- rf_cv_sl("Curveball", cu_to_sl, rf_RMSE)
+rf_RMSE <- rf_cv_sl("Changeup", ch_to_sl, rf_RMSE)
+rf_RMSE <- rf_cv_sl("Splitter", fs_to_sl, rf_RMSE)
 
-vip(curve_rf)
+# Function to perform cross-validation with Random Forest: CURVEBALL
+rf_cv_cu <- function(predictor_pitch, data, rf_RMSE) {
+  # Prepare the predictors and response
+  data_reduced = data |> 
+    select(4:11) |> 
+    rename_with(~ make.names(.))
+  model_x <- data_reduced |> 
+    select(1:7) |> 
+    as.matrix()
+  model_y <- data_reduced |> 
+    pull(8)
+  
+  # Create folds for cross-validation
+  set.seed(4)
+  k_folds = 5
+  folds <- createFolds(model_y, k = k_folds)
+  
+  rmse_list <- vector("numeric", length = k_folds)
+  
+  for (i in seq_along(folds)) {
+    # Split the data into training and test sets
+    train_indices <- folds[[i]]
+    test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+    
+    x_train <- data_reduced[train_indices, ]
+    y_train <- model_y[train_indices]
+    x_test <- data_reduced[test_indices, ]
+    y_test <- model_y[test_indices]
+    
+    # Train Random Forest model
+    rf_model <- ranger(sp_s_CU ~ .,
+                       data = x_train, 
+                       num.trees = 500, 
+                       importance = "impurity",
+                       mtry = 2)
+    
+    # Predict on the test data
+    predictions <- predict(rf_model, data = x_test)$predictions
+    
+    # Calculate RMSE for the test data
+    rmse <- sqrt(mean((y_test - predictions)^2))
+    rmse_list[i] <- rmse
+  }
+  
+  # Calculate the average RMSE
+  avg_rmse <- mean(rmse_list)
+  
+  # Append the result to the rf_RMSE
+  rf_RMSE <- rf_RMSE |> 
+    add_row(
+      `Predictor Pitch` = predictor_pitch,
+      `Response Pitch` = "Curveball",
+      `Average RMSE` = avg_rmse
+    )
+  
+  return(rf_RMSE)
+}
 
-cu_predictions <- curve_rf$predictions
+rf_RMSE <- rf_cv_cu("Fastball", ff_to_cu, rf_RMSE)
+rf_RMSE <- rf_cv_cu("Sinker", si_to_cu, rf_RMSE)
+rf_RMSE <- rf_cv_cu("Cutter", fc_to_cu, rf_RMSE)
+rf_RMSE <- rf_cv_cu("Slider", sl_to_cu, rf_RMSE)
+rf_RMSE <- rf_cv_cu("Changeup", ch_to_cu, rf_RMSE)
+rf_RMSE <- rf_cv_cu("Splitter", fs_to_cu, rf_RMSE)
 
-# Create a new data frame with actual and predicted values
-rf_results <- rf_5 |> 
-  mutate(pred = cu_predictions)
+# Function to perform cross-validation with Random Forest: CHANGEUP
+rf_cv_ch <- function(predictor_pitch, data, rf_RMSE) {
+  # Prepare the predictors and response
+  data_reduced = data |> 
+    select(4:11) |> 
+    rename_with(~ make.names(.))
+  model_x <- data_reduced |> 
+    select(1:7) |> 
+    as.matrix()
+  model_y <- data_reduced |> 
+    pull(8)
+  
+  # Create folds for cross-validation
+  set.seed(4)
+  k_folds = 5
+  folds <- createFolds(model_y, k = k_folds)
+  
+  rmse_list <- vector("numeric", length = k_folds)
+  
+  for (i in seq_along(folds)) {
+    # Split the data into training and test sets
+    train_indices <- folds[[i]]
+    test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+    
+    x_train <- data_reduced[train_indices, ]
+    y_train <- model_y[train_indices]
+    x_test <- data_reduced[test_indices, ]
+    y_test <- model_y[test_indices]
+    
+    # Train Random Forest model
+    rf_model <- ranger(sp_s_CH ~ .,
+                       data = x_train, 
+                       num.trees = 500, 
+                       importance = "impurity",
+                       mtry = 2)
+    
+    # Predict on the test data
+    predictions <- predict(rf_model, data = x_test)$predictions
+    
+    # Calculate RMSE for the test data
+    rmse <- sqrt(mean((y_test - predictions)^2))
+    rmse_list[i] <- rmse
+  }
+  
+  # Calculate the average RMSE
+  avg_rmse <- mean(rmse_list)
+  
+  # Append the result to the rf_RMSE
+  rf_RMSE <- rf_RMSE |> 
+    add_row(
+      `Predictor Pitch` = predictor_pitch,
+      `Response Pitch` = "Changeup",
+      `Average RMSE` = avg_rmse
+    )
+  
+  return(rf_RMSE)
+}
 
-rf_5 |>
-  mutate(pred = cu_predictions) |>
-  ggplot(aes(sp_s_FF, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
+rf_RMSE <- rf_cv_ch("Fastball", ff_to_ch, rf_RMSE)
+rf_RMSE <- rf_cv_ch("Sinker", si_to_ch, rf_RMSE)
+rf_RMSE <- rf_cv_ch("Cutter", fc_to_ch, rf_RMSE)
+rf_RMSE <- rf_cv_ch("Slider", sl_to_ch, rf_RMSE)
+rf_RMSE <- rf_cv_ch("Curveball", cu_to_ch, rf_RMSE)
+rf_RMSE <- rf_cv_ch("Splitter", fs_to_ch, rf_RMSE)
 
-#Splitter
-rf_6 <- cond_data |> 
-  filter(ind_split == "Yes") |> 
-  filter(!is.na(fs_avg_spin), !is.na(sp_s_FF)) |> 
-  select(Season, PlayerNameRoute, pfx_FS_pct, pfx_vFS, `pfx_FS-X`, `pfx_FS-Z`,
-         fs_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
-names(rf_6) <- gsub('-', '_', names(rf_6))
+# Function to perform cross-validation with Random Forest: SPLITTER
+rf_cv_fs <- function(predictor_pitch, data, rf_RMSE) {
+  # Prepare the predictors and response
+  data_reduced = data |> 
+    select(4:11) |> 
+    rename_with(~ make.names(.))
+  model_x <- data_reduced |> 
+    select(1:7) |> 
+    as.matrix()
+  model_y <- data_reduced |> 
+    pull(8)
+  
+  # Create folds for cross-validation
+  set.seed(4)
+  k_folds = 5
+  folds <- createFolds(model_y, k = k_folds)
+  
+  rmse_list <- vector("numeric", length = k_folds)
+  
+  for (i in seq_along(folds)) {
+    # Split the data into training and test sets
+    train_indices <- folds[[i]]
+    test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+    
+    x_train <- data_reduced[train_indices, ]
+    y_train <- model_y[train_indices]
+    x_test <- data_reduced[test_indices, ]
+    y_test <- model_y[test_indices]
+    
+    # Train Random Forest model
+    rf_model <- ranger(sp_s_FS ~ .,
+                       data = x_train, 
+                       num.trees = 500, 
+                       importance = "impurity",
+                       mtry = 2)
+    
+    # Predict on the test data
+    predictions <- predict(rf_model, data = x_test)$predictions
+    
+    # Calculate RMSE for the test data
+    rmse <- sqrt(mean((y_test - predictions)^2))
+    rmse_list[i] <- rmse
+  }
+  
+  # Calculate the average RMSE
+  avg_rmse <- mean(rmse_list)
+  
+  # Append the result to the rf_RMSE
+  rf_RMSE <- rf_RMSE |> 
+    add_row(
+      `Predictor Pitch` = predictor_pitch,
+      `Response Pitch` = "Splitter",
+      `Average RMSE` = avg_rmse
+    )
+  
+  return(rf_RMSE)
+}
 
-split_rf <- ranger(sp_s_FF ~ pfx_vFS + fs_avg_spin + pfx_FS_X + pfx_FS_Z
-                   + avg_release_extension + avg_rp_x + avg_rp_z, 
-                   num.trees = 500, importance = "impurity", data = rf_6, mtry = 2)
-split_rf
+rf_RMSE <- rf_cv_fs("Fastball", ff_to_fs, rf_RMSE)
+rf_RMSE <- rf_cv_fs("Sinker", si_to_fs, rf_RMSE)
+rf_RMSE <- rf_cv_fs("Cutter", fc_to_fs, rf_RMSE)
+rf_RMSE <- rf_cv_fs("Slider", sl_to_fs, rf_RMSE)
+rf_RMSE <- rf_cv_fs("Curveball", cu_to_fs, rf_RMSE)
+rf_RMSE <- rf_cv_fs("Changeup", ch_to_fs, rf_RMSE)
 
-vip(split_rf)
-
-fs_predictions <- split_rf$predictions
-
-# Create a new data frame with actual and predicted values
-rf_results <- rf_6 |> 
-  mutate(pred = fs_predictions)
-
-rf_6 |>
-  mutate(pred = fs_predictions) |>
-  ggplot(aes(sp_s_FF, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
-
-#Knuckle Curve: no spin
-rf_7 <- cond_data |> 
-  filter(ind_kc == "Yes") |> 
-  filter(!is.na(sp_s_FF)) |> 
-  select(Season, PlayerNameRoute, pfx_KC_pct, pfx_vKC, `pfx_KC-X`, `pfx_KC-Z`,
-         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
-names(rf_7) <- gsub('-', '_', names(rf_7))
-
-kc_rf <- ranger(sp_s_FF ~ pfx_vKC + pfx_KC_X + pfx_KC_Z
-                + avg_release_extension + avg_rp_x + avg_rp_z, 
-                num.trees = 500, importance = "impurity", data = rf_7, mtry = 2)
-kc_rf
-
-vip(kc_rf)
-
-kc_predictions <- kc_rf$predictions
-
-# Create a new data frame with actual and predicted values
-rf_results <- rf_7 |> 
-  mutate(pred = kc_predictions)
-
-rf_7 |>
-  mutate(pred = kc_predictions) |>
-  ggplot(aes(sp_s_FF, pred)) +
-  geom_point(alpha = 0.5) +
-  geom_abline(slope = 1, intercept = 0, linetype = "solid", linewidth = 2)
-
-
-#Dodged Bar Plot for RMSE
-rmse_data = data.frame(Linear_Regression = c(14.19, 15.7, 17.76, 17.2, 16.39, 
-                                             15.79, 17.28),
-                       Random_Forest = c(13.14, 15.52, 16.69, 16.27, 15.51, 
-                                         15.09, 15.84),
-                       row.names = c("Sinker", "Cutter", "Slider", "Curveball",
-                                     "Changeup", "Splitter", "Knuckle Curve"))
-# Sample Data
-rmse_data <- data.frame(
-  Pitch_Type = rep(c("Sinker", "Cutter", "Slider", "Curveball", "Changeup",
-                     "Splitter", "Knuckle Curve"), times = 2),
-  RMSE = c(14.19, 15.7, 17.76, 17.2, 16.39, 15.79, 17.28, 13.14, 15.52, 16.69, 
-           16.27, 15.51, 15.09, 15.84),
-  Method = rep(c("Linear Regression", "Random Forest"), each = 7)
-)
-
-# Customize the order of the factors
-rmse_data <- rmse_data |>
-  mutate(Pitch_Type = factor(Pitch_Type, levels = c("Sinker", "Splitter", "Changeup",
-                                                    "Cutter", "Knuckle Curve", 
-                                                    "Curveball", "Slider")))
-
-ggplot(rmse_data, aes(x=Pitch_Type, y=RMSE, fill = Method)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.7), alpha = 0.7) +
-  labs(title = "RMSE by Pitch Type and Modeling Method",
-       x = "Pitch Type",
-       y = "RMSE") +
-  theme_bw() +
-  scale_fill_manual(values = c("Random Forest" = "blue", "Linear Regression" = "red")) # Customize colors
-
-
-
+# Display the result
+print(rf_RMSE)
+write.table(rf_RMSE, "rfRMSE")
 
 
 # Attempt at a GAM --------------------------------------------------------
