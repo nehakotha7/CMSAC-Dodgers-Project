@@ -241,157 +241,160 @@ cond_data <- cond_data |>
 #only avg spin for sweeper
 #only avg spin for slurve
 
-#Pivot Tables
-cond_data_freq <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, pfx_FA_pct, pfx_SI_pct, pfx_FC_pct, 
-         pfx_SL_pct, pfx_CH_pct, pfx_CU_pct, pfx_FS_pct, pfx_KC_pct, pfx_KN_pct, 
-         pfx_SC_pct, pfx_FO_pct) |> 
-  pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
-                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-                 contains("KC") | contains("KN") | contains("SC") | contains("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Percentage") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FA") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-    str_detect(Pitch_Type, "SC") ~ "Screwball",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
 
-cond_data_velo <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, pfx_vSI, pfx_vFC, pfx_vSL, 
-         pfx_vCH, pfx_vCU, pfx_vFS, pfx_vKC, pfx_vKN, pfx_vSC, pfx_vFO) |> 
-  pivot_longer(cols = ends_with("FA") | ends_with("SI") | ends_with("FC") | 
-                 ends_with("SL") | ends_with("CH") | ends_with("CU") | ends_with("FS") |
-                 ends_with("KC") | ends_with("KN") | ends_with("SC") | ends_with("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Velocity") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FA") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-    str_detect(Pitch_Type, "SC") ~ "Screwball",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
+# Pivot Tables: Not Needed Right Now --------------------------------------
 
-cond_data_horizontal <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-X`, `pfx_SI-X`, `pfx_FC-X`, 
-         `pfx_SL-X`, `pfx_CH-X`, `pfx_CU-X`, `pfx_FS-X`, `pfx_KC-X`, `pfx_KN-X`, 
-         `pfx_SC-X`, `pfx_FO-X`) |> 
-  pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
-                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-                 contains("KC") | contains("KN") | contains("SC") | contains("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Horizontal_Movement") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FA") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-    str_detect(Pitch_Type, "SC") ~ "Screwball",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
+# cond_data_freq <- cond_data |> 
+#   select(Season, PlayerNameRoute, xMLBAMID, pfx_FA_pct, pfx_SI_pct, pfx_FC_pct, 
+#          pfx_SL_pct, pfx_CH_pct, pfx_CU_pct, pfx_FS_pct, pfx_KC_pct, pfx_KN_pct, 
+#          pfx_SC_pct, pfx_FO_pct) |> 
+#   pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
+#                  contains("SL") | contains("CH") | contains("CU") | contains("FS") |
+#                  contains("KC") | contains("KN") | contains("SC") | contains("FO"),
+#                names_to = "Pitch_Type",
+#                values_to = "Percentage") |>
+#   mutate(Pitch_Type = case_when(
+#     str_detect(Pitch_Type, "FA") ~ "Fastball",
+#     str_detect(Pitch_Type, "SI") ~ "Sinker",
+#     str_detect(Pitch_Type, "FC") ~ "Cutter",
+#     str_detect(Pitch_Type, "SL") ~ "Slider",
+#     str_detect(Pitch_Type, "CH") ~ "Changeup",
+#     str_detect(Pitch_Type, "CU") ~ "Curveball",
+#     str_detect(Pitch_Type, "FS") ~ "Splitter",
+#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+#     str_detect(Pitch_Type, "KN") ~ "Knuckleball",
+#     str_detect(Pitch_Type, "SC") ~ "Screwball",
+#     str_detect(Pitch_Type, "FO") ~ "Forkball",
+#     TRUE ~ Pitch_Type
+#   )) |> 
+#   drop_na()
+# 
+# cond_data_velo <- cond_data |> 
+#   select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, pfx_vSI, pfx_vFC, pfx_vSL, 
+#          pfx_vCH, pfx_vCU, pfx_vFS, pfx_vKC, pfx_vKN, pfx_vSC, pfx_vFO) |> 
+#   pivot_longer(cols = ends_with("FA") | ends_with("SI") | ends_with("FC") | 
+#                  ends_with("SL") | ends_with("CH") | ends_with("CU") | ends_with("FS") |
+#                  ends_with("KC") | ends_with("KN") | ends_with("SC") | ends_with("FO"),
+#                names_to = "Pitch_Type",
+#                values_to = "Velocity") |>
+#   mutate(Pitch_Type = case_when(
+#     str_detect(Pitch_Type, "FA") ~ "Fastball",
+#     str_detect(Pitch_Type, "SI") ~ "Sinker",
+#     str_detect(Pitch_Type, "FC") ~ "Cutter",
+#     str_detect(Pitch_Type, "SL") ~ "Slider",
+#     str_detect(Pitch_Type, "CH") ~ "Changeup",
+#     str_detect(Pitch_Type, "CU") ~ "Curveball",
+#     str_detect(Pitch_Type, "FS") ~ "Splitter",
+#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+#     str_detect(Pitch_Type, "KN") ~ "Knuckleball",
+#     str_detect(Pitch_Type, "SC") ~ "Screwball",
+#     str_detect(Pitch_Type, "FO") ~ "Forkball",
+#     TRUE ~ Pitch_Type
+#   )) |> 
+#   drop_na()
+# 
+# cond_data_horizontal <- cond_data |> 
+#   select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-X`, `pfx_SI-X`, `pfx_FC-X`, 
+#          `pfx_SL-X`, `pfx_CH-X`, `pfx_CU-X`, `pfx_FS-X`, `pfx_KC-X`, `pfx_KN-X`, 
+#          `pfx_SC-X`, `pfx_FO-X`) |> 
+#   pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
+#                  contains("SL") | contains("CH") | contains("CU") | contains("FS") |
+#                  contains("KC") | contains("KN") | contains("SC") | contains("FO"),
+#                names_to = "Pitch_Type",
+#                values_to = "Horizontal_Movement") |>
+#   mutate(Pitch_Type = case_when(
+#     str_detect(Pitch_Type, "FA") ~ "Fastball",
+#     str_detect(Pitch_Type, "SI") ~ "Sinker",
+#     str_detect(Pitch_Type, "FC") ~ "Cutter",
+#     str_detect(Pitch_Type, "SL") ~ "Slider",
+#     str_detect(Pitch_Type, "CH") ~ "Changeup",
+#     str_detect(Pitch_Type, "CU") ~ "Curveball",
+#     str_detect(Pitch_Type, "FS") ~ "Splitter",
+#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+#     str_detect(Pitch_Type, "KN") ~ "Knuckleball",
+#     str_detect(Pitch_Type, "SC") ~ "Screwball",
+#     str_detect(Pitch_Type, "FO") ~ "Forkball",
+#     TRUE ~ Pitch_Type
+#   )) |> 
+#   drop_na()
+# 
+# cond_data_vertical <- cond_data |> 
+#   select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-Z`, `pfx_SI-Z`, `pfx_FC-Z`, 
+#          `pfx_SL-Z`, `pfx_CH-Z`, `pfx_CU-Z`, `pfx_FS-Z`, `pfx_KC-Z`, `pfx_KN-Z`, 
+#          `pfx_SC-Z`, `pfx_FO-Z`) |> 
+#   pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
+#                  contains("SL") | contains("CH") | contains("CU") | contains("FS") |
+#                  contains("KC") | contains("KN") | contains("SC") | contains("FO"),
+#                names_to = "Pitch_Type",
+#                values_to = "Vertical_Movement") |>
+#   mutate(Pitch_Type = case_when(
+#     str_detect(Pitch_Type, "FA") ~ "Fastball",
+#     str_detect(Pitch_Type, "SI") ~ "Sinker",
+#     str_detect(Pitch_Type, "FC") ~ "Cutter",
+#     str_detect(Pitch_Type, "SL") ~ "Slider",
+#     str_detect(Pitch_Type, "CH") ~ "Changeup",
+#     str_detect(Pitch_Type, "CU") ~ "Curveball",
+#     str_detect(Pitch_Type, "FS") ~ "Splitter",
+#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+#     str_detect(Pitch_Type, "KN") ~ "Knuckleball",
+#     str_detect(Pitch_Type, "SC") ~ "Screwball",
+#     str_detect(Pitch_Type, "FO") ~ "Forkball",
+#     TRUE ~ Pitch_Type
+#   )) |> 
+#   drop_na()
+# 
+# #Spin Data Problem
+# cond_data_spin <- cond_data |> 
+#   select(Season, PlayerNameRoute, xMLBAMID, ff_avg_spin, si_avg_spin, fc_avg_spin, 
+#          sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, kn_avg_spin) |> 
+#   pivot_longer(cols = contains("ff") | contains("si") | contains("fc") | 
+#                  contains("sl") | contains("ch") | contains("cu") | contains("fs") |
+#                  contains("kn"),
+#                names_to = "Pitch_Type",
+#                values_to = "Spin") |>
+#   mutate(Pitch_Type = case_when(
+#     str_detect(Pitch_Type, "ff") ~ "Fastball",
+#     str_detect(Pitch_Type, "si") ~ "Sinker",
+#     str_detect(Pitch_Type, "fc") ~ "Cutter",
+#     str_detect(Pitch_Type, "sl") ~ "Slider",
+#     str_detect(Pitch_Type, "ch") ~ "Changeup",
+#     str_detect(Pitch_Type, "cu") ~ "Curveball",
+#     str_detect(Pitch_Type, "fs") ~ "Splitter",
+#     str_detect(Pitch_Type, "kn") ~ "Knuckleball",
+#     TRUE ~ Pitch_Type
+#   )) |> 
+#   drop_na()
+# 
+# cond_data_stuff_plus <- cond_data |> 
+#   select(Season, PlayerNameRoute, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL, 
+#          sp_s_CH, sp_s_CU, sp_s_FS, sp_s_KC, sp_s_FO) |> 
+#   pivot_longer(cols = contains("FF") | contains("SI") | contains("FC") | 
+#                  contains("SL") | contains("CH") | contains("CU") | contains("FS") |
+#                  contains("KC") | contains("FO"),
+#                names_to = "Pitch_Type",
+#                values_to = "Stuff_Plus") |>
+#   mutate(Pitch_Type = case_when(
+#     str_detect(Pitch_Type, "FF") ~ "Fastball",
+#     str_detect(Pitch_Type, "SI") ~ "Sinker",
+#     str_detect(Pitch_Type, "FC") ~ "Cutter",
+#     str_detect(Pitch_Type, "SL") ~ "Slider",
+#     str_detect(Pitch_Type, "CH") ~ "Changeup",
+#     str_detect(Pitch_Type, "CU") ~ "Curveball",
+#     str_detect(Pitch_Type, "FS") ~ "Splitter",
+#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
+#     str_detect(Pitch_Type, "FO") ~ "Forkball",
+#     TRUE ~ Pitch_Type
+#   )) |> 
+#   drop_na()
+# 
+# #Why certain NAs here?
+# cond_data_longer <- list(cond_data_freq, cond_data_velo, cond_data_horizontal, 
+#                          cond_data_vertical, cond_data_spin, cond_data_stuff_plus) |> 
+#   reduce(left_join, by = c("Season", "xMLBAMID", "PlayerNameRoute", "Pitch_Type"))
 
-cond_data_vertical <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-Z`, `pfx_SI-Z`, `pfx_FC-Z`, 
-         `pfx_SL-Z`, `pfx_CH-Z`, `pfx_CU-Z`, `pfx_FS-Z`, `pfx_KC-Z`, `pfx_KN-Z`, 
-         `pfx_SC-Z`, `pfx_FO-Z`) |> 
-  pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
-                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-                 contains("KC") | contains("KN") | contains("SC") | contains("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Vertical_Movement") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FA") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-    str_detect(Pitch_Type, "SC") ~ "Screwball",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
 
-#Spin Data Problem
-cond_data_spin <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, ff_avg_spin, si_avg_spin, fc_avg_spin, 
-         sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, kn_avg_spin) |> 
-  pivot_longer(cols = contains("ff") | contains("si") | contains("fc") | 
-                 contains("sl") | contains("ch") | contains("cu") | contains("fs") |
-                 contains("kn"),
-               names_to = "Pitch_Type",
-               values_to = "Spin") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "ff") ~ "Fastball",
-    str_detect(Pitch_Type, "si") ~ "Sinker",
-    str_detect(Pitch_Type, "fc") ~ "Cutter",
-    str_detect(Pitch_Type, "sl") ~ "Slider",
-    str_detect(Pitch_Type, "ch") ~ "Changeup",
-    str_detect(Pitch_Type, "cu") ~ "Curveball",
-    str_detect(Pitch_Type, "fs") ~ "Splitter",
-    str_detect(Pitch_Type, "kn") ~ "Knuckleball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
+# EDA ---------------------------------------------------------------------
 
-cond_data_stuff_plus <- cond_data |> 
-  select(Season, PlayerNameRoute, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL, 
-         sp_s_CH, sp_s_CU, sp_s_FS, sp_s_KC, sp_s_FO) |> 
-  pivot_longer(cols = contains("FF") | contains("SI") | contains("FC") | 
-                 contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-                 contains("KC") | contains("FO"),
-               names_to = "Pitch_Type",
-               values_to = "Stuff_Plus") |>
-  mutate(Pitch_Type = case_when(
-    str_detect(Pitch_Type, "FF") ~ "Fastball",
-    str_detect(Pitch_Type, "SI") ~ "Sinker",
-    str_detect(Pitch_Type, "FC") ~ "Cutter",
-    str_detect(Pitch_Type, "SL") ~ "Slider",
-    str_detect(Pitch_Type, "CH") ~ "Changeup",
-    str_detect(Pitch_Type, "CU") ~ "Curveball",
-    str_detect(Pitch_Type, "FS") ~ "Splitter",
-    str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-    str_detect(Pitch_Type, "FO") ~ "Forkball",
-    TRUE ~ Pitch_Type
-  )) |> 
-  drop_na()
-
-#Why certain NAs here?
-cond_data_longer <- list(cond_data_freq, cond_data_velo, cond_data_horizontal, 
-                         cond_data_vertical, cond_data_spin, cond_data_stuff_plus) |> 
-  reduce(left_join, by = c("Season", "xMLBAMID", "PlayerNameRoute", "Pitch_Type"))
-
-#Experimenting with visualizations
-library(ggplot2)
 cond_data |> 
   filter(cond_data$ind_fastball == "Yes") |> 
   ggplot(aes(x=pfx_vFA, y=sp_s_FF, color = `K_BB+`))+
@@ -413,9 +416,6 @@ cond_data |>
   labs(x = "pfx_SL-X", y = "sp_s_SL") +
   ggtitle("Scatterplot of pfx_SL-X vs sp_s_SL (Slider Indicator = Yes)")
 #facet_wrap(~ Throws)
-
-
-# EDA ---------------------------------------------------------------------
 
 cond_data |> 
   ggplot(aes(x=sp_stuff, y=`K_9+`, color = `xFIP-`))+
@@ -956,7 +956,7 @@ ggplot(ovr_change, aes(x = Season, y = Count, color = `Pitch Change`)) +
 
 # Decision Tree -----------------------------------------------------------
 
-set.seed(123)
+set.seed(4)
 train <- cond_data |> 
   filter(ind_fastball == "Yes" & ind_change == "Yes") |> 
   select(pfx_vCH, `pfx_CH-X`, `pfx_CH-Z`, sp_s_CH, sp_s_FF) |> 
@@ -973,7 +973,6 @@ if(anyNA(train) | anyNA(test)) {
   stop("There are missing values in the training or testing data.")
 }
 
-library(caret)
 hr_tree <- train(sp_s_FF ~ ., 
                  data = train, 
                  method = "rpart", 
@@ -1988,82 +1987,42 @@ model_x <- ff_to_si |>
 # response
 model_y <- ff_to_si |> 
   pull(sp_s_SI)
-#Lasso Model
-ff_to_si_lasso_cv <- cv.glmnet(model_x, model_y, 
-                               alpha = 1)
-plot(ff_to_si_lasso_cv)
-tidy_lasso_coef <- tidy(ff_to_si_lasso_cv$glmnet.fit)
-tidy_lasso_coef |> 
-  ggplot(aes(x = lambda, y = estimate, group = term)) +
-  scale_x_log10() +
-  geom_line(alpha = 0.75) +
-  geom_vline(xintercept = ff_to_si_lasso_cv$lambda.min) +
-  geom_vline(xintercept = ff_to_si_lasso_cv$lambda.1se, 
-             linetype = "dashed", color = "red")
 
-tidy_lasso_cv <- tidy(ff_to_si_lasso_cv)
-tidy_lasso_cv |>
-  ggplot(aes(x = lambda, y = nzero)) +
-  geom_line() +
-  geom_vline(xintercept = ff_to_si_lasso_cv$lambda.min) +
-  geom_vline(xintercept = ff_to_si_lasso_cv$lambda.1se, 
-             linetype = "dashed", color = "red") +
-  scale_x_log10()
+k_folds <- 5
+# Create the folds
+set.seed(4)
+folds <- createFolds(model_y, k = k_folds, list = TRUE, returnTrain = TRUE)
 
-# this will only print out non-zero coefficient estimates
-lasso_final <- glmnet(
-  model_x, model_y, 
-  alpha = 1,
-  lambda = ff_to_si_lasso_cv$lambda.1se,
-)
-# Predict on the training data
-predictions <- predict(lasso_final, newx = model_x)
+# Initialize a vector to store the RMSE for each fold
+rmse_values <- numeric(k_folds)
 
-# Calculate RMSE
-rmse <- sqrt(mean((model_y - predictions)^2))
-rmse
+# Perform nested cross-validation
+for (i in seq_along(folds)) {
+  # Split the data into training and test sets
+  train_indices <- folds[[i]]
+  test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+  
+  x_train <- model_x[train_indices, ]
+  y_train <- model_y[train_indices]
+  x_test <- model_x[test_indices, ]
+  y_test <- model_y[test_indices]
+  
+  # Perform cross-validation on the training set to find the optimal lambda
+  lasso_cv <- cv.glmnet(x_train, y_train, alpha = 1)
+  
+  # Fit the lasso model on the training set using the optimal lambda
+  lasso_model <- glmnet(x_train, y_train, alpha = 1, lambda = lasso_cv$lambda.1se)
+  
+  # Predict the response for the test set
+  predictions <- predict(lasso_model, newx = x_test)
+  
+  # Calculate the RMSE for the test set
+  rmse_values[i] <- sqrt(mean((y_test - predictions)^2))
+}
 
-observed_vs_predicted <- tibble(
-  Observed = model_y,
-  Predicted = as.vector(predictions)
-)
-
-observed_vs_predicted |>
-  ggplot(aes(x = Predicted, y = Observed)) +
-  geom_point(alpha = 0.5, size = 3) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red", linewidth = 2) +
-  labs(title = "Predicted vs. Observed Values",
-       x = "Predicted Values",
-       y = "Observed Values")
-
-lasso_final |> 
-  vi() |> 
-  mutate(Variable = fct_reorder(Variable, Importance)) |>
-  ggplot(aes(x = Importance, y = Variable, 
-             fill = Importance > 0)) +
-  geom_col(color = "white", show.legend = FALSE) +
-  scale_fill_manual(values = c("darkred", "darkblue")) +
-  labs(x = "estimate", y = NULL)
-
-ff_to_si |> 
-  mutate(preds = predictions) |> 
-  view()
-
-# Filter the data for pitchers with fastballs but no sinkers
-ff_only <- cond_data |> 
-  filter(ind_fastball == "Yes") |> 
-  select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, `pfx_FA-X`, `pfx_FA-Z`, 
-         ff_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z) |> 
-  drop_na()
-
-# Prepare the predictors for the new dataset
-ff_only_x <- ff_only |> select(pfx_vFA:avg_rp_z) |> as.matrix()
-
-# Predict sinker stuff+ for pitchers with only fastballs
-predictions_ff_only <- predict(lasso_final, newx = ff_only_x)
-
-# Add predictions to the new dataset
-ff_only <- ff_only |> mutate(pred_si_from_ff = as.vector(predictions_ff_only))
+# Calculate the average RMSE across all folds
+average_rmse <- mean(rmse_values)
+average_rmse
 
 # Cutter ---> Sinker Stuff+
 fc_to_si <- cond_data |> 
@@ -2371,7 +2330,7 @@ lasso_final |>
 si_to_fc <- cond_data |> 
   filter(ind_sinker == "Yes" & ind_cutter == "Yes") |> 
   select(Season, PlayerNameRoute, xMLBAMID, pfx_vSI, `pfx_SI-X`, `pfx_SI-Z`, 
-         sii_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FC) |> 
+         si_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FC) |> 
   drop_na()
 # predictors
 model_x <- si_to_fc |> 
@@ -3283,7 +3242,7 @@ lasso_final |>
 kc_to_cu <- cond_data |> 
   filter(ind_kc == "Yes" & ind_curve == "Yes") |> 
   select(Season, PlayerNameRoute, xMLBAMID, pfx_vKC, `pfx_KC-X`, `pfx_KC-Z`, 
-         kc_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU) |> 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU) |> 
   drop_na()
 # predictors
 model_x <- kc_to_cu |> 
@@ -3582,7 +3541,7 @@ lasso_final |>
 
 # Splitter ---> Changeup Stuff+
 fs_to_ch <- cond_data |> 
-  filter(ind_splitter == "Yes" & ind_change == "Yes") |> 
+  filter(ind_split == "Yes" & ind_change == "Yes") |> 
   select(Season, PlayerNameRoute, xMLBAMID, pfx_vFS, `pfx_FS-X`, `pfx_FS-Z`, 
          fs_avg_spin, avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
   drop_na()
@@ -3634,7 +3593,7 @@ lasso_final |>
 kc_to_ch <- cond_data |> 
   filter(ind_kc == "Yes" & ind_change == "Yes") |> 
   select(Season, PlayerNameRoute, xMLBAMID, pfx_vKC, `pfx_KC-X`, `pfx_KC-Z`, 
-         vg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH) |> 
   drop_na()
 # predictors
 model_x <- kc_to_ch |> 
@@ -4381,6 +4340,119 @@ lasso_final |>
   geom_col(color = "white", show.legend = FALSE) +
   scale_fill_manual(values = c("darkred", "darkblue")) +
   labs(x = "estimate", y = NULL)
+
+
+
+# Lasso RMSE Calculations -------------------------------------------------
+
+# Define a function to perform nested cross-validation
+nested_cv_lasso <- function(predictor_pitch, response_pitch, data, results_df) {
+  # Prepare the predictors and response
+  model_x <- data |> 
+    select(4:10) |> 
+    as.matrix()
+  model_y <- data |> 
+    pull(11)
+  
+  # Create folds for cross-validation
+  set.seed(4)
+  k_folds = 5
+  folds <- createFolds(model_y, k = k_folds, returnTrain = TRUE)
+  
+  rmse_list <- vector("numeric", length = k_folds)
+  
+  for (i in seq_along(folds)) {
+    # Split the data into training and test sets
+    set.seed(4)
+    train_indices <- folds[[i]]
+    test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+    
+    x_train <- model_x[train_indices, ]
+    y_train <- model_y[train_indices]
+    x_test <- model_x[test_indices, ]
+    y_test <- model_y[test_indices]
+    
+    # Perform Lasso regression with cross-validation on training data
+    lasso_cv <- cv.glmnet(x_train, y_train, alpha = 1)
+    
+    # Fit the final Lasso model with the best lambda
+    lasso_final <- glmnet(x_train, y_train, alpha = 1, lambda = lasso_cv$lambda.1se)
+    
+    # Predict on the test data
+    predictions <- predict(lasso_final, newx = x_test)
+    
+    # Calculate RMSE for the test data
+    rmse <- sqrt(mean((y_test - predictions)^2))
+    rmse_list[i] <- rmse
+  }
+  
+  # Calculate the average RMSE
+  avg_rmse <- mean(rmse_list)
+  
+  # Return a data frame with the results
+  # Append the result to the results_df
+  results_df <- results_df |> 
+    add_row(
+      `Predictor Pitch` = predictor_pitch,
+      `Response Pitch` = response_pitch,
+      `Average RMSE` = avg_rmse
+    )
+  
+  return(results_df)
+}
+
+# Initialize an empty results data frame
+results_df <- tibble(
+  `Predictor Pitch` = character(),
+  `Response Pitch` = character(),
+  `Average RMSE` = numeric()
+)
+results_df <- nested_cv_lasso("Sinker", "Fastball", si_to_ff, results_df)
+results_df <- nested_cv_lasso("Cutter", "Fastball", fc_to_ff, results_df)
+results_df <- nested_cv_lasso("Slider", "Fastball", sl_to_ff, results_df)
+results_df <- nested_cv_lasso("Curveball", "Fastball", cu_to_ff, results_df)
+results_df <- nested_cv_lasso("Changeup", "Fastball", ch_to_ff, results_df)
+results_df <- nested_cv_lasso("Splitter", "Fastball", fs_to_ff, results_df)
+results_df <- nested_cv_lasso("Fastball", "Sinker", ff_to_si, results_df)
+results_df <- nested_cv_lasso("Cutter", "Sinker", fc_to_si, results_df)
+results_df <- nested_cv_lasso("Slider", "Sinker", sl_to_si, results_df)
+results_df <- nested_cv_lasso("Curveball", "Sinker", cu_to_si, results_df)
+results_df <- nested_cv_lasso("Changeup", "Sinker", ch_to_si, results_df)
+results_df <- nested_cv_lasso("Splitter", "Sinker", fs_to_si, results_df)
+results_df <- nested_cv_lasso("Fastball", "Cutter", ff_to_fc, results_df)
+results_df <- nested_cv_lasso("Sinker", "Cutter", si_to_fc, results_df)
+results_df <- nested_cv_lasso("Slider", "Cutter", sl_to_fc, results_df)
+results_df <- nested_cv_lasso("Curveball", "Cutter", cu_to_fc, results_df)
+results_df <- nested_cv_lasso("Changeup", "Cutter", ch_to_fc, results_df)
+results_df <- nested_cv_lasso("Splitter", "Cutter", fs_to_fc, results_df)
+results_df <- nested_cv_lasso("Fastball", "Slider", ff_to_sl, results_df)
+results_df <- nested_cv_lasso("Sinker", "Slider", si_to_sl, results_df)
+results_df <- nested_cv_lasso("Cutter", "Slider", fc_to_sl, results_df)
+results_df <- nested_cv_lasso("Curveball", "Slider", cu_to_sl, results_df)
+results_df <- nested_cv_lasso("Changeup", "Slider", ch_to_sl, results_df)
+results_df <- nested_cv_lasso("Splitter", "Slider", fs_to_sl, results_df)
+results_df <- nested_cv_lasso("Fastball", "Curveball", ff_to_cu, results_df)
+results_df <- nested_cv_lasso("Sinker", "Curveball", si_to_cu, results_df)
+results_df <- nested_cv_lasso("Cutter", "Curveball", fc_to_cu, results_df)
+results_df <- nested_cv_lasso("Slider", "Curveball", sl_to_cu, results_df)
+results_df <- nested_cv_lasso("Changeup", "Curveball", ch_to_cu, results_df)
+results_df <- nested_cv_lasso("Splitter", "Curveball", fs_to_cu, results_df)
+results_df <- nested_cv_lasso("Fastball", "Changeup", ff_to_ch, results_df)
+results_df <- nested_cv_lasso("Sinker", "Changeup", si_to_ch, results_df)
+results_df <- nested_cv_lasso("Cutter", "Changeup", fc_to_ch, results_df)
+results_df <- nested_cv_lasso("Slider", "Changeup", sl_to_ch, results_df)
+results_df <- nested_cv_lasso("Curveball", "Changeup", cu_to_ch, results_df)
+results_df <- nested_cv_lasso("Splitter", "Changeup", fs_to_ch, results_df)
+results_df <- nested_cv_lasso("Fastball", "Splitter", ff_to_fs, results_df)
+results_df <- nested_cv_lasso("Sinker", "Splitter", si_to_fs, results_df)
+results_df <- nested_cv_lasso("Cutter", "Splitter", fc_to_fs, results_df)
+results_df <- nested_cv_lasso("Slider", "Splitter", sl_to_fs, results_df)
+results_df <- nested_cv_lasso("Curveball", "Splitter", cu_to_fs, results_df)
+results_df <- nested_cv_lasso("Changeup", "Splitter", ch_to_fs, results_df)
+#for simplicity's sake, not including knuckle curve (no spin rate)
+
+# Display the result
+print(results_df)
 
 
 
