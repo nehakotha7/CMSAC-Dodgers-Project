@@ -4927,10 +4927,267 @@ write.table(rf_RMSE, "rfRMSE")
 
 
 # Intercept Only Model ----------------------------------------------------
+#Fastball
+set.seed(4)
+k <- 5
+ff_int_only <- cond_data |>
+  filter(!is.na(sp_s_FF)) |> 
+  select(sp_s_FF) |> 
+  mutate(test_fold = sample(rep(1:k, length.out = n())))
 
-# Function to fit an intercept-only model with 5-fold cross-validation
+# Function to get RMSE for a single fold
+ff_int_fn <- function(fold) {
+  test_data <- ff_int_only |> filter(test_fold == fold)
+  train_data <- ff_int_only |> filter(test_fold != fold)
+  
+  lm_fit <- lm(sp_s_FF ~ 1, data = train_data) 
+  
+  # Predict on the test data
+  predictions <- rep(coef(lm_fit)[1], nrow(test_data))
+  
+  # Calculate RMSE
+  rmse <- sqrt(mean((test_data$sp_s_FF - predictions)^2))
+  return(rmse)
+}
 
-folds <- createFolds(filtered_data$sp_stuff, k = k, list = T)
+# Calculate RMSE for each fold
+rmse_list <- sapply(1:k, ff_int_fn)
+
+# Calculate the average RMSE
+avg_rmse <- mean(rmse_list)
+
+# Output the results
+ffRMSE <- tibble(
+  `Pitch Type` = "Fastball",
+  `Average RMSE` = avg_rmse
+)
+
+print(ffRMSE)
+
+#Sinker
+set.seed(4)
+k <- 5
+si_int_only <- cond_data |>
+  filter(!is.na(sp_s_SI)) |> 
+  select(sp_s_SI) |> 
+  mutate(test_fold = sample(rep(1:k, length.out = n())))
+
+# Function to get RMSE for a single fold
+si_int_fn <- function(fold) {
+  test_data <- si_int_only |> filter(test_fold == fold)
+  train_data <- si_int_only |> filter(test_fold != fold)
+  
+  lm_fit <- lm(sp_s_SI ~ 1, data = train_data) 
+  
+  # Predict on the test data
+  predictions <- rep(coef(lm_fit)[1], nrow(test_data))
+  
+  # Calculate RMSE
+  rmse <- sqrt(mean((test_data$sp_s_SI - predictions)^2))
+  return(rmse)
+}
+
+# Calculate RMSE for each fold
+rmse_list <- sapply(1:k, si_int_fn)
+
+# Calculate the average RMSE
+avg_rmse <- mean(rmse_list)
+
+# Output the results
+siRMSE <- tibble(
+  `Pitch Type` = "Sinker",
+  `Average RMSE` = avg_rmse
+)
+
+print(siRMSE)
+
+#Cutter
+set.seed(4)
+k <- 5
+fc_int_only <- cond_data |>
+  filter(!is.na(sp_s_FC)) |> 
+  select(sp_s_FC) |> 
+  mutate(test_fold = sample(rep(1:k, length.out = n())))
+
+# Function to get RMSE for a single fold
+fc_int_fn <- function(fold) {
+  test_data <- fc_int_only |> filter(test_fold == fold)
+  train_data <- fc_int_only |> filter(test_fold != fold)
+  
+  lm_fit <- lm(sp_s_FC ~ 1, data = train_data) 
+  
+  # Predict on the test data
+  predictions <- rep(coef(lm_fit)[1], nrow(test_data))
+  
+  # Calculate RMSE
+  rmse <- sqrt(mean((test_data$sp_s_FC - predictions)^2))
+  return(rmse)
+}
+
+# Calculate RMSE for each fold
+rmse_list <- sapply(1:k, fc_int_fn)
+
+# Calculate the average RMSE
+avg_rmse <- mean(rmse_list)
+
+# Output the results
+fcRMSE <- tibble(
+  `Pitch Type` = "Cutter",
+  `Average RMSE` = avg_rmse
+)
+
+print(fcRMSE)
+
+#Slider
+set.seed(4)
+k <- 5
+sl_int_only <- cond_data |>
+  filter(!is.na(sp_s_SL)) |> 
+  select(sp_s_SL) |> 
+  mutate(test_fold = sample(rep(1:k, length.out = n())))
+
+# Function to get RMSE for a single fold
+sl_int_fn <- function(fold) {
+  test_data <- sl_int_only |> filter(test_fold == fold)
+  train_data <- sl_int_only |> filter(test_fold != fold)
+  
+  lm_fit <- lm(sp_s_SL ~ 1, data = train_data) 
+  
+  # Predict on the test data
+  predictions <- rep(coef(lm_fit)[1], nrow(test_data))
+  
+  # Calculate RMSE
+  rmse <- sqrt(mean((test_data$sp_s_SL - predictions)^2))
+  return(rmse)
+}
+
+# Calculate RMSE for each fold
+rmse_list <- sapply(1:k, sl_int_fn)
+
+# Calculate the average RMSE
+avg_rmse <- mean(rmse_list)
+
+# Output the results
+slRMSE <- tibble(
+  `Pitch Type` = "Slider",
+  `Average RMSE` = avg_rmse
+)
+print(slRMSE)
+
+#Curveball
+set.seed(4)
+k <- 5
+cu_int_only <- cond_data |>
+  filter(!is.na(sp_s_CU)) |> 
+  select(sp_s_CU) |> 
+  mutate(test_fold = sample(rep(1:k, length.out = n())))
+
+# Function to get RMSE for a single fold
+cu_int_fn <- function(fold) {
+  test_data <- cu_int_only |> filter(test_fold == fold)
+  train_data <- cu_int_only |> filter(test_fold != fold)
+  
+  lm_fit <- lm(sp_s_CU ~ 1, data = train_data) 
+  
+  # Predict on the test data
+  predictions <- rep(coef(lm_fit)[1], nrow(test_data))
+  
+  # Calculate RMSE
+  rmse <- sqrt(mean((test_data$sp_s_CU - predictions)^2))
+  return(rmse)
+}
+
+# Calculate RMSE for each fold
+rmse_list <- sapply(1:k, cu_int_fn)
+
+# Calculate the average RMSE
+avg_rmse <- mean(rmse_list)
+
+# Output the results
+cuRMSE <- tibble(
+  `Pitch Type` = "Curveball",
+  `Average RMSE` = avg_rmse
+)
+
+print(cuRMSE)
+
+#Changeup
+set.seed(4)
+k <- 5
+ch_int_only <- cond_data |>
+  filter(!is.na(sp_s_CH)) |> 
+  select(sp_s_CH) |> 
+  mutate(test_fold = sample(rep(1:k, length.out = n())))
+
+# Function to get RMSE for a single fold
+ch_int_fn <- function(fold) {
+  test_data <- ch_int_only |> filter(test_fold == fold)
+  train_data <- ch_int_only |> filter(test_fold != fold)
+  
+  lm_fit <- lm(sp_s_CH ~ 1, data = train_data) 
+  
+  # Predict on the test data
+  predictions <- rep(coef(lm_fit)[1], nrow(test_data))
+  
+  # Calculate RMSE
+  rmse <- sqrt(mean((test_data$sp_s_CH - predictions)^2))
+  return(rmse)
+}
+
+# Calculate RMSE for each fold
+rmse_list <- sapply(1:k, ch_int_fn)
+
+# Calculate the average RMSE
+avg_rmse <- mean(rmse_list)
+
+# Output the results
+chRMSE <- tibble(
+  `Pitch Type` = "Changeup",
+  `Average RMSE` = avg_rmse
+)
+
+print(chRMSE)
+
+#Splitter
+set.seed(4)
+k <- 5
+fs_int_only <- cond_data |>
+  filter(!is.na(sp_s_FS)) |> 
+  select(sp_s_FS) |> 
+  mutate(test_fold = sample(rep(1:k, length.out = n())))
+
+# Function to get RMSE for a single fold
+fs_int_fn <- function(fold) {
+  test_data <- fs_int_only |> filter(test_fold == fold)
+  train_data <- fs_int_only |> filter(test_fold != fold)
+  
+  lm_fit <- lm(sp_s_FS ~ 1, data = train_data) 
+  
+  # Predict on the test data
+  predictions <- rep(coef(lm_fit)[1], nrow(test_data))
+  
+  # Calculate RMSE
+  rmse <- sqrt(mean((test_data$sp_s_FS - predictions)^2))
+  return(rmse)
+}
+
+# Calculate RMSE for each fold
+rmse_list <- sapply(1:k, fs_int_fn)
+
+# Calculate the average RMSE
+avg_rmse <- mean(rmse_list)
+
+# Output the results
+fsRMSE <- tibble(
+  `Pitch Type` = "Splitter",
+  `Average RMSE` = avg_rmse
+)
+
+print(fsRMSE)
+
+#Combining all pitches intercept-only RMSE into a table
+int_only_RMSE = bind_rows(ffRMSE, siRMSE, fcRMSE, slRMSE, cuRMSE, chRMSE, fsRMSE)
+write.table(int_only_RMSE, "IntOnlyRMSE")
 
 # Attempt at a GAM --------------------------------------------------------
 # Sinker Calc
