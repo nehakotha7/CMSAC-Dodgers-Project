@@ -4345,33 +4345,39 @@ lasso_final |>
 
 
 # Lasso RMSE Calculations -------------------------------------------------
-
 # Define a function to perform nested cross-validation
-nested_cv_lasso <- function(predictor_pitch, response_pitch, data, results_df) {
+nested_cv_lasso <- function(predictor_pitch, response_pitch, data, lassoRMSE) {
+  # Prepare the data
+  data <- data |> 
+    rename_with(~ make.names(.))
+  
   # Prepare the predictors and response
+  data <- data |> 
+    select(4:11)
+  
   model_x <- data |> 
-    select(4:10) |> 
+    select(1:7) |> 
     as.matrix()
   model_y <- data |> 
-    pull(11)
+    pull(8)
   
   # Create folds for cross-validation
   set.seed(4)
-  k_folds = 5
-  folds <- createFolds(model_y, k = k_folds, returnTrain = TRUE)
+  k_folds <- 5
+  data <- data |> mutate(fold_id = sample(rep(1:k_folds, length.out = n())))
   
   rmse_list <- vector("numeric", length = k_folds)
   
-  for (i in seq_along(folds)) {
+  for (i in 1:k_folds) {
     # Split the data into training and test sets
-    set.seed(4)
-    train_indices <- folds[[i]]
-    test_indices <- setdiff(seq_len(nrow(model_x)), train_indices)
+    train_data <- data |> filter(fold_id != i)
+    test_data <- data |> filter(fold_id == i)
     
-    x_train <- model_x[train_indices, ]
-    y_train <- model_y[train_indices]
-    x_test <- model_x[test_indices, ]
-    y_test <- model_y[test_indices]
+    # Prepare training and test data
+    x_train <- train_data |> select(1:7) |> as.matrix()
+    y_train <- train_data |> pull(8)
+    x_test <- test_data |> select(1:7) |> as.matrix()
+    y_test <- test_data |> pull(8)
     
     # Perform Lasso regression with cross-validation on training data
     lasso_cv <- cv.glmnet(x_train, y_train, alpha = 1)
@@ -4390,71 +4396,71 @@ nested_cv_lasso <- function(predictor_pitch, response_pitch, data, results_df) {
   # Calculate the average RMSE
   avg_rmse <- mean(rmse_list)
   
-  # Return a data frame with the results
-  # Append the result to the results_df
-  results_df <- results_df |> 
+  # Append the result to the lassoRMSE
+  lassoRMSE <- lassoRMSE |> 
     add_row(
       `Predictor Pitch` = predictor_pitch,
       `Response Pitch` = response_pitch,
       `Average RMSE` = avg_rmse
     )
   
-  return(results_df)
+  return(lassoRMSE)
 }
 
 # Initialize an empty results data frame
-results_df <- tibble(
+lassoRMSE <- tibble(
   `Predictor Pitch` = character(),
   `Response Pitch` = character(),
   `Average RMSE` = numeric()
 )
-results_df <- nested_cv_lasso("Sinker", "Fastball", si_to_ff, results_df)
-results_df <- nested_cv_lasso("Cutter", "Fastball", fc_to_ff, results_df)
-results_df <- nested_cv_lasso("Slider", "Fastball", sl_to_ff, results_df)
-results_df <- nested_cv_lasso("Curveball", "Fastball", cu_to_ff, results_df)
-results_df <- nested_cv_lasso("Changeup", "Fastball", ch_to_ff, results_df)
-results_df <- nested_cv_lasso("Splitter", "Fastball", fs_to_ff, results_df)
-results_df <- nested_cv_lasso("Fastball", "Sinker", ff_to_si, results_df)
-results_df <- nested_cv_lasso("Cutter", "Sinker", fc_to_si, results_df)
-results_df <- nested_cv_lasso("Slider", "Sinker", sl_to_si, results_df)
-results_df <- nested_cv_lasso("Curveball", "Sinker", cu_to_si, results_df)
-results_df <- nested_cv_lasso("Changeup", "Sinker", ch_to_si, results_df)
-results_df <- nested_cv_lasso("Splitter", "Sinker", fs_to_si, results_df)
-results_df <- nested_cv_lasso("Fastball", "Cutter", ff_to_fc, results_df)
-results_df <- nested_cv_lasso("Sinker", "Cutter", si_to_fc, results_df)
-results_df <- nested_cv_lasso("Slider", "Cutter", sl_to_fc, results_df)
-results_df <- nested_cv_lasso("Curveball", "Cutter", cu_to_fc, results_df)
-results_df <- nested_cv_lasso("Changeup", "Cutter", ch_to_fc, results_df)
-results_df <- nested_cv_lasso("Splitter", "Cutter", fs_to_fc, results_df)
-results_df <- nested_cv_lasso("Fastball", "Slider", ff_to_sl, results_df)
-results_df <- nested_cv_lasso("Sinker", "Slider", si_to_sl, results_df)
-results_df <- nested_cv_lasso("Cutter", "Slider", fc_to_sl, results_df)
-results_df <- nested_cv_lasso("Curveball", "Slider", cu_to_sl, results_df)
-results_df <- nested_cv_lasso("Changeup", "Slider", ch_to_sl, results_df)
-results_df <- nested_cv_lasso("Splitter", "Slider", fs_to_sl, results_df)
-results_df <- nested_cv_lasso("Fastball", "Curveball", ff_to_cu, results_df)
-results_df <- nested_cv_lasso("Sinker", "Curveball", si_to_cu, results_df)
-results_df <- nested_cv_lasso("Cutter", "Curveball", fc_to_cu, results_df)
-results_df <- nested_cv_lasso("Slider", "Curveball", sl_to_cu, results_df)
-results_df <- nested_cv_lasso("Changeup", "Curveball", ch_to_cu, results_df)
-results_df <- nested_cv_lasso("Splitter", "Curveball", fs_to_cu, results_df)
-results_df <- nested_cv_lasso("Fastball", "Changeup", ff_to_ch, results_df)
-results_df <- nested_cv_lasso("Sinker", "Changeup", si_to_ch, results_df)
-results_df <- nested_cv_lasso("Cutter", "Changeup", fc_to_ch, results_df)
-results_df <- nested_cv_lasso("Slider", "Changeup", sl_to_ch, results_df)
-results_df <- nested_cv_lasso("Curveball", "Changeup", cu_to_ch, results_df)
-results_df <- nested_cv_lasso("Splitter", "Changeup", fs_to_ch, results_df)
-results_df <- nested_cv_lasso("Fastball", "Splitter", ff_to_fs, results_df)
-results_df <- nested_cv_lasso("Sinker", "Splitter", si_to_fs, results_df)
-results_df <- nested_cv_lasso("Cutter", "Splitter", fc_to_fs, results_df)
-results_df <- nested_cv_lasso("Slider", "Splitter", sl_to_fs, results_df)
-results_df <- nested_cv_lasso("Curveball", "Splitter", cu_to_fs, results_df)
-results_df <- nested_cv_lasso("Changeup", "Splitter", ch_to_fs, results_df)
+
+lassoRMSE <- nested_cv_lasso("Sinker", "Fastball", si_to_ff, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Cutter", "Fastball", fc_to_ff, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Slider", "Fastball", sl_to_ff, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Curveball", "Fastball", cu_to_ff, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Changeup", "Fastball", ch_to_ff, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Splitter", "Fastball", fs_to_ff, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Fastball", "Sinker", ff_to_si, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Cutter", "Sinker", fc_to_si, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Slider", "Sinker", sl_to_si, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Curveball", "Sinker", cu_to_si, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Changeup", "Sinker", ch_to_si, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Splitter", "Sinker", fs_to_si, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Fastball", "Cutter", ff_to_fc, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Sinker", "Cutter", si_to_fc, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Slider", "Cutter", sl_to_fc, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Curveball", "Cutter", cu_to_fc, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Changeup", "Cutter", ch_to_fc, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Splitter", "Cutter", fs_to_fc, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Fastball", "Slider", ff_to_sl, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Sinker", "Slider", si_to_sl, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Cutter", "Slider", fc_to_sl, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Curveball", "Slider", cu_to_sl, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Changeup", "Slider", ch_to_sl, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Splitter", "Slider", fs_to_sl, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Fastball", "Curveball", ff_to_cu, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Sinker", "Curveball", si_to_cu, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Cutter", "Curveball", fc_to_cu, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Slider", "Curveball", sl_to_cu, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Changeup", "Curveball", ch_to_cu, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Splitter", "Curveball", fs_to_cu, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Fastball", "Changeup", ff_to_ch, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Sinker", "Changeup", si_to_ch, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Cutter", "Changeup", fc_to_ch, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Slider", "Changeup", sl_to_ch, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Curveball", "Changeup", cu_to_ch, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Splitter", "Changeup", fs_to_ch, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Fastball", "Splitter", ff_to_fs, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Sinker", "Splitter", si_to_fs, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Cutter", "Splitter", fc_to_fs, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Slider", "Splitter", sl_to_fs, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Curveball", "Splitter", cu_to_fs, lassoRMSE)
+lassoRMSE <- nested_cv_lasso("Changeup", "Splitter", ch_to_fs, lassoRMSE)
 #for simplicity's sake, not including knuckle curve (no spin rate)
 
 # Display the result
-print(results_df)
-
+print(lassoRMSE)
+write.table(lassoRMSE, "lassoRSME")
 
 
 # Random Forest -----------------------------------------------------------
