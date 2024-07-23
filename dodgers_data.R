@@ -14,6 +14,7 @@ library(patchwork)
 library(catboost)
 library(mgcv)
 library(rsample)
+library(ranger) #suarez
 
 #scraping pitching data from 2021
 data_2021 = baseballr::fg_pitcher_leaders(startseason = 2021, endseason = 2021)
@@ -84,7 +85,6 @@ key_vars <- c("Season", 'position', 'IP', 'Throws', 'xMLBAMID', 'PlayerNameRoute
 #no stuff+ for screwball or knuckleball (only one pitcher throws it)
 
 #creating condensed dataset for 2021
-library(dplyr)
 cond_data_2021 <- data_2021 |> 
   select(all_of(key_vars))
 
@@ -241,157 +241,6 @@ cond_data <- cond_data |>
          `pfx_SC-Z` = ifelse(ind_screw == "No", NA, `pfx_SC-Z`),)
 #only avg spin for sweeper
 #only avg spin for slurve
-
-
-# Pivot Tables: Not Needed Right Now --------------------------------------
-
-# cond_data_freq <- cond_data |> 
-#   select(Season, PlayerNameRoute, xMLBAMID, pfx_FA_pct, pfx_SI_pct, pfx_FC_pct, 
-#          pfx_SL_pct, pfx_CH_pct, pfx_CU_pct, pfx_FS_pct, pfx_KC_pct, pfx_KN_pct, 
-#          pfx_SC_pct, pfx_FO_pct) |> 
-#   pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
-#                  contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-#                  contains("KC") | contains("KN") | contains("SC") | contains("FO"),
-#                names_to = "Pitch_Type",
-#                values_to = "Percentage") |>
-#   mutate(Pitch_Type = case_when(
-#     str_detect(Pitch_Type, "FA") ~ "Fastball",
-#     str_detect(Pitch_Type, "SI") ~ "Sinker",
-#     str_detect(Pitch_Type, "FC") ~ "Cutter",
-#     str_detect(Pitch_Type, "SL") ~ "Slider",
-#     str_detect(Pitch_Type, "CH") ~ "Changeup",
-#     str_detect(Pitch_Type, "CU") ~ "Curveball",
-#     str_detect(Pitch_Type, "FS") ~ "Splitter",
-#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-#     str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-#     str_detect(Pitch_Type, "SC") ~ "Screwball",
-#     str_detect(Pitch_Type, "FO") ~ "Forkball",
-#     TRUE ~ Pitch_Type
-#   )) |> 
-#   drop_na()
-# 
-# cond_data_velo <- cond_data |> 
-#   select(Season, PlayerNameRoute, xMLBAMID, pfx_vFA, pfx_vSI, pfx_vFC, pfx_vSL, 
-#          pfx_vCH, pfx_vCU, pfx_vFS, pfx_vKC, pfx_vKN, pfx_vSC, pfx_vFO) |> 
-#   pivot_longer(cols = ends_with("FA") | ends_with("SI") | ends_with("FC") | 
-#                  ends_with("SL") | ends_with("CH") | ends_with("CU") | ends_with("FS") |
-#                  ends_with("KC") | ends_with("KN") | ends_with("SC") | ends_with("FO"),
-#                names_to = "Pitch_Type",
-#                values_to = "Velocity") |>
-#   mutate(Pitch_Type = case_when(
-#     str_detect(Pitch_Type, "FA") ~ "Fastball",
-#     str_detect(Pitch_Type, "SI") ~ "Sinker",
-#     str_detect(Pitch_Type, "FC") ~ "Cutter",
-#     str_detect(Pitch_Type, "SL") ~ "Slider",
-#     str_detect(Pitch_Type, "CH") ~ "Changeup",
-#     str_detect(Pitch_Type, "CU") ~ "Curveball",
-#     str_detect(Pitch_Type, "FS") ~ "Splitter",
-#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-#     str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-#     str_detect(Pitch_Type, "SC") ~ "Screwball",
-#     str_detect(Pitch_Type, "FO") ~ "Forkball",
-#     TRUE ~ Pitch_Type
-#   )) |> 
-#   drop_na()
-# 
-# cond_data_horizontal <- cond_data |> 
-#   select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-X`, `pfx_SI-X`, `pfx_FC-X`, 
-#          `pfx_SL-X`, `pfx_CH-X`, `pfx_CU-X`, `pfx_FS-X`, `pfx_KC-X`, `pfx_KN-X`, 
-#          `pfx_SC-X`, `pfx_FO-X`) |> 
-#   pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
-#                  contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-#                  contains("KC") | contains("KN") | contains("SC") | contains("FO"),
-#                names_to = "Pitch_Type",
-#                values_to = "Horizontal_Movement") |>
-#   mutate(Pitch_Type = case_when(
-#     str_detect(Pitch_Type, "FA") ~ "Fastball",
-#     str_detect(Pitch_Type, "SI") ~ "Sinker",
-#     str_detect(Pitch_Type, "FC") ~ "Cutter",
-#     str_detect(Pitch_Type, "SL") ~ "Slider",
-#     str_detect(Pitch_Type, "CH") ~ "Changeup",
-#     str_detect(Pitch_Type, "CU") ~ "Curveball",
-#     str_detect(Pitch_Type, "FS") ~ "Splitter",
-#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-#     str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-#     str_detect(Pitch_Type, "SC") ~ "Screwball",
-#     str_detect(Pitch_Type, "FO") ~ "Forkball",
-#     TRUE ~ Pitch_Type
-#   )) |> 
-#   drop_na()
-# 
-# cond_data_vertical <- cond_data |> 
-#   select(Season, PlayerNameRoute, xMLBAMID, `pfx_FA-Z`, `pfx_SI-Z`, `pfx_FC-Z`, 
-#          `pfx_SL-Z`, `pfx_CH-Z`, `pfx_CU-Z`, `pfx_FS-Z`, `pfx_KC-Z`, `pfx_KN-Z`, 
-#          `pfx_SC-Z`, `pfx_FO-Z`) |> 
-#   pivot_longer(cols = contains("FA") | contains("SI") | contains("FC") | 
-#                  contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-#                  contains("KC") | contains("KN") | contains("SC") | contains("FO"),
-#                names_to = "Pitch_Type",
-#                values_to = "Vertical_Movement") |>
-#   mutate(Pitch_Type = case_when(
-#     str_detect(Pitch_Type, "FA") ~ "Fastball",
-#     str_detect(Pitch_Type, "SI") ~ "Sinker",
-#     str_detect(Pitch_Type, "FC") ~ "Cutter",
-#     str_detect(Pitch_Type, "SL") ~ "Slider",
-#     str_detect(Pitch_Type, "CH") ~ "Changeup",
-#     str_detect(Pitch_Type, "CU") ~ "Curveball",
-#     str_detect(Pitch_Type, "FS") ~ "Splitter",
-#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-#     str_detect(Pitch_Type, "KN") ~ "Knuckleball",
-#     str_detect(Pitch_Type, "SC") ~ "Screwball",
-#     str_detect(Pitch_Type, "FO") ~ "Forkball",
-#     TRUE ~ Pitch_Type
-#   )) |> 
-#   drop_na()
-# 
-# #Spin Data Problem
-# cond_data_spin <- cond_data |> 
-#   select(Season, PlayerNameRoute, xMLBAMID, ff_avg_spin, si_avg_spin, fc_avg_spin, 
-#          sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, kn_avg_spin) |> 
-#   pivot_longer(cols = contains("ff") | contains("si") | contains("fc") | 
-#                  contains("sl") | contains("ch") | contains("cu") | contains("fs") |
-#                  contains("kn"),
-#                names_to = "Pitch_Type",
-#                values_to = "Spin") |>
-#   mutate(Pitch_Type = case_when(
-#     str_detect(Pitch_Type, "ff") ~ "Fastball",
-#     str_detect(Pitch_Type, "si") ~ "Sinker",
-#     str_detect(Pitch_Type, "fc") ~ "Cutter",
-#     str_detect(Pitch_Type, "sl") ~ "Slider",
-#     str_detect(Pitch_Type, "ch") ~ "Changeup",
-#     str_detect(Pitch_Type, "cu") ~ "Curveball",
-#     str_detect(Pitch_Type, "fs") ~ "Splitter",
-#     str_detect(Pitch_Type, "kn") ~ "Knuckleball",
-#     TRUE ~ Pitch_Type
-#   )) |> 
-#   drop_na()
-# 
-# cond_data_stuff_plus <- cond_data |> 
-#   select(Season, PlayerNameRoute, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL, 
-#          sp_s_CH, sp_s_CU, sp_s_FS, sp_s_KC, sp_s_FO) |> 
-#   pivot_longer(cols = contains("FF") | contains("SI") | contains("FC") | 
-#                  contains("SL") | contains("CH") | contains("CU") | contains("FS") |
-#                  contains("KC") | contains("FO"),
-#                names_to = "Pitch_Type",
-#                values_to = "Stuff_Plus") |>
-#   mutate(Pitch_Type = case_when(
-#     str_detect(Pitch_Type, "FF") ~ "Fastball",
-#     str_detect(Pitch_Type, "SI") ~ "Sinker",
-#     str_detect(Pitch_Type, "FC") ~ "Cutter",
-#     str_detect(Pitch_Type, "SL") ~ "Slider",
-#     str_detect(Pitch_Type, "CH") ~ "Changeup",
-#     str_detect(Pitch_Type, "CU") ~ "Curveball",
-#     str_detect(Pitch_Type, "FS") ~ "Splitter",
-#     str_detect(Pitch_Type, "KC") ~ "Knuckle Curve",
-#     str_detect(Pitch_Type, "FO") ~ "Forkball",
-#     TRUE ~ Pitch_Type
-#   )) |> 
-#   drop_na()
-# 
-# #Why certain NAs here?
-# cond_data_longer <- list(cond_data_freq, cond_data_velo, cond_data_horizontal, 
-#                          cond_data_vertical, cond_data_spin, cond_data_stuff_plus) |> 
-#   reduce(left_join, by = c("Season", "xMLBAMID", "PlayerNameRoute", "Pitch_Type"))
 
 
 # EDA ---------------------------------------------------------------------
@@ -2020,7 +1869,9 @@ for (i in seq_along(folds)) {
   # Calculate the RMSE for the test set
   rmse_values[i] <- sqrt(mean((y_test - predictions)^2))
 }
-
+rmse_table <- tibble(
+  Lasso = rmse_values
+)
 # Calculate the average RMSE across all folds
 average_rmse <- mean(rmse_values)
 average_rmse
@@ -4463,7 +4314,7 @@ print(lassoRMSE)
 write.table(lassoRMSE, "lassoRSME")
 
 
-# Random Forest -----------------------------------------------------------
+# Random Forest RMSE Calculations -----------------------------------------------------------
 # Function to perform cross-validation with Random Forest for any pitch type
 rf_cv <- function(predictor_pitch, response_pitch, response_var, data, rf_RMSE) {
   # Rename columns to make them valid for formula interface
@@ -4506,7 +4357,7 @@ rf_cv <- function(predictor_pitch, response_pitch, response_var, data, rf_RMSE) 
     rmse <- sqrt(mean((y_test - predictions)^2))
     rmse_list[i] <- rmse
   }
-  
+  print(rmse_list)
   # Calculate the average RMSE
   avg_rmse <- mean(rmse_list)
   
@@ -4846,6 +4697,257 @@ print(fsRMSE)
 #Combining all pitches intercept-only RMSE into a table
 int_only_RMSE = bind_rows(ffRMSE, siRMSE, fcRMSE, slRMSE, cuRMSE, chRMSE, fsRMSE)
 write.table(int_only_RMSE, "IntOnlyRMSE")
+
+
+# Model Comparison --------------------------------------------------------
+
+lassoRMSE <- lassoRMSE |> 
+  mutate(Method = "Lasso")
+rf_RMSE <- rf_RMSE |> 
+  mutate(Method = "Random Forest")
+int_only_RMSE <- int_only_RMSE |> 
+  mutate(Method = "Intercept Only") |> 
+  rename("Response Pitch" = `Pitch Type`)
+RMSEcomp = bind_rows(int_only_RMSE, lassoRMSE, rf_RMSE)
+
+RMSEcomp |> 
+  mutate(`Response Pitch` = factor(`Response Pitch`, 
+                                   levels = c("Fastball", "Sinker", "Cutter",
+                                              "Slider", "Curveball", 
+                                              "Changeup", "Splitter"))) |> 
+  ggplot(aes(`Response Pitch`, `Average RMSE`, color = Method))+
+  geom_point(alpha = 0.8, size = 2)+
+  scale_color_manual(values = c("black","red2", "dodgerblue2"))+
+  theme_bw()
+
+#Referencing tibble created earlier: comparing the RMSEs of lasso and RF for
+# fastball predicting sinker
+rmse_table <- rmse_table |> 
+  mutate(`Random Forest` = c(16.58268, 13.25207, 10.68425, 12.0298, 12.74035)) |> 
+#wee bit of hard coding here
+  pivot_longer(cols = c(Lasso, `Random Forest`), 
+               names_to = "Method", values_to = "RMSE")
+  
+ggplot(rmse_table, aes(x = Method, y = RMSE)) + 
+  geom_point(size = 4) +
+  stat_summary(fun = mean, geom = "point", 
+               color = "red", size = 4) + 
+  stat_summary(fun.data = mean_se, geom = "errorbar", 
+               color = "red", width = 0.2)+
+  theme_bw()+
+  geom_hline(aes(yintercept = 17.2472, color = "Intercept Only RMSE"), 
+             linetype = "dashed", linewidth = 1.5) +
+  scale_y_continuous(breaks = c(10, 12, 14, 16, 18), limits = c(10, 18)) +
+  labs(y = "RMSE, Sinker Prediction from Fastball", 
+       color = "",
+       title = "Modeling Comparison: Lasso Regression vs. Random Forest") + 
+  scale_color_manual(values = c("Intercept Only RMSE" = "dodgerblue4"))
+
+#Predict Fastball Stuff+ from Sinker Traits: Random Forest ------------------------------
+#Sinker has the smallest RMSE for random forests with Fastball as response
+rf_si_to_ff <- si_to_ff |> 
+  rename_with(~ make.names(.)) |> 
+  select(4:11)
+set.seed(4)
+ff_model <- ranger(sp_s_FF ~ ., num.trees = 500, importance = "impurity", 
+                   data = rf_si_to_ff, mtry = 2)
+
+si_only <- cond_data |> 
+  filter(ind_sinker == "Yes") |> 
+  rename_with(~ make.names(.)) |> 
+  select(Season, PlayerNameRoute, xMLBAMID, names(rf_si_to_ff)[1:7]) |>  
+  drop_na()
+# Generate predictions using the trained model
+set.seed(4)
+ff_preds <- predict(ff_model, data = si_only)$predictions
+
+# Add the predictions to the new dataset
+si_only <- si_only |> 
+  mutate(ff_preds = ff_preds) 
+
+# Merge the predictions with the original data
+merged_data <- cond_data |> 
+  left_join(si_only, by = c('xMLBAMID', 'Season')) |>
+  select(Season, PlayerNameRoute.x, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL, 
+         sp_s_CU, sp_s_CH, sp_s_FS, ff_preds) |> 
+  rename(PlayerNameRoute = PlayerNameRoute.x)
+
+#Fastball has the smallest RMSE for random forests with Sinker as response
+rf_ff_to_si <- ff_to_si |> 
+  rename_with(~ make.names(.)) |> 
+  select(4:11)
+set.seed(4)
+si_model <- ranger(sp_s_SI ~ ., num.trees = 500, importance = "impurity", 
+                   data = rf_ff_to_si, mtry = 2)
+
+ff_only <- cond_data |> 
+  filter(ind_fastball == "Yes") |> 
+  rename_with(~ make.names(.)) |> 
+  select(Season, PlayerNameRoute, xMLBAMID, names(rf_ff_to_si)[1:7]) |>  
+  drop_na()
+# Generate predictions using the trained model
+set.seed(4)
+si_preds <- predict(si_model, data = ff_only)$predictions
+
+# Add the predictions to the new dataset
+ff_only <- ff_only |> 
+  mutate(si_preds = si_preds) 
+
+# Merge the predictions with the original data
+merged_data <- merged_data |> 
+  left_join(ff_only, by = c('xMLBAMID', 'Season')) |> 
+  select(Season, PlayerNameRoute.x, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL,
+         sp_s_CU, sp_s_CH, sp_s_FS, ff_preds, si_preds) |>
+  rename(PlayerNameRoute = PlayerNameRoute.x)
+
+#Splitter has the smallest RMSE for random forests with Cutter as response
+rf_fs_to_fc <- fs_to_fc |> 
+  rename_with(~ make.names(.)) |> 
+  select(4:11)
+set.seed(4)
+fc_model <- ranger(sp_s_FC ~ ., num.trees = 500, importance = "impurity", 
+                   data = rf_fs_to_fc, mtry = 2)
+
+fs_only <- cond_data |> 
+  filter(ind_split == "Yes") |> 
+  rename_with(~ make.names(.)) |> 
+  select(Season, PlayerNameRoute, xMLBAMID, names(rf_fs_to_fc)[1:7]) |>  
+  drop_na()
+# Generate predictions using the trained model
+set.seed(4)
+fc_preds <- predict(fc_model, data = fs_only)$predictions
+
+# Add the predictions to the new dataset
+fs_only <- fs_only |> 
+  mutate(fc_preds = fc_preds) 
+
+# Merge the predictions with the original data
+merged_data <- merged_data |> 
+  left_join(fs_only, by = c('xMLBAMID', 'Season')) |> 
+  select(Season, PlayerNameRoute.x, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL,
+         sp_s_CU, sp_s_CH, sp_s_FS, ff_preds, si_preds, fc_preds) |>
+  rename(PlayerNameRoute = PlayerNameRoute.x)
+
+#Fastball has the smallest RMSE for random forests with Slider as response
+rf_ff_to_sl <- ff_to_sl |> 
+  rename_with(~ make.names(.)) |> 
+  select(4:11)
+set.seed(4)
+sl_model <- ranger(sp_s_SL ~ ., num.trees = 500, importance = "impurity", 
+                   data = rf_ff_to_sl, mtry = 2)
+
+ff_only2 <- cond_data |> 
+  filter(ind_fastball == "Yes") |> 
+  rename_with(~ make.names(.)) |> 
+  select(Season, PlayerNameRoute, xMLBAMID, names(rf_ff_to_sl)[1:7]) |>  
+  drop_na()
+# Generate predictions using the trained model
+set.seed(4)
+sl_preds <- predict(sl_model, data = ff_only2)$predictions
+
+# Add the predictions to the new dataset
+ff_only2 <- ff_only2 |> 
+  mutate(sl_preds = sl_preds) 
+
+# Merge the predictions with the original data
+merged_data <- merged_data |> 
+  left_join(ff_only2, by = c('xMLBAMID', 'Season'))
+merged_data <- merged_data |> 
+  select(Season, PlayerNameRoute.x, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL,
+        sp_s_CU, sp_s_CH, sp_s_FS, ff_preds, si_preds, fc_preds, sl_preds) |>
+  rename(PlayerNameRoute = PlayerNameRoute.x)
+
+#Changeup has the smallest RMSE for random forests with Curveball as response
+rf_ch_to_cu <- ch_to_cu |> 
+  rename_with(~ make.names(.)) |> 
+  select(4:11)
+set.seed(4)
+cu_model <- ranger(sp_s_CU ~ ., num.trees = 500, importance = "impurity", 
+                   data = rf_ch_to_cu, mtry = 2)
+
+ch_only <- cond_data |> 
+  filter(ind_change == "Yes") |> 
+  rename_with(~ make.names(.)) |> 
+  select(Season, PlayerNameRoute, xMLBAMID, names(rf_ch_to_cu)[1:7]) |>  
+  drop_na()
+# Generate predictions using the trained model
+set.seed(4)
+cu_preds <- predict(cu_model, data = ch_only)$predictions
+
+# Add the predictions to the new dataset
+ch_only <- ch_only |> 
+  mutate(cu_preds = cu_preds) 
+
+# Merge the predictions with the original data
+merged_data <- merged_data |> 
+  left_join(ch_only, by = c('xMLBAMID', 'Season'))
+merged_data <- merged_data |> 
+  select(Season, PlayerNameRoute.x, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL,
+         sp_s_CU, sp_s_CH, sp_s_FS, ff_preds, si_preds, fc_preds, sl_preds, 
+         cu_preds) |>
+  rename(PlayerNameRoute = PlayerNameRoute.x)
+
+#Curveball has the smallest RMSE for random forests with Changeup as response
+rf_cu_to_ch <- cu_to_ch |> 
+  rename_with(~ make.names(.)) |> 
+  select(4:11)
+set.seed(4)
+ch_model <- ranger(sp_s_CH ~ ., num.trees = 500, importance = "impurity", 
+                   data = rf_cu_to_ch, mtry = 2)
+
+cu_only <- cond_data |> 
+  filter(ind_curve == "Yes") |> 
+  rename_with(~ make.names(.)) |> 
+  select(Season, PlayerNameRoute, xMLBAMID, names(rf_cu_to_ch)[1:7]) |>  
+  drop_na()
+# Generate predictions using the trained model
+set.seed(4)
+ch_preds <- predict(ch_model, data = cu_only)$predictions
+
+# Add the predictions to the new dataset
+cu_only <- cu_only |> 
+  mutate(ch_preds = ch_preds) 
+
+# Merge the predictions with the original data
+merged_data <- merged_data |> 
+  left_join(cu_only, by = c('xMLBAMID', 'Season'))
+merged_data <- merged_data |> 
+  select(Season, PlayerNameRoute.x, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL,
+         sp_s_CU, sp_s_CH, sp_s_FS, ff_preds, si_preds, fc_preds, sl_preds, 
+         cu_preds, ch_preds) |>
+  rename(PlayerNameRoute = PlayerNameRoute.x)
+
+#Fastball has the smallest RMSE for random forests with Splitter as response
+rf_ff_to_fs <- ff_to_fs |> 
+  rename_with(~ make.names(.)) |> 
+  select(4:11)
+set.seed(4)
+fs_model <- ranger(sp_s_FS ~ ., num.trees = 500, importance = "impurity", 
+                   data = rf_ff_to_fs, mtry = 2)
+
+ff_only3 <- cond_data |> 
+  filter(ind_fastball == "Yes") |> 
+  rename_with(~ make.names(.)) |> 
+  select(Season, PlayerNameRoute, xMLBAMID, names(rf_ff_to_fs)[1:7]) |>  
+  drop_na()
+# Generate predictions using the trained model
+set.seed(4)
+fs_preds <- predict(fs_model, data = ff_only3)$predictions
+
+# Add the predictions to the new dataset
+ff_only3 <- ff_only3 |> 
+  mutate(fs_preds = fs_preds) 
+
+# Merge the predictions with the original data
+merged_data <- merged_data |> 
+  left_join(ff_only3, by = c('xMLBAMID', 'Season'))
+merged_data <- merged_data |> 
+  select(Season, PlayerNameRoute.x, xMLBAMID, sp_s_FF, sp_s_SI, sp_s_FC, sp_s_SL,
+         sp_s_CU, sp_s_CH, sp_s_FS, ff_preds, si_preds, fc_preds, sl_preds, 
+         cu_preds, ch_preds, fs_preds) |>
+  rename(PlayerNameRoute = PlayerNameRoute.x)
+
+
 
 # Attempt at a GAM --------------------------------------------------------
 # Sinker Calc
