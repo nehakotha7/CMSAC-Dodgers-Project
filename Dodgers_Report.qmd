@@ -25,6 +25,13 @@ img {
   height: auto; /* Maintain aspect ratio */
 }
 </style>
+
+<style>
+.title {
+  text-align: center;
+}
+</style>
+
 ---
 
 ## Introduction 
