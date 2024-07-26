@@ -16,16 +16,25 @@ execute:
   warning: false
   message: false
 ---
-
+<style>
+img {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 60%; /* Adjust the width as needed */
+  height: auto; /* Maintain aspect ratio */
+}
+</style>
 ---
 
 ## Introduction 
 
 Baseball is a game of constant alteration and evolution, influenced by the innovations of each generation. Players and teams are always exploring tactics to find an edge over their adversaries. Even at the pinnacle of their success, the best players will scout out new competitive advantages to improve their performance. After a terrific individual season and a 2022 World Series victory, Ryan Pressly, the closing pitcher for the Houston Astros, continued to look for ways to improve. The next year, he threw his fastball less often and replaced it in part with a changeup, which he almost never threw in 2022. According to the popular metric Stuff+, Pressly’s 2023 changeup graded out as one of the best in baseball. Zack Wheeler, the ace of the Philadelphia Phillies, came into 2024 after a sixth-place finish in NL Cy Young Award voting the year prior. He added a splitter to his repertoire and has remained elite, arguably taking his performance to a new level. 
 
-Conventional wisdom states that the addition of a pitch lessens a pitcher's predictability and makes it harder for a batter to hit. However, if a pitcher includes the wrong pitch to his arsenal, he could be setting himself up for failure if the offering is simply not good enoughtoo easy to hit. How did Pressly and Wheeler know which additions would result in success for their team? that they were adding the right ones? Could they truly be certain until they implemented these changes in a game?
+Conventional wisdom states that the addition of a pitch lessens a pitcher's predictability and makes it harder for a batter to hit. However, if a pitcher includes the wrong pitch in his arsenal, he could be setting himself up for failure if the offering is simply not good enough. How did Pressly and Wheeler know that they were adding a successful pitch? Could they truly be certain until they implemented these changes in a game?
 
-Therein lies our motivation for this project. We want to create a pitch recommendation system that suggests, with conviction, the best pitch for a pitcher to add to their arsenal. We approached this task by examining the characteristics of other pitches in an arsenal to generate Stuff+ predictions, which indicate the potential success of pitches not yet thrown by the pitcher.
+Our motivation for this project stems from this very question. We want to create a pitch recommendation system that suggests, with conviction, the best pitch for a pitcher to add to their arsenal. We approached this task by examining the characteristics of other pitches in an arsenal to generate Stuff+ predictions, which indicate the potential success of pitches not yet thrown by the pitcher.
+
 
 ```{r, echo=FALSE, fig.cap="Making changes to pitching arsenals is a crucial part of strategy and preparation. Here, we can see the number of pitchers who added or removed a certain pitch from the 2022 to 2023 season."}
 knitr::include_graphics("C:/Users/dbnol/Documents/R Files/CMU R Files/CMSAC-Dodgers-Project/pitch-type-changes.png")
@@ -34,119 +43,158 @@ knitr::include_graphics("C:/Users/dbnol/Documents/R Files/CMU R Files/CMSAC-Dodg
 
 ## Data
 
-Describe the data you’re using in detail, where you accessed it, along with relevant exploratory data analysis (EDA). You should also include descriptions of any major data pre-processing/cleaning steps.
+All data used are from the 2021, 2022, and 2023 MLB seasons. We decided to focus on these three years because of potential inconsistencies within the data from other seasons.
+
+- 2019: Disproportionately high offensive numbers. The MLB denied accusations of deliberately “juicing” the baseballs, but a change in manufacturing contributed to a significant increase in offensive production that year.
+
+- 2020: Shortened season due to COVID-19. Teams only played 60 games instead of the usual 162. We were concerned that the 2020 data would feature anomalies.
+
+- 2024: Similar concerns as 2020. We are lacking a full season’s worth of data.
+
+
+The majority of the data used come from FanGraphs, while spin rates and release points come from Baseball Savant. 
+
+#### Data Cleaning
+
+- We restricted our dataset to pitchers who threw 250 pitches or more during the season in an effort to have a reasonable sample size for each pitcher-season pairing. 
+- We also classified pitchers as “having” a certain pitch only if they threw it more than five percent of the time. This usage cutoff ensured a reasonable sample size per pitch type, and if a pitcher throws a pitch less than five percent of the time, it is not generally a part of his game plan. Additionally, if a pitcher only throws a certain pitch once or twice, it could present an extreme Stuff+ value that would skew our results. To enforce this five-percent threshold, we created indicator variables that gave a binary answer to pitch inclusion. Specific data surrounding pitches that did not meet this cutoff were removed and not included in visualizations or modeling. 
+- We scaled the horizontal movement variable to account for left and right-handedness. Different-handed pitchers generate movement in opposite directions; however, they are measured on the same coordinate plane. Based on the pitch type, we multiplied the movement for either handedness by -1 so that lefties and righties are viewed on the same scale. 
+
+
+The essential/indispensable statistic that we centered our research around was Stuff+. This relatively new metric considers only the physical characteristics of a pitch and attempts to quantify how “nasty” it is.
 
 ## Methods
 
-Describe the modeling techniques you chose, their assumptions, justifications for why they are appropriate for the problem, and your plan for comparison/evaluation approaches.
+The indispensable statistic that we centered our research around was Stuff+. This relatively new metric considers only the physical characteristics of a pitch and attempts to quantify how “nasty” it is. It ignores anything that happens once the ball leaves the pitcher’s hand. The statistic is scaled so that 100 represents the league average. Anything above 100 is better than the average and anything below 100 is worse than the average. For instance, a Stuff+ of 110 means that the pitch is ten percent better than average. Stuff+ is calculated for each pitch, but it can be averaged over the course of a year to get a season-long value. The five major components of Stuff+ are velocity, spin rate, horizontal movement, vertical movement, and release point. One important note about Stuff+ is that 100 is the average of all pitches, not the average of a certain pitch type. Stuff+ grades some pitches as naturally more nasty than others. For instance, a changeup with a Stuff+ of 100 would be well above average; on the other hand, a slider with a Stuff+ of 100 would register as below average.
+
+```{r, echo=FALSE}
+knitr::include_graphics("C:/Users/dbnol/Documents/R Files/CMU R Files/CMSAC-Dodgers-Project/Stuff_plus_table.png")
+```
+
+Stuff+ might be the trendy stat in today’s baseball landscape, but is it actually a good predictor of player performance?
+
+```{r, echo=FALSE, fig.cap = "As Overall Stuff+ increases, K/9+ and -xFIP- improve, validating the belief that Stuff+ is indeed useful."}
+knitr::include_graphics("C:/Users/dbnol/Documents/R Files/CMU R Files/CMSAC-Dodgers-Project/stuff_usefulness.png")
+```
+
+After we confirmed that Stuff+ is an effective predictor of performance, we moved towards our main task: predicting Stuff+ values for new pitches. We worked through two different modeling strategies to investigate which is more useful.
+
+1. Lasso Regression
+
+A lasso regression model aims to find a sparse solution by throwing out predictor variables that are not significant and including a penalty term, lambda, that increases as more coefficients reach zero. Lasso regression attempts for a linear, additive model that does not place any emphasis on possible interactions between the predictors.
+
+2. Random Forest Regression
+
+A random forest regression model takes a multitude of bagged decision trees and averages them, hoping to account for interactions between the explanatory variables. While building these trees, it uses only a random subset of the predictors as a way to protect independence from one tree to the next. An additional benefit of the random forest process is that it prevents overfitting of the data.
+
+Since no pitcher throws every pitch, we decided to examine pairs of pitches. First, we assessed the pairing of a four-seam fastball and a sinker to see if the characteristics of a fastball would be able to predict the Stuff+ value of a sinker. In other words, the velocity, spin rate, movement, and release point of the fastball were used as predictor variables and the Stuff+ of the sinker was the response. 
+
+1. Lasso Regression
+
+The lasso model was built using nested five-fold cross-validation. Within each fold, the data (filtered to only include pitchers who threw both a fastball and a sinker) were split into training and test sets, with the training data holding eighty percent of the observations. To generate a lasso model, we used the cv.glmnet function for cross-validation within the folds. This model was then fitted using a penalty term within one standard error of the minimum test error to remove insignificant predictors. The model was run on the test set to obtain predictions, residuals, and an RMSE value. After traversing through all five folds, we were left with five RMSE values, which we used to compare the lasso model to its counterpart.
+
+2. Random Forest Regression
+
+The random forest model was also built using five-fold cross-validation in order to compare the models on a level playing field. Similar to the lasso model, the data were split up within each fold, with eighty percent in the training set and the remaining twenty percent in the test set. We utilized the ranger function using 500 trees and a tuning parameter of 2 predictors at each split for increased independence within the trees. Predictions were generated on the test set and five RMSE values were calculated. 
+
+```{r, echo=FALSE, fig.cap = "Visualization of RMSEs of both models to determine which is more effective. The random forest procedure, on average, outperformed the lasso regression. Both models, however, outperformed a basic, intercept-only model, which suggests that they are both relatively useful."}
+knitr::include_graphics("C:/Users/dbnol/Documents/R Files/CMU R Files/CMSAC-Dodgers-Project/take2a.png")
+```
+
+
+In this case of pitch pairs, random forest proves to be the better model. But just because the random forest was better here does not mean it is the better method overall. It is entirely possible that sliders, curveballs, or changeups, for example, interact in completely different ways. To ensure that our selection of the random forest was indeed warranted, we performed the same practice of calculating the average RMSE for every pair of the pitches we assessed. 
 
 ## Results
 
-Describe your results. This can include tables and plots showing your results, as well as text describing how your models worked and the appropriate interpretations of the relevant output. (Note: Don’t just write out the textbook interpretations of all model coefficients! Instead, interpret the output that is relevant for your question of interest that is framed in the introduction)
+The plot below summarizes each model’s performance relative to the pitch acting as the response variable. 
+
+
+```{r, echo=FALSE}
+knitr::include_graphics("C:/Users/dbnol/Documents/R Files/CMU R Files/CMSAC-Dodgers-Project/take2b.png")
+```
+
+
+For each pitch type, a random forest process produces the lowest average RMSE. This validated our belief that a random forest model was the best model to use and that the interactions within the predictor variables are indeed significant. We chose the pitch pairings that produced the lowest average RMSE to generate our Stuff+ predictions for each pitch type. Those pairings are listed in the table below, along with their average RMSE values.
+
+```{r, echo=FALSE, message=FALSE}
+library(gt)
+
+# Create the data frame
+data <- data.frame(
+  Predictor_Pitch = c("Sinker", "Fastball", "Splitter", "Fastball", "Changeup", "Curveball", "Fastball"),
+  Response_Pitch = c("Fastball", "Sinker", "Cutter", "Slider", "Curveball", "Changeup", "Splitter"),
+  Average_RMSE = c(13.24, 13.05, 10.48, 14.07, 15.93, 16.91, 20.49)
+)
+
+# Create the table
+gt_table <- gt(data) %>%
+  tab_header(
+    title = "Pitch Prediction Results"
+  ) %>%
+  cols_label(
+    Predictor_Pitch = "Predictor Pitch",
+    Response_Pitch = "Response Pitch",
+    Average_RMSE = "Average RMSE"
+  )
+
+# Render the table
+gt_table
+```
+
+It is evident that each model has different degrees of effectiveness. For example, the model that predicts splitter Stuff+ has nearly double the residual error of the model that predicts cutter Stuff+. Overall, these pairs above fare far better than the other random forest, lasso, and intercept-only options. 
+
+After we determined the best model to use for each pitch, we were finally able to derive Stuff+ pitch predictions. Although we had predictions for pitchers who already threw a particular pitch, we centered our focus more on the predictions for those without it. From the standpoint of MLB teams and players, there is little benefit in predicting Stuff+ for pitchers who already have a Stuff+ associated with their pitch. However, for those without a certain pitch, much can be learned. If a pitcher knows he has the potential to throw an above-average pitch, why would he not try to incorporate it into his arsenal? The table below displays ten pitchers for each pitch type and their predicted Stuff+ if they were to add the pitch to their arsenal. The top five are pitchers who we expect to throw an elite pitch, and the bottom five are pitchers who we expect to throw a poor pitch. 
+
+```{r, echo=FALSE}
+knitr::include_graphics("C:/Users/dbnol/Documents/R Files/CMU R Files/CMSAC-Dodgers-Project/resulttable.png")
+```
+
+A closer look at the table reveals some fun stories.
+
+Remember Ryan Pressly and his noteworthy decision to add a changeup in 2023? Of all the pitchers who threw a curveball but not a changeup, our model predicted that, in 2022, Ryan Pressly would have thrown the second-best one. The only better-predicted changeup? Ryan Pressly’s in 2021. The features of Pressly’s curveball indicated for two straight years that he would throw a nasty change. 
+
+On the other end of the spectrum sits Nabil Crismatt, who pitched for the San Diego Padres in 2021 and 2022. Crismatt’s fastball suggested that he would not throw a good slider. Interestingly enough, Crismatt added a slider in 2023 while with the Arizona Diamondbacks. While he did not throw the pitch often, it garnered a Stuff+ value of 69, a number well below the average slider value. As seen through the RMSE values, the models for each pitch are not perfect, with the splitter Stuff+ prediction being especially unreliable. However, these highlighted instances and others prove that our model does have value as a predictive tool.
+
 
 ## Discussion
 
-Give your conclusions and summarize what you have learned with regards to your question of interest. Are there any limitations with the approaches you used? What do you think are the next steps to follow-up your project?
+Projecting the success of a pitch is a complicated and layered problem that may never have a concrete answer. Nevertheless, predicting Stuff+ values is a productive place to start. The exclusion of factors that a pitcher cannot control allows for a reliable metric, untouched by batters, fielders, or umpires. Through a random forest process, we were able to construct relatively reliable Stuff+ predictions that teams and players can utilize for a competitive advantage. In our hunt for the best possible model, we discovered that the interaction between pitch characteristics is a necessary aspect of modeling Stuff+, which explains in part why the random forest modeling was more successful than the lasso regression modeling. Finally, we uncovered which pitches can be used to predict features of others and which present inaccuracies.
 
-## Appendix: A quick tutorial
+#### Limitations
 
-**(Feel free to remove this section when you submit)**
+Due to inconsistencies within the data and the broad scope of the overall question, our research and modeling have their limitations.
 
-This a Quarto document. 
-To learn more about Quarto see <https://quarto.org>.
-You can use the Render button to see what it looks like in HTML.
+- We used data from two sources, FanGraphs and Statcast, which unfortunately have some inconsistencies with one another. Statcast differentiates between sliders and sweepers (a slower slider with more movement), but FanGraphs lumps both under the “slider” category. Similarly, Statcast lists curveballs and slurves (slider-curve hybrid) as two distinct pitches, but FanGraphs considers both to be a “curveball”. On the flip side, Statcast lumps curveballs and knuckle curves together; however, FanGraphs looks at them separately. Since all our data on spin rate came from Statcast, there are some inaccuracies when talking about slider and curveball spin.
 
-### Text formatting
+- The predictive random forest model only works for pairs of pitches, as we did not use features from multiple types of offerings. While we did make sure we took the best pairing for each response pitch, it would be irresponsible to believe that, for instance, a fastball is the only pitch that can predict the Stuff+ of a sinker. Predictions should ideally be based on multiple pitches. We initially attempted to work with more than one predictive pitch, but faced concerns that we would introduce too many variables while also limiting ourselves to too few observations.
 
-Text can be bolded with **double asterisks** and italicized with *single asterisks*. 
-Monospace text, such as for short code snippets, uses `backticks`.
-(Note these are different from quotation marks or apostrophes.) Links are
-written [like this](http://example.com/).
+- Likewise, since we were limited to pairs of pitches, we were also limited in the players we were able to predict pitches for. We could only generate a response Stuff+ for a pitcher if he threw the predictor pitch. This is not too big of a deal when predicting sinker, slider, or splitter Stuff+ because they are all predicated on the fastball. Attempting to predict a cutter becomes a more complex issue because in order to get a predicted cutter Stuff+, one would have to also throw a splitter (a less common weapon).
 
-Bulleted lists can be written with asterisks:
-
-* Each item starts on a new line with an asterisk.
-* Items should start on the beginning of the line.
-* Leave blank lines after the end of the list so the list does not continue.
-
-Mathematics can be written with LaTeX syntax using dollar signs. 
-For instance, using single dollar signs we can write inline math: $(-b \pm \sqrt{b^2 - 4ac})/2a$.
-
-To write math in "display style", i.e. displayed on its own line centered on the
-page, we use double dollar signs:
-$$
-x^2 + y^2 = 1
-$$
+- We already know that Stuff+ is a very good indicator of future success, still, it is not infallible. The defining trait of the statistic is that it eliminates the presence of the batter, and while that is great in many contexts, it can be a downside here. Despite Stuff+ treating them as such, pitches are not thrown in a vacuum. They are thrown in concert with other pitches, and hitters often capitalize on poor pitch sequencing or are kept off balance by a change of speed. Put simply, a pitcher could execute a nasty pitch and the batter still hits a home run, maybe because of poor sequencing, maybe poor location, or maybe the hitter just got lucky. In any case, Stuff+ would give the pitch a high grade regardless of the negative result. Ideally, we recommend a pitch that will not only have a high Stuff+ but also work well with the other pitches a player has to offer based on its movement and speed.
 
 
-### Code blocks
+#### Future Work
 
-Code blocks are evaluated sequentially when you hit Render. 
-As the code runs, `R` prints out which block is running, so naming blocks is useful if you want to know which one takes a long time. 
-After the block name, you can specify [chunk options](https://yihui.org/knitr/options/). 
-For example, `echo` controls whether the code is printed in the document. 
-By default, output is printed in the document in monospace:
+Much of our future work stems from the limitations. We want to:
 
-```{r, echo = FALSE}
-head(mtcars)
-```
+- Distinguish between breaking pitches. The ability to accurately classify sliders, sweepers, curveballs, slurves, and knuckle curves would improve our spin rate data and make our model more reliable. This would require scraping pitch-by-pitch data from Baseball Savant and ensuring each pitch is correctly identified.
 
-Chunk options can also be written inside the code block, which is helpful for really long options, as we'll see soon.
+- Expand our model to incorporate multiple pitches as explanatory variables. This would improve the model’s real-life application and generate Stuff+ values that are more representative of a pitcher’s entire arsenal. We would also have projections for a greater number of pitchers because the player would only need to throw one of the predictors to be included in the model.
 
-```{r}
-#| echo: false
-head(mtcars)
-```
+- Use our calculated Stuff+ values to predict a statistic more representative of overall success. A metric such as runs above average may be a better way to assess how well pitches work together since it takes into account the hitter’s response to a pitch.
 
-### Figures
+- Beyond addressing shortcomings, our end goal is to build an interactive tool that allows users to input pitch characteristics and receive an output that relays the optimal pitch to add and the Stuff+ value associated with it.
 
-If a code block produces a plot or figure, this figure will automatically be inserted inline in the report. That is, it will be inserted exactly where the code block is.
+#### Acknowledgements
 
-```{r}
-#| fig-width: 5
-#| fig-height: 3.5
-#| fig-cap: "This is a caption. It should explain what's in the figure and what's interesting about it. For instance: There is a negative, strong linear correlation between miles per gallon and horsepower for US cars in the 1970s."
+We are immensely grateful for all the support we received this summer from everyone involved in the CMSACamp Program. Special thank you to Dr. Sam Fleischer of the Los Angeles Dodgers for allowing us the opportunity to work with him and for his guidance throughout this project. We also extend a huge thank you to Dr. Ron Yurko and Quang Nguyen for their instruction and assistance throughout our eight-week program. We also would like to thank the guest lecturers who have taken the time to speak to us and thank our TAs: Yuchen Chen, Jung Ho Lee, and Daven Lagu.  
 
-library(tidyverse)
-mtcars |> 
-  ggplot(aes(x = mpg, y = hp)) +
-  geom_point() +
-  labs(x = "Miles per gallon",
-       y = "Horsepower")
-```
+#### Citations
 
-Notice the use of `fig-width` and `fig-height` to control the figure's size (in inches). 
-These control the sizes given to `R` when it generates the plot, so `R` proportionally adjusts the font sizes to be large enough.
+Acquavella, Katherine. *“MLB Study Says Balls Weren’t Intentionally Juiced in 2019; Home Run Spike Credited to Seams, Launch Angles.”* CBSSports.com, December 11, 2019. [https://www.cbssports.com/mlb/news/mlb-study-says-balls-werent-intentionally-juiced-in-2019-home-run-spike-credited-to-seams-launch-angles/](https://www.cbssports.com/mlb/news/mlb-study-says-balls-werent-intentionally-juiced-in-2019-home-run-spike-credited-to-seams-launch-angles/).
 
-### Tables
+baseballsavant.com. *“Statcast Pitch Arsenals Leaderboard.”* Accessed July 25, 2024. [https://baseballsavant.mlb.com/leaderboard/pitch-arsenals?year=2024&min=250&type=avg_spin&hand=](https://baseballsavant.mlb.com/leaderboard/pitch-arsenals?year=2024&min=250&type=avg_spin&hand=).
 
-Use the `knitr::kable()` function to print tables as HTML:
+FanGraphs Baseball. *“Major League Leaderboards - 2023 - Pitching.”* Accessed July 25, 2024. [https://www.fangraphs.com/leaders/major-league?pos=all&stats=pit&lg=all&qual=y&type=14&season=2023&month=0&season1=2023&ind=0](https://www.fangraphs.com/leaders/major-league?pos=all&stats=pit&lg=all&qual=y&type=14&season=2023&month=0&season1=2023&ind=0).
 
-```{r}
-mtcars |> 
-  slice(1:5) |> 
-  knitr::kable()
-```
-
-We can summarize model results with a table. 
-For instance, suppose we fit a linear regression model:
-
-```{r}
-#| echo: true
-model1 <- lm(mpg ~ disp + hp + drat, data = mtcars)
-```
-
-It is *not* appropriate to simply print `summary(model1)` into the report. 
-If we want the reader to understand what models we have fit and what their results are, we should provide a nicely formatted table. 
-A simple option is to use the `tidy()` function from the `broom` package to get a data frame of the model fit, and simply report that as a table.
-
-```{r }
-#| results: "asis"
-#| tbl-cap: "Predicting fuel economy using vehicle features."
-
-library(broom)
-model1 |> 
-  tidy() |>
-  knitr::kable(digits = 2,
-               col.names = c("Term", "Estimate", "SE", "t", "p"))
-```
+McGrattan, Owen. *“Stuff+, Location+, and Pitching+ Primer.”* Sabermetrics Library, March 10, 2023. [https://library.fangraphs.com/pitching/stuff-location-and-pitching-primer/](https://library.fangraphs.com/pitching/stuff-location-and-pitching-primer/).
