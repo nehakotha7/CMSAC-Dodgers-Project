@@ -79,15 +79,19 @@ knitr::include_graphics("C:/Users/dbnol/Documents/R Files/CMU R Files/CMSAC-Dodg
 
 After we confirmed that Stuff+ is an effective predictor of performance, we moved towards our main task: predicting Stuff+ values for new pitches. We worked through two different modeling strategies to investigate which is more useful.
 
+#### Modeling Strategies
+
 1. Lasso Regression
 
-A lasso regression model aims to find a sparse solution by throwing out predictor variables that are not significant and including a penalty term, lambda, that increases as more coefficients reach zero. Lasso regression attempts for a linear, additive model that does not place any emphasis on possible interactions between the predictors.
+A lasso regression model aims to find a sparse solution by throwing out predictor variables that are not significant and including a penalty term, $\lambda$, that increases as more coefficients reach zero. Lasso regression attempts for a linear, additive model that does not place any emphasis on possible interactions between the predictors.
 
 2. Random Forest Regression
 
 A random forest regression model takes a multitude of bagged decision trees and averages them, hoping to account for interactions between the explanatory variables. While building these trees, it uses only a random subset of the predictors as a way to protect independence from one tree to the next. An additional benefit of the random forest process is that it prevents overfitting of the data.
 
 Since no pitcher throws every pitch, we decided to examine pairs of pitches. First, we assessed the pairing of a four-seam fastball and a sinker to see if the characteristics of a fastball would be able to predict the Stuff+ value of a sinker. In other words, the velocity, spin rate, movement, and release point of the fastball were used as predictor variables and the Stuff+ of the sinker was the response. 
+
+#### Model Creation
 
 1. Lasso Regression
 
