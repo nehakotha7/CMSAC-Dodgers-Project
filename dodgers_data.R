@@ -273,7 +273,9 @@ cond_data |>
   scale_color_viridis_c()+
   theme_light()+
   xlab("Overall Stuff+")+
-  ylab("K/9+")
+  ylab("K/9+")+
+  theme_bw()+
+  geom_smooth(method = "lm", color = "black")
 
 # Pitchers Who Added or Subtracted a Fastball -----------------------------
 
@@ -4738,10 +4740,12 @@ ggplot(rmse_table, aes(x = Method, y = RMSE)) +
   geom_hline(aes(yintercept = 17.2472, color = "Intercept Only RMSE"), 
              linetype = "dashed", linewidth = 1.5) +
   scale_y_continuous(breaks = c(10, 12, 14, 16, 18), limits = c(10, 18)) +
-  labs(y = "RMSE, Sinker Prediction from Fastball", 
+  labs(y = "RMSE, Fastball Predicting Sinker", 
        color = "",
        title = "Modeling Comparison: Lasso Regression vs. Random Forest") + 
-  scale_color_manual(values = c("Intercept Only RMSE" = "dodgerblue4"))
+  scale_color_manual(values = c("Intercept Only RMSE" = "dodgerblue4"))+
+  theme(plot.title = element_text(hjust = 0),
+        plot.title.position = "plot")
 
 #Predict Fastball Stuff+ from Sinker Traits: Random Forest ------------------------------
 #Sinker has the smallest RMSE for random forests with Fastball as response
