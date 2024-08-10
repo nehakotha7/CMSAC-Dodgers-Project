@@ -275,7 +275,10 @@ cond_data |>
   xlab("Overall Stuff+")+
   ylab("K/9+")+
   theme_bw()+
-  geom_smooth(method = "lm", color = "black")
+  geom_smooth(method = "lm", color = "black")+
+  labs(title = "Why Do We Care About Stuff+?")+
+  theme(plot.title = element_text(hjust = .5),
+        plot.title.position = "plot")
 
 # Pitchers Who Added or Subtracted a Fastball -----------------------------
 
@@ -4721,6 +4724,44 @@ RMSEcomp |>
   geom_point(alpha = 0.8, size = 2)+
   scale_color_manual(values = c("black","red2", "dodgerblue2"))+
   theme_bw()
+
+#Creating a grid-type visualization
+# Calculate the difference between Lasso and Random Forest RMSEs
+rmse_diff <- RMSEcomp |> 
+  filter(Method %in% c("Lasso", "Random Forest")) |> 
+  group_by(`Response Pitch`, `Predictor Pitch`) |> 
+  summarize(
+    rmse_lasso = `Average RMSE`[Method == "Lasso"],
+    rmse_rf = `Average RMSE`[Method == "Random Forest"],
+    rmse_diff = abs(rmse_lasso - rmse_rf),
+    min_rmse = min(`Average RMSE`),
+    best_method = Method[which.min(`Average RMSE`)]
+  ) |> 
+  ungroup()
+
+pitch_order <- c("Fastball", "Sinker", "Cutter", "Slider", "Curveball", "Changeup", "Splitter")
+
+# Convert to factors with the specified order
+rmse_diff <- rmse_diff |>
+  mutate(`Response Pitch` = factor(`Response Pitch`, levels = pitch_order),
+         `Predictor Pitch` = factor(`Predictor Pitch`, levels = pitch_order))
+
+# Plot with reordered axes
+ggplot(rmse_diff, aes(x = `Response Pitch`, y = `Predictor Pitch`, fill = best_method)) +
+  geom_tile(aes(alpha = rmse_diff), color = "white") +
+  geom_text(aes(label = round(min_rmse, 2)), color = "white", size = 4) +
+  scale_fill_manual(values = c("Random Forest" = "blue", "Lasso" = "red")) +
+  scale_alpha_continuous(range = c(0.3, 1)) + # Adjust alpha for gradient
+  theme_minimal() +
+  labs(title = "Comparison of RMSE for Pairs of Pitches",
+       x = "Response Pitch",
+       y = "Predictor Pitch",
+       fill = "Model",
+       alpha = "RMSE Difference") +
+  theme(axis.text.x = element_text(angle=20),
+        plot.title = element_text(hjust = 0.5))
+
+
 
 #Referencing tibble created earlier: comparing the RMSEs of lasso and RF for
 # fastball predicting sinker
