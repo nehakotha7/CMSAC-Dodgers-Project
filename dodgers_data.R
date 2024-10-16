@@ -5037,8 +5037,267 @@ ch_gam |>
   summarize(RMSE = sqrt(mean((sp_s_FF - pred_class)^2)))
 
 # HistGradientBoostingRegressor -------------------------------------------
+#Running through every possible combo of pitches
+#First, test sinker
+ff_to_si_hgbc <- ff_to_si
+names(ff_to_si_hgbc) <- gsub('-', '_', names(ff_to_si_hgbc))
+ff_to_si_hgbc <- ff_to_si_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ff_to_si_hgbc, "ff_to_si")
 
+fc_to_si_hgbc <- fc_to_si
+names(fc_to_si_hgbc) <- gsub('-', '_', names(fc_to_si_hgbc))
+fc_to_si_hgbc <- fc_to_si_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fc_to_si_hgbc, "fc_to_si")
 
+sl_to_si_hgbc <- sl_to_si
+names(sl_to_si_hgbc) <- gsub('-', '_', names(sl_to_si_hgbc))
+sl_to_si_hgbc <- sl_to_si_hgbc |> 
+  select(-xMLBAMID)
+write.csv(sl_to_si_hgbc, "sl_to_si")
+
+cu_to_si_hgbc <- cu_to_si
+names(cu_to_si_hgbc) <- gsub('-', '_', names(cu_to_si_hgbc))
+cu_to_si_hgbc <- cu_to_si_hgbc |> 
+  select(-xMLBAMID)
+write.csv(cu_to_si_hgbc, "cu_to_si")
+
+ch_to_si_hgbc <- ch_to_si
+names(ch_to_si_hgbc) <- gsub('-', '_', names(ch_to_si_hgbc))
+ch_to_si_hgbc <- ch_to_si_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ch_to_si_hgbc, "ch_to_si")
+
+fs_to_si_hgbc <- fs_to_si
+names(fs_to_si_hgbc) <- gsub('-', '_', names(fs_to_si_hgbc))
+fs_to_si_hgbc <- fs_to_si_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fs_to_si_hgbc, "fs_to_si")
+
+#Second test: fastball
+si_to_ff <- si_to_ff
+names(si_to_ff) <- gsub('-', '_', names(si_to_ff))
+si_to_ff <- si_to_ff |> 
+  select(-xMLBAMID)
+write.csv(si_to_ff, "si_to_ff")
+
+fc_to_ff <- fc_to_ff
+names(fc_to_ff) <- gsub('-', '_', names(fc_to_ff))
+fc_to_ff <- fc_to_ff |> 
+  select(-xMLBAMID)
+write.csv(fc_to_ff, "fc_to_ff")
+
+sl_to_ff <- sl_to_ff
+names(sl_to_ff) <- gsub('-', '_', names(sl_to_ff))
+sl_to_ff <- sl_to_ff |> 
+  select(-xMLBAMID)
+write.csv(sl_to_ff, "sl_to_ff")
+
+cu_to_ff <- cu_to_ff
+names(cu_to_ff) <- gsub('-', '_', names(cu_to_ff))
+cu_to_ff <- cu_to_ff |> 
+  select(-xMLBAMID)
+write.csv(cu_to_ff, "cu_to_ff")
+
+ch_to_ff <- ch_to_ff
+names(ch_to_ff) <- gsub('-', '_', names(ch_to_ff))
+ch_to_ff <- ch_to_ff |> 
+  select(-xMLBAMID)
+write.csv(ch_to_ff, "ch_to_ff")
+
+fs_to_ff <- fs_to_ff
+names(fs_to_ff) <- gsub('-', '_', names(fs_to_ff))
+fs_to_ff <- fs_to_ff |> 
+  select(-xMLBAMID)
+write.csv(fs_to_ff, "fs_to_ff")
+
+#Cutter
+ff_to_fc_hgbc <- ff_to_fc
+names(ff_to_fc_hgbc) <- gsub('-', '_', names(ff_to_fc_hgbc))
+ff_to_fc_hgbc <- ff_to_fc_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ff_to_fc_hgbc, "ff_to_fc")
+  
+si_to_fc_hgbc <- si_to_fc
+names(si_to_fc_hgbc) <- gsub('-', '_', names(si_to_fc_hgbc))
+si_to_fc_hgbc <- si_to_fc_hgbc |> 
+  select(-xMLBAMID)
+write.csv(si_to_fc_hgbc, "si_to_fc")
+
+sl_to_fc_hgbc <- sl_to_fc
+names(sl_to_fc_hgbc) <- gsub('-', '_', names(sl_to_fc_hgbc))
+sl_to_fc_hgbc <- sl_to_fc_hgbc |> 
+  select(-xMLBAMID)
+write.csv(sl_to_fc_hgbc, "sl_to_fc")
+
+cu_to_fc_hgbc <- cu_to_fc
+names(cu_to_fc_hgbc) <- gsub('-', '_', names(cu_to_fc_hgbc))
+cu_to_fc_hgbc <- cu_to_fc_hgbc |> 
+  select(-xMLBAMID)
+write.csv(cu_to_fc_hgbc, "cu_to_fc")
+
+ch_to_fc_hgbc <- ch_to_fc
+names(ch_to_fc_hgbc) <- gsub('-', '_', names(ch_to_fc_hgbc))
+ch_to_fc_hgbc <- ch_to_fc_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ch_to_fc_hgbc, "ch_to_fc")
+
+fs_to_fc_hgbc <- fs_to_fc
+names(fs_to_fc_hgbc) <- gsub('-', '_', names(fs_to_fc_hgbc))
+fs_to_fc_hgbc <- fs_to_fc_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fs_to_fc_hgbc, "fs_to_fc")
+
+#Slider
+ff_to_sl_hgbc <- ff_to_sl
+names(ff_to_sl_hgbc) <- gsub('-', '_', names(ff_to_sl_hgbc))
+ff_to_sl_hgbc <- ff_to_sl_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ff_to_sl_hgbc, "ff_to_sl")
+
+si_to_sl_hgbc <- si_to_sl
+names(si_to_sl_hgbc) <- gsub('-', '_', names(si_to_sl_hgbc))
+si_to_sl_hgbc <- si_to_sl_hgbc |> 
+  select(-xMLBAMID)
+write.csv(si_to_sl_hgbc, "si_to_sl")
+
+fc_to_sl_hgbc <- fc_to_sl
+names(fc_to_sl_hgbc) <- gsub('-', '_', names(fc_to_sl_hgbc))
+fc_to_sl_hgbc <- fc_to_sl_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fc_to_sl_hgbc, "fc_to_sl")
+
+cu_to_sl_hgbc <- cu_to_sl
+names(cu_to_sl_hgbc) <- gsub('-', '_', names(cu_to_sl_hgbc))
+cu_to_sl_hgbc <- cu_to_sl_hgbc |> 
+  select(-xMLBAMID)
+write.csv(cu_to_sl_hgbc, "cu_to_sl")
+
+ch_to_sl_hgbc <- ch_to_sl
+names(ch_to_sl_hgbc) <- gsub('-', '_', names(ch_to_sl_hgbc))
+ch_to_sl_hgbc <- ch_to_sl_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ch_to_sl_hgbc, "ch_to_sl")
+
+fs_to_sl_hgbc <- fs_to_sl
+names(fs_to_sl_hgbc) <- gsub('-', '_', names(fs_to_sl_hgbc))
+fs_to_sl_hgbc <- fs_to_sl_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fs_to_sl_hgbc, "fs_to_sl")
+
+#Curveball
+ff_to_cu_hgbc <- ff_to_cu
+names(ff_to_cu_hgbc) <- gsub('-', '_', names(ff_to_cu_hgbc))
+ff_to_cu_hgbc <- ff_to_cu_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ff_to_cu_hgbc, "ff_to_cu")
+
+si_to_cu_hgbc <- si_to_cu
+names(si_to_cu_hgbc) <- gsub('-', '_', names(si_to_cu_hgbc))
+si_to_cu_hgbc <- si_to_cu_hgbc |> 
+  select(-xMLBAMID)
+write.csv(si_to_cu_hgbc, "si_to_cu")
+
+fc_to_cu_hgbc <- fc_to_cu
+names(fc_to_cu_hgbc) <- gsub('-', '_', names(fc_to_cu_hgbc))
+fc_to_cu_hgbc <- fc_to_cu_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fc_to_cu_hgbc, "fc_to_cu")
+
+sl_to_cu_hgbc <- sl_to_cu
+names(sl_to_cu_hgbc) <- gsub('-', '_', names(sl_to_cu_hgbc))
+sl_to_cu_hgbc <- sl_to_cu_hgbc |> 
+  select(-xMLBAMID)
+write.csv(sl_to_cu_hgbc, "sl_to_cu")
+
+ch_to_cu_hgbc <- ch_to_cu
+names(ch_to_cu_hgbc) <- gsub('-', '_', names(ch_to_cu_hgbc))
+ch_to_cu_hgbc <- ch_to_cu_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ch_to_cu_hgbc, "ch_to_cu")
+
+fs_to_cu_hgbc <- fs_to_cu
+names(fs_to_cu_hgbc) <- gsub('-', '_', names(fs_to_cu_hgbc))
+fs_to_cu_hgbc <- fs_to_cu_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fs_to_cu_hgbc, "fs_to_cu")
+
+#Changeup
+ff_to_ch_hgbc <- ff_to_ch
+names(ff_to_ch_hgbc) <- gsub('-', '_', names(ff_to_ch_hgbc))
+ff_to_ch_hgbc <- ff_to_ch_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ff_to_ch_hgbc, "ff_to_ch")
+
+si_to_ch_hgbc <- si_to_ch
+names(si_to_ch_hgbc) <- gsub('-', '_', names(si_to_ch_hgbc))
+si_to_ch_hgbc <- si_to_ch_hgbc |> 
+  select(-xMLBAMID)
+write.csv(si_to_ch_hgbc, "si_to_ch")
+
+fc_to_ch_hgbc <- fc_to_ch
+names(fc_to_ch_hgbc) <- gsub('-', '_', names(fc_to_ch_hgbc))
+fc_to_ch_hgbc <- fc_to_ch_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fc_to_ch_hgbc, "fc_to_ch")
+
+sl_to_ch_hgbc <- sl_to_ch
+names(sl_to_ch_hgbc) <- gsub('-', '_', names(sl_to_ch_hgbc))
+sl_to_ch_hgbc <- sl_to_ch_hgbc |> 
+  select(-xMLBAMID)
+write.csv(sl_to_ch_hgbc, "sl_to_ch")
+
+cu_to_ch_hgbc <- cu_to_ch
+names(cu_to_ch_hgbc) <- gsub('-', '_', names(cu_to_ch_hgbc))
+cu_to_ch_hgbc <- cu_to_ch_hgbc |> 
+  select(-xMLBAMID)
+write.csv(cu_to_ch_hgbc, "cu_to_ch")
+
+fs_to_ch_hgbc <- fs_to_ch
+names(fs_to_ch_hgbc) <- gsub('-', '_', names(fs_to_ch_hgbc))
+fs_to_ch_hgbc <- fs_to_ch_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fs_to_ch_hgbc, "fs_to_ch")
+
+#Splitter
+ff_to_fs_hgbc <- ff_to_fs
+names(ff_to_fs_hgbc) <- gsub('-', '_', names(ff_to_fs_hgbc))
+ff_to_fs_hgbc <- ff_to_fs_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ff_to_fs_hgbc, "ff_to_fs")
+
+si_to_fs_hgbc <- si_to_fs
+names(si_to_fs_hgbc) <- gsub('-', '_', names(si_to_fs_hgbc))
+si_to_fs_hgbc <- si_to_fs_hgbc |> 
+  select(-xMLBAMID)
+write.csv(si_to_fs_hgbc, "si_to_fs")
+
+fc_to_fs_hgbc <- fc_to_fs
+names(fc_to_fs_hgbc) <- gsub('-', '_', names(fc_to_fs_hgbc))
+fc_to_fs_hgbc <- fc_to_fs_hgbc |> 
+  select(-xMLBAMID)
+write.csv(fc_to_fs_hgbc, "fc_to_fs")
+
+sl_to_fs_hgbc <- sl_to_fs
+names(sl_to_fs_hgbc) <- gsub('-', '_', names(sl_to_fs_hgbc))
+sl_to_fs_hgbc <- sl_to_fs_hgbc |> 
+  select(-xMLBAMID)
+write.csv(sl_to_fs_hgbc, "sl_to_fs")
+
+cu_to_fs_hgbc <- cu_to_fs
+names(cu_to_fs_hgbc) <- gsub('-', '_', names(cu_to_fs_hgbc))
+cu_to_fs_hgbc <- cu_to_fs_hgbc |> 
+  select(-xMLBAMID)
+write.csv(cu_to_fs_hgbc, "cu_to_fs")
+
+ch_to_fs_hgbc <- ch_to_fs
+names(ch_to_fs_hgbc) <- gsub('-', '_', names(ch_to_fs_hgbc))
+ch_to_fs_hgbc <- ch_to_fs_hgbc |> 
+  select(-xMLBAMID)
+write.csv(ch_to_fs_hgbc, "ch_to_fs")
+
+#Full Model
 hgbc <- cond_data
 names(hgbc) <- gsub('-', '_', names(hgbc))  
 hgbc <- hgbc |> 
