@@ -5076,6 +5076,8 @@ fs_to_si_hgbc <- fs_to_si_hgbc |>
 write.csv(fs_to_si_hgbc, "fs_to_si")
 
 #Second test: fastball
+#FROM HERE ON OUT, DON'T RUN UNLESS YOU HAVE TO
+#IMPROPER LABELS WILL SCREW UP DATA SETS IF YOU TRY TO GO BACK
 si_to_ff <- si_to_ff
 names(si_to_ff) <- gsub('-', '_', names(si_to_ff))
 si_to_ff <- si_to_ff |> 
@@ -5297,7 +5299,8 @@ ch_to_fs_hgbc <- ch_to_fs_hgbc |>
   select(-xMLBAMID)
 write.csv(ch_to_fs_hgbc, "ch_to_fs")
 
-#Full Model
+#Full Model (for Fastball)
+#think I need to edit this so it's in the same format as ff_to_si (and others)
 hgbc <- cond_data
 names(hgbc) <- gsub('-', '_', names(hgbc))  
 hgbc <- hgbc |> 
@@ -5308,7 +5311,24 @@ hgbc <- hgbc |>
          pfx_SI_Z, pfx_SL_Z, pfx_vFS, pfx_FS_X, pfx_FS_Z, 
          pfx_vKC, pfx_KC_X, pfx_KC_Z, ff_avg_spin, si_avg_spin,
          fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, sp_s_FF)
-write.csv(hgbc, "hgbc")
+#write.csv(hgbc, "hgbc")
 
-ggplot(cond_data, aes(x=sp_s_CU, y=sp_s_FF))+
-  geom_point()
+#Appending the main scatterplot comparing RMSEs
+RMSEcomp_new <- RMSEcomp
+hgbc_rmses = read.csv("hgbc_rmses.csv")
+colnames(hgbc_rmses) <- c("Predictor Pitch", "Response Pitch", "Average RMSE", "Method")
+RMSEcomp_new <- rbind(RMSEcomp, hgbc_rmses)
+#Compare models, now including HGBC
+RMSEcomp_new |> 
+  mutate(`Response Pitch` = factor(`Response Pitch`, 
+                                   levels = c("Fastball", "Sinker", "Cutter",
+                                              "Slider", "Curveball", 
+                                              "Changeup", "Splitter"))) |> 
+  mutate(`Method` = factor(`Method`, levels = c("Intercept Only", "Lasso",
+                                                "Random Forest", "HGBC"))) |> 
+  ggplot(aes(`Response Pitch`, `Average RMSE`, color = Method))+
+  geom_point(alpha = 0.7, size = 2)+
+  scale_color_manual(values = c("black","red2", "dodgerblue2", "green"))+
+  theme_bw()
+#So the Random Forest beats out the HGBC
+  
