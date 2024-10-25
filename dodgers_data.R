@@ -5078,6 +5078,7 @@ write.csv(fs_to_si_hgbc, "fs_to_si")
 #Second test: fastball
 #FROM HERE ON OUT, DON'T RUN UNLESS YOU HAVE TO
 #IMPROPER LABELS WILL SCREW UP DATA SETS IF YOU TRY TO GO BACK
+#Only the fastball section is screwed up
 si_to_ff <- si_to_ff
 names(si_to_ff) <- gsub('-', '_', names(si_to_ff))
 si_to_ff <- si_to_ff |> 
@@ -5301,17 +5302,31 @@ write.csv(ch_to_fs_hgbc, "ch_to_fs")
 
 #Full Model (for Fastball)
 #think I need to edit this so it's in the same format as ff_to_si (and others)
-hgbc <- cond_data
-names(hgbc) <- gsub('-', '_', names(hgbc))  
-hgbc <- hgbc |> 
+hgbr_ff <- cond_data
+names(hgbr_ff) <- gsub('-', '_', names(hgbr_ff))  
+hgbr_ff <- hgbr_ff |> 
   filter(ind_fastball == "Yes", !is.na(sp_s_FF)) |> 
-  select(xMLBAMID, pfx_vCH, pfx_vCU, pfx_vFA, pfx_vFC, 
-         pfx_vSI, pfx_vSL, pfx_CH_X, pfx_CU_X, pfx_FA_X, pfx_FC_X, 
-         pfx_SI_X, pfx_SL_X, pfx_CH_Z, pfx_CU_Z, pfx_FA_Z, pfx_FC_Z, 
-         pfx_SI_Z, pfx_SL_Z, pfx_vFS, pfx_FS_X, pfx_FS_Z, 
-         pfx_vKC, pfx_KC_X, pfx_KC_Z, ff_avg_spin, si_avg_spin,
-         fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, sp_s_FF)
-#write.csv(hgbc, "hgbc")
+  select(Season, PlayerNameRoute, pfx_vSI, pfx_vFC, pfx_vSL, 
+         pfx_vCU, pfx_vCH, pfx_vFS, pfx_SI_X, pfx_FC_X, pfx_SL_X, 
+         pfx_CU_X, pfx_CH_X, pfx_FS_X, pfx_SI_Z, pfx_FC_Z, pfx_SL_Z, 
+         pfx_CU_Z, pfx_CH_Z, pfx_FS_Z, si_avg_spin,
+         fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+write.csv(hgbr_ff, "hgbr_ff")
+
+full <- cond_data
+names(full) <- gsub('-', '_', names(full))  
+full <- full |> 
+  select(Season, PlayerNameRoute, pfx_vSI, pfx_vFC, pfx_vSL, 
+         pfx_vCU, pfx_vCH, pfx_vFS, pfx_SI_X, pfx_FC_X, pfx_SL_X, 
+         pfx_CU_X, pfx_CH_X, pfx_FS_X, pfx_SI_Z, pfx_FC_Z, pfx_SL_Z, 
+         pfx_CU_Z, pfx_CH_Z, pfx_FS_Z, si_avg_spin,
+         fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FF)
+write.csv(full, "full")
+
+#Reading in table from python
+full_ff = read.csv("full_ff.csv")
 
 #Appending the main scatterplot comparing RMSEs
 RMSEcomp_new <- RMSEcomp
