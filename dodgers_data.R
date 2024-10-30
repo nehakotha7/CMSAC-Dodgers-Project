@@ -5301,7 +5301,6 @@ ch_to_fs_hgbc <- ch_to_fs_hgbc |>
 write.csv(ch_to_fs_hgbc, "ch_to_fs")
 
 #Full Model (for Fastball)
-#think I need to edit this so it's in the same format as ff_to_si (and others)
 hgbr_ff <- cond_data
 names(hgbr_ff) <- gsub('-', '_', names(hgbr_ff))  
 hgbr_ff <- hgbr_ff |> 
@@ -5328,6 +5327,169 @@ write.csv(full, "full")
 #Reading in table from python
 full_ff = read.csv("full_ff.csv")
 
+#Full Model (for Sinker)
+hgbr_si <- cond_data
+names(hgbr_si) <- gsub('-', '_', names(hgbr_si))  
+hgbr_si <- hgbr_si |> 
+  filter(ind_sinker == "Yes", !is.na(sp_s_SI)) |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vFC, pfx_vSL, 
+         pfx_vCU, pfx_vCH, pfx_vFS, pfx_FA_X, pfx_FC_X, pfx_SL_X, 
+         pfx_CU_X, pfx_CH_X, pfx_FS_X, pfx_FA_Z, pfx_FC_Z, pfx_SL_Z, 
+         pfx_CU_Z, pfx_CH_Z, pfx_FS_Z, ff_avg_spin,
+         fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_SI)
+write.csv(hgbr_si, "hgbr_si")
+
+full2 <- cond_data
+names(full2) <- gsub('-', '_', names(full2))  
+full2 <- full2 |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vFC, pfx_vSL, 
+         pfx_vCU, pfx_vCH, pfx_vFS, pfx_FA_X, pfx_FC_X, pfx_SL_X, 
+         pfx_CU_X, pfx_CH_X, pfx_FS_X, pfx_FA_Z, pfx_FC_Z, pfx_SL_Z, 
+         pfx_CU_Z, pfx_CH_Z, pfx_FS_Z, ff_avg_spin,
+         fc_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_SI)
+write.csv(full2, "full2")
+
+#Reading in table from python
+full_si = read.csv("full_si.csv")
+
+#Full Model (for Cutter)
+hgbr_fc <- cond_data
+names(hgbr_fc) <- gsub('-', '_', names(hgbr_fc))  
+hgbr_fc <- hgbr_fc |> 
+  filter(ind_cutter == "Yes", !is.na(sp_s_FC)) |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vSL, 
+         pfx_vCU, pfx_vCH, pfx_vFS, pfx_FA_X, pfx_SI_X, pfx_SL_X, 
+         pfx_CU_X, pfx_CH_X, pfx_FS_X, pfx_FA_Z, pfx_SI_Z, pfx_SL_Z, 
+         pfx_CU_Z, pfx_CH_Z, pfx_FS_Z, ff_avg_spin,
+         si_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FC)
+write.csv(hgbr_fc, "hgbr_fc")
+
+full3 <- cond_data
+names(full3) <- gsub('-', '_', names(full3))  
+full3 <- full3 |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vSL, 
+         pfx_vCU, pfx_vCH, pfx_vFS, pfx_FA_X, pfx_SI_X, pfx_SL_X, 
+         pfx_CU_X, pfx_CH_X, pfx_FS_X, pfx_FA_Z, pfx_SI_Z, pfx_SL_Z, 
+         pfx_CU_Z, pfx_CH_Z, pfx_FS_Z, ff_avg_spin,
+         si_avg_spin, sl_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FC)
+write.csv(full3, "full3")
+
+#Reading in table from python
+full_fc = read.csv("full_fc.csv")
+
+#Full Model (for Slider)
+hgbr_sl <- cond_data
+names(hgbr_sl) <- gsub('-', '_', names(hgbr_sl))  
+hgbr_sl <- hgbr_sl |> 
+  filter(ind_slider == "Yes", !is.na(sp_s_SL)) |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vFC, 
+         pfx_vCU, pfx_vCH, pfx_vFS, pfx_FA_X, pfx_SI_X, pfx_FC_X, 
+         pfx_CU_X, pfx_CH_X, pfx_FS_X, pfx_FA_Z, pfx_SI_Z, pfx_FC_Z, 
+         pfx_CU_Z, pfx_CH_Z, pfx_FS_Z, ff_avg_spin,
+         si_avg_spin, fc_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_SL)
+write.csv(hgbr_sl, "hgbr_sl")
+
+full4 <- cond_data
+names(full4) <- gsub('-', '_', names(full4))  
+full4 <- full4 |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vFC, 
+         pfx_vCU, pfx_vCH, pfx_vFS, pfx_FA_X, pfx_SI_X, pfx_FC_X, 
+         pfx_CU_X, pfx_CH_X, pfx_FS_X, pfx_FA_Z, pfx_SI_Z, pfx_FC_Z, 
+         pfx_CU_Z, pfx_CH_Z, pfx_FS_Z, ff_avg_spin,
+         si_avg_spin, fc_avg_spin, ch_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_SL)
+write.csv(full4, "full4")
+
+#Reading in table from python
+full_sl = read.csv("full_sl.csv")
+
+#Full Model (for Curveball)
+hgbr_cu <- cond_data
+names(hgbr_cu) <- gsub('-', '_', names(hgbr_cu))  
+hgbr_cu <- hgbr_cu |> 
+  filter(ind_curve == "Yes", !is.na(sp_s_CU)) |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vFC, 
+         pfx_vSL, pfx_vCH, pfx_vFS, pfx_FA_X, pfx_SI_X, pfx_FC_X, 
+         pfx_SL_X, pfx_CH_X, pfx_FS_X, pfx_FA_Z, pfx_SI_Z, pfx_FC_Z, 
+         pfx_SL_Z, pfx_CH_Z, pfx_FS_Z, ff_avg_spin,
+         si_avg_spin, fc_avg_spin, sl_avg_spin, ch_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU)
+write.csv(hgbr_cu, "hgbr_cu")
+
+full5 <- cond_data
+names(full5) <- gsub('-', '_', names(full5))  
+full5 <- full5 |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vFC, 
+         pfx_vSL, pfx_vCH, pfx_vFS, pfx_FA_X, pfx_SI_X, pfx_FC_X, 
+         pfx_SL_X, pfx_CH_X, pfx_FS_X, pfx_FA_Z, pfx_SI_Z, pfx_FC_Z, 
+         pfx_SL_Z, pfx_CH_Z, pfx_FS_Z, ff_avg_spin,
+         si_avg_spin, fc_avg_spin, sl_avg_spin, ch_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CU)
+write.csv(full5, "full5")
+
+#Reading in table from python
+full_cu = read.csv("full_cu.csv")
+
+#Full Model (for Changeup)
+hgbr_ch <- cond_data
+names(hgbr_ch) <- gsub('-', '_', names(hgbr_ch))  
+hgbr_ch <- hgbr_ch |> 
+  filter(ind_change == "Yes", !is.na(sp_s_CH)) |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vFC, 
+         pfx_vSL, pfx_vCU, pfx_vFS, pfx_FA_X, pfx_SI_X, pfx_FC_X, 
+         pfx_SL_X, pfx_CU_X, pfx_FS_X, pfx_FA_Z, pfx_SI_Z, pfx_FC_Z, 
+         pfx_SL_Z, pfx_CU_Z, pfx_FS_Z, ff_avg_spin,
+         si_avg_spin, fc_avg_spin, sl_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH)
+write.csv(hgbr_ch, "hgbr_ch")
+
+full6 <- cond_data
+names(full6) <- gsub('-', '_', names(full6))  
+full6 <- full6 |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vFC, 
+         pfx_vSL, pfx_vCU, pfx_vFS, pfx_FA_X, pfx_SI_X, pfx_FC_X, 
+         pfx_SL_X, pfx_CU_X, pfx_FS_X, pfx_FA_Z, pfx_SI_Z, pfx_FC_Z, 
+         pfx_SL_Z, pfx_CU_Z, pfx_FS_Z, ff_avg_spin,
+         si_avg_spin, fc_avg_spin, sl_avg_spin, cu_avg_spin, fs_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_CH)
+write.csv(full6, "full6")
+
+#Reading in table from python
+full_ch = read.csv("full_ch.csv")
+
+#Full Model (for Splitter)
+hgbr_fs <- cond_data
+names(hgbr_fs) <- gsub('-', '_', names(hgbr_fs))  
+hgbr_fs <- hgbr_fs |> 
+  filter(ind_split == "Yes", !is.na(sp_s_FS)) |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vFC, 
+         pfx_vSL, pfx_vCU, pfx_vCH, pfx_FA_X, pfx_SI_X, pfx_FC_X, 
+         pfx_SL_X, pfx_CU_X, pfx_CH_X, pfx_FA_Z, pfx_SI_Z, pfx_FC_Z, 
+         pfx_SL_Z, pfx_CU_Z, pfx_CH_Z, ff_avg_spin,
+         si_avg_spin, fc_avg_spin, sl_avg_spin, cu_avg_spin, ch_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FS)
+write.csv(hgbr_fs, "hgbr_fs")
+
+full7 <- cond_data
+names(full7) <- gsub('-', '_', names(full7))  
+full7 <- full7 |> 
+  select(Season, PlayerNameRoute, pfx_vFA, pfx_vSI, pfx_vFC, 
+         pfx_vSL, pfx_vCU, pfx_vCH, pfx_FA_X, pfx_SI_X, pfx_FC_X, 
+         pfx_SL_X, pfx_CU_X, pfx_CH_X, pfx_FA_Z, pfx_SI_Z, pfx_FC_Z, 
+         pfx_SL_Z, pfx_CU_Z, pfx_CH_Z, ff_avg_spin,
+         si_avg_spin, fc_avg_spin, sl_avg_spin, cu_avg_spin, ch_avg_spin, 
+         avg_release_extension, avg_rp_x, avg_rp_z, sp_s_FS)
+write.csv(full7, "full7")
+
+#Reading in table from python
+full_fs = read.csv("full_fs.csv")
+
+
 #Appending the main scatterplot comparing RMSEs
 RMSEcomp_new <- RMSEcomp
 hgbc_rmses = read.csv("hgbc_rmses.csv")
@@ -5340,10 +5502,20 @@ RMSEcomp_new |>
                                               "Slider", "Curveball", 
                                               "Changeup", "Splitter"))) |> 
   mutate(`Method` = factor(`Method`, levels = c("Intercept Only", "Lasso",
-                                                "Random Forest", "HGBC"))) |> 
+                                                "Random Forest", "HGBR"))) |> 
   ggplot(aes(`Response Pitch`, `Average RMSE`, color = Method))+
   geom_point(alpha = 0.7, size = 2)+
   scale_color_manual(values = c("black","red2", "dodgerblue2", "green"))+
   theme_bw()
 #So the Random Forest beats out the HGBC
-  
+
+
+#Shiny work
+save(si_only, file = "si_only.RData")
+save(ff_only, file = "ff_only.RData")
+save(fs_only, file = "fs_only.RData")
+save(ff_only2, file = "ff_only2.RData")
+save(ch_only, file = "ch_only.RData")
+save(cu_only, file = "cu_only.RData")
+save(ff_only3, file = "ff_only3.RData")
+save(merged_data, file = "merged_data.RData")
