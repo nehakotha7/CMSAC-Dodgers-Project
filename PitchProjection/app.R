@@ -1,13 +1,22 @@
 library(shiny)
 library(dplyr)
+#source("C:/Users/dbnol/Documents/R Files/CMU R Files/CMSAC-Dodgers-Project/dodgers_data.R")
+load("si_only.RData")
+load("ff_only.RData")
+load("fs_only.RData")
+load("ff_only2.RData")
+load("ch_only.RData")
+load("cu_only.RData")
+load("ff_only3.RData")
+load("merged_data.RData")
 
 # Define the UI
 ui <- fluidPage(
-  titlePanel("Single Pitch Prediction"),
+  titlePanel("Pitch Prediction"),
   
   tabsetPanel(
-    tabPanel("Single Pitch Prediction", 
-             h2("Select Response Pitch"),
+    tabPanel("Single Pitch", 
+             h2("Single Pitch Prediction System"),
              
              # Dropdown menu for pitch types
              selectInput("pitch_type", 
@@ -34,17 +43,27 @@ ui <- fluidPage(
              verbatimTextOutput("response_values")
     ),
     
-    tabPanel("Tab 2", 
-             h2("Content for Tab 2"),
-             numericInput("num1", "Enter a number for Tab 2:", value = 5),
-             verbatimTextOutput("num_output2")  # Output area for Tab 2
+    tabPanel("Full Arsenal", 
+             h2("Multiple Pitch Prediction System"),
+             
+             # Dropdown menu for pitch types
+             selectInput("pitch_type", 
+                         "Choose a response pitch to predict:", 
+                         choices = c("Four-Seam Fastball", "Sinker", "Cutter", 
+                                     "Slider", "Curveball", "Changeup", "Splitter"),
+                         selected = "Four-Seam Fastball"),  # Default selection
+             
+             uiOutput("pitcher_dropdown"),  # Dynamic dropdown for pitchers
+             
+             # Dropdown menu for season selection
+             uiOutput("season_dropdown"),  # Dynamic dropdown for season
+             
     )
   )
 )
 
 # Define the server logic
 server <- function(input, output) {
-  
   # Always use merged_data and select additional dataset based on pitch type
   selected_data <- reactive({
     additional_data <- switch(input$pitch_type,
@@ -54,7 +73,7 @@ server <- function(input, output) {
                               "Slider" = ff_only2,
                               "Curveball" = ch_only,
                               "Changeup" = cu_only,
-                              "Splitter" = ff_only3)
+                              "Splitter" = ff_only)
     
     list(merged_data = merged_data, additional_data = additional_data)
   })
@@ -144,9 +163,9 @@ server <- function(input, output) {
   
   # Render dynamic dropdown for pitcher names based on selected dataset
   output$pitcher_dropdown <- renderUI({
-    pitcher_names <- selected_data()$additional_data %>% 
-      pull(PlayerNameRoute) %>% 
-      unique() %>% 
+    pitcher_names <- selected_data()$additional_data %>%
+      pull(PlayerNameRoute) %>%
+      unique() %>%
       sort()
     
     selectInput("pitcher_name", 
