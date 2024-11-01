@@ -5489,12 +5489,35 @@ write.csv(full7, "full7")
 #Reading in table from python
 full_fs = read.csv("full_fs.csv")
 
+merged_hgbr = cbind(merged_data[,1:10], full_ff$ff_preds, full_si$si_preds, full_fc$fc_preds,
+                    full_sl$sl_preds, full_cu$cu_preds, full_ch$ch_preds, full_fs$fs_preds)
+merged_hgbr <- merged_hgbr |> 
+  rename("ff_preds" = V2) |> 
+  rename("si_preds" = V3) |> 
+  rename("fc_preds" = V4) |> 
+  rename("sl_preds" = V5) |>
+  rename("cu_preds" = V6) |> 
+  rename("ch_preds" = V7) |> 
+  rename("fs_preds" = V8)
 
 #Appending the main scatterplot comparing RMSEs
-RMSEcomp_new <- RMSEcomp
-hgbc_rmses = read.csv("hgbc_rmses.csv")
-colnames(hgbc_rmses) <- c("Predictor Pitch", "Response Pitch", "Average RMSE", "Method")
-RMSEcomp_new <- rbind(RMSEcomp, hgbc_rmses)
+# RMSEcomp_new <- RMSEcomp
+# hgbc_rmses = read.csv("hgbc_rmses.csv")
+# colnames(hgbc_rmses) <- c("Predictor Pitch", "Response Pitch", "Average RMSE", "Method")
+# RMSEcomp_new <- rbind(RMSEcomp, hgbc_rmses)
+
+hgbr_rows <- data.frame(
+  Response.Pitch = c("Fastball", "Sinker", "Cutter", "Slider", "Curveball", "Changeup", "Splitter"),
+  Average.RMSE = c(14.874, 14.187, 14.842, 14.5, 17.176, 18.986, 29.118),
+  Method = "HGBR",
+  Predictor.Pitch = NA
+)
+hgbr_rows <- hgbr_rows |> 
+  rename("Response Pitch" = Response.Pitch) |> 
+  rename("Average RMSE" = Average.RMSE) |> 
+  rename("Predictor Pitch" = Predictor.Pitch)
+RMSEcomp_new <- rbind(RMSEcomp, hgbr_rows)
+
 #Compare models, now including HGBC
 RMSEcomp_new |> 
   mutate(`Response Pitch` = factor(`Response Pitch`, 
@@ -5504,10 +5527,10 @@ RMSEcomp_new |>
   mutate(`Method` = factor(`Method`, levels = c("Intercept Only", "Lasso",
                                                 "Random Forest", "HGBR"))) |> 
   ggplot(aes(`Response Pitch`, `Average RMSE`, color = Method))+
-  geom_point(alpha = 0.7, size = 2)+
+  geom_point(alpha = 0.6, size = 3)+
   scale_color_manual(values = c("black","red2", "dodgerblue2", "green"))+
   theme_bw()
-#So the Random Forest beats out the HGBC
+#So the Random Forest beats out the HGBR
 
 
 #Shiny work
@@ -5519,3 +5542,4 @@ save(ch_only, file = "ch_only.RData")
 save(cu_only, file = "cu_only.RData")
 save(ff_only3, file = "ff_only3.RData")
 save(merged_data, file = "merged_data.RData")
+save(merged_hgbr, file = "merged_hgbr.RData")
